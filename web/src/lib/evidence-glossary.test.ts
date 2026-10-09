@@ -45,7 +45,7 @@ describe("one word per house (ADR-98)", () => {
 
   it("carries the word in the ruler gloss", () => {
     expect(glossFor({ kind: "ruler", house: 10, ruler: "venus", rulerSign: "scorpio", rulerHouse: 11, dignity: "detriment" }))
-      .toBe("The 10th (your work and what you're known for) answers to Venus, which sits in Scorpio in the 11th (friends), out of place, working hard for uneven results.");
+      .toBe("The 10th (your work and what you're known for) answers to Venus, which sits in Scorpio in the 11th (friends), least at ease, working hard for uneven results.");
   });
 });
 

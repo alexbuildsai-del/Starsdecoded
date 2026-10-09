@@ -1,9 +1,10 @@
 /**
  * The staging walk after each deploy, and its public verdict (ADR-279, 315). Once the web serves this commit, the QA
  * pair is made ready, reset and walked in `deploy` mode, which copies the seed in and writes nothing (readings 11, 17):
- * one walk a commit. GET /api/qa/latest answers the newest verdict with nothing private in it, for the round's skills
- * to read (B-31), and GET /api/qa/latest/shots/{step} the picture that walk kept of a step (ADR-360). Staging only:
- * anywhere else nothing walks and both routes answer 404. No route starts a walk (ADR-315).
+ * one walk a commit, and none once this process has begun to stop. GET /api/qa/latest answers the newest verdict with
+ * nothing private in it, for the round's skills to read (B-31), and GET /api/qa/latest/shots/{step} the picture that
+ * walk kept of a step (ADR-360). Staging only: anywhere else nothing walks and both routes answer 404. No route starts
+ * a walk (ADR-315).
  */
 import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
@@ -44,7 +45,11 @@ function liveDeps(): QaDeployDeps {
 
 const short = (sha: string) => sha.slice(0, 7);
 
+/** A stopping process starts no walk: the pair would stay open past its exit, and the next process walks its own commit. */
+const STOPPING: QaDeployOutcome = { kind: "skipped", reason: "this process is stopping" };
+
 async function afterDeploy(deps: QaDeployDeps): Promise<QaDeployOutcome> {
+  if (deps.walk.stopping()) return STOPPING;
   const { record, now } = deps.walk;
   const settled = await record.settle(deps.bootedAt, now());
   if (settled) deps.log("warn", `QA walk: ${settled} walk(s) a restart cut off now read failed`);
@@ -55,6 +60,8 @@ async function afterDeploy(deps: QaDeployDeps): Promise<QaDeployOutcome> {
   const waitedFrom = now();
   // The host the walk itself opens, so the commit it waits for is the one it walks.
   const { live, seen } = await deps.webServes(publicWebBase(deps.env), commit);
+  // The wait can last twenty minutes, long enough for the next deploy to stop this process.
+  if (deps.walk.stopping()) return STOPPING;
   if (!live) {
     const id = await record.begin({ sha: commit, mode: "deploy", startedAt: waitedFrom }, true);
     if (id) {
@@ -64,7 +71,8 @@ async function afterDeploy(deps: QaDeployDeps): Promise<QaDeployOutcome> {
     return { kind: "gave_up", commit, seen };
   }
   const run = await walkOnce("deploy", commit, deps.walk, { oncePerCommit: true });
-  return run ? { kind: "walked", commit, status: run.verdict.status } : { kind: "skipped", reason: `${short(commit)} has its walk already` };
+  if (run) return { kind: "walked", commit, status: run.verdict.status };
+  return deps.walk.stopping() ? STOPPING : { kind: "skipped", reason: `${short(commit)} has its walk already` };
 }
 
 function describe(outcome: QaDeployOutcome): ["info" | "warn", string] {

@@ -1,6 +1,6 @@
 /**
  * The natal report: one page, two skies (ADR-48, ADR-59). The generation
- * screen is the page until the reader takes the door or it opens itself:
+ * screen is the page until the reader takes the door (ADR-393):
  * full-bleed, the scroll locked behind it, the same screen before the chart
  * exists. Taking the door unmounts it, shows the report at the top, and the
  * hero's own sky gathers its stars onto the ring once; the chapters keep
@@ -19,7 +19,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
-import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport } from "@workspace/api-client-react";
+import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport, type SendState } from "@workspace/api-client-react";
 import LoadingState from "@/components/LoadingState";
 import {
   PLANET_GLYPHS,
@@ -33,7 +33,7 @@ import {
 import {
   OverviewBlock, DeepdiveBlock, MindBlock, MindRail, CareerBlock, CareerRail,
   MoneyBlock, MoneyRail, RelationshipsBlock, RelationshipsRail,
-  FamilyBlock, FamilyRail, SuperpowersBlock, DiscoveriesBlock,
+  FamilyBlock, FamilyRail, SuperpowersBlock, DiscoveriesBlock, ChapterFact,
 } from "@/components/ReportSections";
 import { ReportHero } from "@/components/report/ReportHero";
 import { houseWithWord } from "@/lib/evidence-glossary";
@@ -51,7 +51,9 @@ import { useBuildStory } from "@/components/report/BuildStory";
 import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
 import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
-import { SendDialog, SendLine } from "@/components/SendDialog";
+import { ShareWindow } from "@/components/share/ShareWindow";
+import { HANDED_BACK, SEND_AGAIN, sharedWaiting } from "@/lib/pair-row";
+import { shareWith } from "@/lib/share-card";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
@@ -115,6 +117,49 @@ function OutdatedLine({ onRegenerate, pending, error }: { onRegenerate?: () => v
         </Button>
       )}
       {error && <p role="alert" className="basis-full text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function lineText(send: SendState): { title: string; note: string } {
+  const name = send.firstName;
+  if (send.state === "sent") return { title: sharedWaiting(name), note: "When they sign in, the report is theirs." };
+  if (send.state === "joined") return { title: `${name} joined`, note: "The report is theirs now. They can delete it or stop you seeing it." };
+  if (send.state === "handed_back") return { title: HANDED_BACK, note: "Whoever opened your link said it isn't about them, so it's yours again." };
+  return { title: `Give ${name} their report`, note: "An email and a link. When they sign in, it is theirs." };
+}
+
+/** The server decides where a share is offered (reading 11), so a null `send` draws nothing; a first one, a grant to someone already here, or a new one after a handback (ADR-236). */
+function SendLine({ send, onSend }: { send: SendState | null | undefined; onSend: () => void }) {
+  if (!send) return null;
+  const { title, note } = lineText(send);
+  const offered = send.state === "can_send" || send.state === "can_grant" || send.state === "handed_back";
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-[#242C3B] bg-[rgba(20,24,31,.6)] px-3 py-2.5"
+      data-testid="send-line"
+      data-state={send.state}
+    >
+      <div className="min-w-0 flex-1 basis-[200px]">
+        <p className="text-[13.5px] leading-snug text-foreground">{title}</p>
+        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{note}</p>
+      </div>
+      {send.state === "joined" && (
+        <span className="inline-flex h-[30px] shrink-0 items-center rounded-md border border-[rgba(127,176,139,.4)] px-[11px] font-label text-xs text-[#7FB08B]">
+          Joined ✓
+        </span>
+      )}
+      {offered && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onSend}
+          className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
+          data-testid="button-send-to"
+        >
+          {send.state === "handed_back" ? SEND_AGAIN : shareWith(send.firstName)}
+        </Button>
+      )}
     </div>
   );
 }
@@ -445,11 +490,15 @@ export default function ReportPage() {
         </Chapter>
 
         <Chapter {...ch(10)}>
-          {body("focus", interpretation.focus && <DawnClosing s={interpretation.focus} />)}
+          {body("focus", interpretation.focus && (
+            <>
+              <DawnClosing s={interpretation.focus} fact={<div className="relative mt-8"><ChapterFact fact={interpretation.focus.didYouKnow} /></div>} />
+            </>
+          ))}
         </Chapter>
 
         {/* Where the reading ends, the person it is about can be given it (ADR-120); the server offers it only on a report the reader wrote about someone else. */}
-        {send && (
+        {send && report.profileId && (
           <div className="rp-chapter no-print">
             <div className="max-w-[64ch]">
               <SendLine send={send} onSend={() => setSending(true)} />
@@ -483,11 +532,13 @@ export default function ReportPage() {
         />
       )}
 
-      <SendDialog
-        open={sending}
-        onClose={() => setSending(false)}
-        target={send ? { kind: "person", reportId: id!, send } : null}
-      />
+      {send && report.profileId && (
+        <ShareWindow
+          open={sending}
+          onClose={() => setSending(false)}
+          target={{ kind: "person", profileId: report.profileId, name: send.firstName }}
+        />
+      )}
     </div>
     </RevisionProvider>
     </WorkbookProvider>

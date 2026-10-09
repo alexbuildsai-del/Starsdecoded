@@ -57,7 +57,28 @@ export const CONSENT_TITLE = "font-display text-[22px] font-normal leading-[1.2]
 export const CONSENT_BODY = "text-[14px] leading-[1.5] text-[#C9CEDA]";
 export const CONSENT_CANCEL = `${CONSENT_BUTTON} bg-transparent text-[#E8EBF2] [border-color:#242C3B]`;
 
-export function StopSharingDialog({ target, onClose }: { target: StopTarget | null; onClose: () => void }) {
+/**
+ * Ask answers written from a report are hidden for whoever can no longer read it (ADR-182, B-32), and a stop
+ * takes the report from `name`. A link still waiting was never read, so it hides nothing.
+ */
+function withAskLine(lines: string[], name: string): string[] {
+  const ask = `Ask answers that used this report are hidden for ${name}.`;
+  return lines.length > 1 ? [...lines.slice(0, -1), ask, lines[lines.length - 1]] : [...lines, ask];
+}
+
+/**
+ * `onStopped` takes the "can no longer read it" line in place of a toast. The Share window opens this dialog over
+ * itself, and a toast stays a layer for a while, so its Escape would close it before the window.
+ */
+export function StopSharingDialog({
+  target,
+  onClose,
+  onStopped,
+}: {
+  target: StopTarget | null;
+  onClose: () => void;
+  onStopped?: (line: string) => void;
+}) {
   const client = useQueryClient();
   const { toast } = useToast();
   const focus = useOpenerFocus();
@@ -77,7 +98,8 @@ export function StopSharingDialog({ target, onClose }: { target: StopTarget | nu
     void client.invalidateQueries({ queryKey: getListProfilesQueryKey() });
     void client.invalidateQueries({ queryKey: getGetHomeQueryKey() });
     if (shown?.kind === "share") void client.invalidateQueries({ queryKey: getListSharesQueryKey() });
-    if (shown) toast({ title: waitingAt ? "The link no longer works" : `${shown.name} can no longer read it` });
+    const line = waitingAt ? "The link no longer works" : `${shown?.name} can no longer read it`;
+    if (shown) (onStopped ?? ((title: string) => toast({ title })))(line);
     onClose();
   };
   const profile = useStopSharingProfile({ mutation: { onSuccess: done } });
@@ -98,10 +120,11 @@ export function StopSharingDialog({ target, onClose }: { target: StopTarget | nu
   }, [target, resetProfile, resetPair, resetShare]);
 
   if (!shown) return null;
-  const lines =
+  const stopped =
     shown.kind === "profile" ? stopSharingLines(shown.name, shown.subject)
     : shown.kind === "share" ? stopShareLines(shown.name, waitingAt)
     : [stopPairLine(shown.name)];
+  const lines = waitingAt ? stopped : withAskLine(stopped, shown.name);
   return (
     <AlertDialog open={!!target} onOpenChange={(next) => !next && !pending && onClose()}>
       <AlertDialogContent className={CONSENT_SHEET} {...focus}>

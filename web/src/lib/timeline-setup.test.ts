@@ -12,6 +12,8 @@ import {
   screenOf,
   setupParams,
   spanOf,
+  holdProgress,
+  setupProgress,
   ticksAt,
   wordsAt,
   type SetupTick,
@@ -161,5 +163,63 @@ describe("what the screen says", () => {
     const ended = wordsAt({ ...base, t: SCRIPT.end, screen: "replay", ticks, waitedMs: 0, replay: line });
     expect([ended.title, ended.door]).toEqual([line, { label: "Open Timeline", focus: true }]);
     expect(ended.subtitle).toBe(readyLine(16, 42));
+  });
+});
+
+describe("the loading bar", () => {
+  const COUNTS = { week: 6, month: 20, months: 90, cycles: 42 } as const;
+  const ORDER = ["week", "month", "months", "cycles"] as const;
+  const TOTAL = 6 + 20 + 90 + 42;
+
+  /** The setup when `n` readings have landed, in the order they are written: this week's first, then on. */
+  function landedAfter(n: number): TimelineSetup {
+    let left = n;
+    const taken = new Map<string, number>();
+    for (const id of ORDER) {
+      const here = Math.min(COUNTS[id], left);
+      taken.set(id, here);
+      left -= here;
+    }
+    return setup(n >= TOTAL ? "ready" : "writing", {
+      steps: STEPS.map((id) => {
+        if (id === "chart" || id === "planets") return { id, done: true, count: null, landed: null };
+        const landed = taken.get(id) ?? 0;
+        return { id, done: landed === COUNTS[id], count: COUNTS[id], landed };
+      }),
+    });
+  }
+
+  it("weighs the four writing steps by their readings and names the step being written", () => {
+    expect(setupProgress(landedAfter(0))).toEqual({ pct: 0, line: "0% · writing this week" });
+    expect(setupProgress(landedAfter(6))).toEqual({ pct: 3, line: "3% · writing this month" });
+    expect(setupProgress(landedAfter(26))).toEqual({ pct: 16, line: "16% · writing the next six months" });
+    expect(setupProgress(landedAfter(71))).toEqual({ pct: 44, line: "44% · writing the next six months" });
+    expect(setupProgress(landedAfter(116))).toEqual({ pct: 73, line: "73% · writing your life cycles" });
+    expect(setupProgress(landedAfter(TOTAL))).toEqual({ pct: 100, line: "100% · ready" });
+  });
+
+  it("never moves back as readings land, and shows 100 only with the last one", () => {
+    let last = -1;
+    for (let n = 0; n <= TOTAL; n++) {
+      const { pct, line } = setupProgress(landedAfter(n));
+      expect(pct).toBeGreaterThanOrEqual(last);
+      expect(pct === 100).toBe(n === TOTAL);
+      expect(line.startsWith(`${pct}% · `)).toBe(true);
+      last = pct;
+    }
+  });
+
+  it("holds the highest value when a later read shows less", () => {
+    const high = setupProgress(landedAfter(71));
+    const low = setupProgress(landedAfter(30));
+    expect(holdProgress(high, low)).toBe(high);
+    expect(holdProgress(low, high)).toBe(high);
+    expect(holdProgress(null, low)).toBe(low);
+  });
+
+  it("reads a step as landed when it is done and the server sent no count, and a ready setup as whole", () => {
+    expect(setupProgress(setup("writing", {}, 2)).pct, "week done, three steps not").toBe(Math.floor((600 * 1) / 158));
+    expect(setupProgress(setup("ready")).pct).toBe(100);
+    expect(setupProgress(setup("none")).line).toBe("0% · getting started");
   });
 });

@@ -20,9 +20,9 @@ const everyStoredStepHasASeed: Same<StoredStepId, SeedStep> = true;
 test("the ids are unique and in the order the Owner walks them", () => {
   assert.equal(new Set(STEP_IDS).size, STEP_IDS.length);
   assert.deepEqual(STEP_IDS, [
-    "sign-in", "buy", "own-report", "gift", "gift-claimed", "idris-report", "no-credit", "share", "share-back", "pair",
-    "pair-shared", "refund", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline", "timeline-setup",
-    "timeline-ends",
+    "sign-in", "buy", "own-report", "gift", "gift-claimed", "idris-report", "no-credit", "share", "share-back", "hanna-gift",
+    "hanna-claims", "hanna-report", "pair", "pair-shared", "refund", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims",
+    "timeline", "timeline-setup", "timeline-ends",
   ]);
   for (const step of STEPS) assert.ok(step.label.trim().length > 0, `${step.id} has no label`);
 });
@@ -35,7 +35,7 @@ test("every local step says why staging skips it, and no other step has a reason
   }
   assert.deepEqual(
     STEPS.filter((step) => step.staging === "local").map((step) => step.id),
-    ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"],
+    ["hanna-gift", "hanna-claims", "hanna-report", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"],
   );
 });
 
@@ -74,7 +74,7 @@ test("a map that lacks a step, or has one the list doesn't, is refused with both
   );
 });
 
-test("with no seed yet, a deploy's walk runs steps 1, 2, 4 to 6 and 12, and the rest of staging's wait with the seed", () => {
+test("with no seed yet, a deploy's walk runs the sign-in, the buy, the gift, its claim and the refund, and the rest of staging's wait with the seed", () => {
   const ready = STAGING_STEP_IDS.filter((id) => seedsFor(id).length === 0);
   assert.deepEqual(ready, ["sign-in", "buy", "gift", "gift-claimed", "refund"]);
   assert.deepEqual(seedsFor("no-credit"), ["idris-report"]);

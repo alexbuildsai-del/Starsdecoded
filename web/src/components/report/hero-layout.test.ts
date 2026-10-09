@@ -6,13 +6,29 @@
  *   pnpm --filter @workspace/api-server exec tsx -e \
  *     'import {calculateNatalChart} from "./src/lib/chartCalculation.js";
  *      console.log(calculateNatalChart("1999-08-11","12:10",51.5074,-0.1278,1))'
+ *
+ * The horizon's tests compute their charts here, from fixtures/charts, so no placement is typed in.
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { calculateNatalChart, type NatalChartData } from "@workspace/engine";
 import {
-  CONJUNCTION_DEGREES, OUTSIDE_STEP, PHONE, ascendantValue, layoutHero, moonArc, overlaps, phoneStack, separation, shortDate, writtenOnText,
+  CONJUNCTION_DEGREES, MARKER_REACH, NAME_AIR, OUTSIDE_STEP, PHONE, SLIDE_STEP, ascendantValue, heroTheta, layoutHero, moonArc, overlaps,
+  phoneStack, placeBodies, placeName, separation, shortDate, writtenOnText, type HeroLayout, type PlacedBody, type Rect,
 } from "./hero-layout";
 import { angleGlyphRadius } from "./AngleGlyph";
-import { pointAt, theta } from "@/components/chart/wheel-geometry";
+import { norm360, opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
+
+function fixtureChart(key: string): NatalChartData {
+  const birth = JSON.parse(readFileSync(new URL(`../../../../fixtures/charts/${key}.json`, import.meta.url), "utf8"));
+  return calculateNatalChart(birth.birthDate, birth.birthTime, birth.latitude, birth.longitude, birth.timezone ?? birth.timezoneOffset, 0);
+}
+
+/** The fixtures with a recorded birth time, so each has a horizon; the injection fixtures test prompts, not plates. */
+const WITH_HORIZON = [
+  "audrey-hepburn", "marie-curie", "athena", "beatrice", "charles", "charlotte", "george", "oprah-winfrey", "william",
+  "day-angular", "night-angular", "high-latitude",
+];
 
 const PLATE = { cx: 500, cy: 330, ringRadius: 200, labelWidth: 176, labelHeight: 30 };
 
@@ -220,6 +236,169 @@ describe("the report's date", () => {
     const dated = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 1, nameSize: 44, dated: true });
     expect(dated.name).toBe(plain.name + PHONE.nameGap + PHONE.written);
     expect(dated.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
+  });
+});
+
+describe("the hero's horizon (ADR-395)", () => {
+  const REACH = 258;
+
+  function ends(asc: number, frameOn?: "sign" | "degree") {
+    return {
+      east: pointAt(PLATE.cx, PLATE.cy, REACH, heroTheta(asc, asc, frameOn)),
+      west: pointAt(PLATE.cx, PLATE.cy, REACH, heroTheta(opposite(asc), asc, frameOn)),
+    };
+  }
+
+  it("is level through the Ascendant and the Descendant on a plate framed on the Ascendant's own degree", () => {
+    for (const key of WITH_HORIZON) {
+      const { east, west } = ends(fixtureChart(key).angles!.ascendant.absoluteDegree, "degree");
+      expect(Math.abs(east.y - west.y), key).toBeLessThan(1e-9);
+      expect(east.x, key).toBeLessThan(west.x);
+    }
+  });
+
+  it("leaned on the wheel's frame by the Ascendant's degree in its sign, which is what tilted it", () => {
+    for (const key of WITH_HORIZON) {
+      const asc = fixtureChart(key).angles!.ascendant.absoluteDegree;
+      const { east, west } = ends(asc);
+      const lean = (Math.atan2(east.y - west.y, west.x - east.x) * 180) / Math.PI;
+      expect(lean, key).toBeCloseTo(asc - Math.floor(asc / 30) * 30, 6);
+    }
+  });
+
+  it("keeps the Sun and the Moon at their true angles from the Ascendant", () => {
+    for (const key of WITH_HORIZON) {
+      const chart = fixtureChart(key);
+      const asc = chart.angles!.ascendant.absoluteDegree;
+      const layout = layoutHero({
+        ...PLATE, frameDegree: asc, frameOn: "degree", obstacles: [],
+        bodies: [
+          { key: "sun", absoluteDegree: chart.planets.sun.absoluteDegree, size: 120 },
+          { key: "moon", absoluteDegree: chart.planets.moon.absoluteDegree, size: 72 },
+        ],
+      });
+      for (const b of layout.bodies) {
+        const drawn = (Math.atan2(PLATE.cy - b.y, b.x - PLATE.cx) * 180) / Math.PI;
+        expect(separation(drawn, 180 + chart.planets[b.key].absoluteDegree - asc), `${key} ${b.key}`).toBeLessThan(1e-6);
+      }
+    }
+  });
+});
+
+describe("the horizon labels (B-62)", () => {
+  const disc = (b: { x: number; y: number; size: number }): Rect => ({ x: b.x - b.size / 2, y: b.y - b.size / 2, w: b.size, h: b.size });
+
+  // The phone's plate as the hero draws it: 560 square, the ring at 82% of it, the line 20 past the ring, a Sun of 100
+  // and a Moon of 60, and "EAST · RISING" over its value in a 280 by 40 block from 12 under the line's east end.
+  function phone(key: string): { chart: NatalChartData; block: Rect; layout: HeroLayout } {
+    const chart = fixtureChart(key);
+    const asc = chart.angles!.ascendant.absoluteDegree;
+    const east = pointAt(280, 280, 250, heroTheta(asc, asc, "degree"));
+    const block = { x: east.x, y: east.y + 12, w: 280, h: 40 };
+    const layout = layoutHero({
+      cx: 280, cy: 280, ringRadius: 230, labelWidth: 276, labelHeight: 34,
+      frameDegree: asc, frameOn: "degree", obstacles: [], horizonLabels: [block],
+      bodies: [
+        { key: "sun", absoluteDegree: chart.planets.sun.absoluteDegree, size: 100 },
+        { key: "moon", absoluteDegree: chart.planets.moon.absoluteDegree, size: 60 },
+      ],
+    });
+    return { chart, block, layout };
+  }
+
+  it("steps EAST · RISING down just clear of Audrey Hepburn's Moon, a few degrees past her Ascendant", () => {
+    const { chart, block, layout } = phone("audrey-hepburn");
+    const past = norm360(chart.planets.moon.absoluteDegree - chart.angles!.ascendant.absoluteDegree);
+    expect(past).toBeGreaterThan(0);
+    expect(past).toBeLessThan(10);
+    const moon = disc(layout.bodies.find((b) => b.key === "moon")!);
+    expect(overlaps(block, moon)).toBe(true);
+    const [drop] = layout.horizonDrops;
+    expect(drop % SLIDE_STEP).toBe(0);
+    expect(overlaps({ ...block, y: block.y + drop }, moon)).toBe(false);
+    expect(overlaps({ ...block, y: block.y + drop - SLIDE_STEP }, moon)).toBe(true);
+  });
+
+  it("leaves the label at rest when no body is near the Ascendant", () => {
+    expect(phone("marie-curie").layout.horizonDrops).toEqual([0]);
+  });
+
+  it("steps a label written inward from the line's end below the name plate it would cross", () => {
+    // The narrow plate: 780 by 640, the ring 236, the line 58 past it, the name plate 460 by 132 at the centre.
+    const chart = fixtureChart("marie-curie");
+    const asc = chart.angles!.ascendant.absoluteDegree;
+    const east = pointAt(390, 320, 294, heroTheta(asc, asc, "degree"));
+    const plate = { x: 160, y: 254, w: 460, h: 132 };
+    const block = { x: east.x, y: east.y + 14, w: 300, h: 46 };
+    const { horizonDrops: [drop] } = layoutHero({
+      cx: 390, cy: 320, ringRadius: 236, labelWidth: 276, labelHeight: 34,
+      frameDegree: asc, frameOn: "degree", obstacles: [plate], horizonLabels: [block],
+      bodies: [{ key: "moon", absoluteDegree: chart.planets.moon.absoluteDegree, size: 64 }],
+    });
+    expect(overlaps(block, plate)).toBe(true);
+    expect(overlaps({ ...block, y: block.y + drop }, plate)).toBe(false);
+    expect(overlaps({ ...block, y: block.y + drop - SLIDE_STEP }, plate)).toBe(true);
+  });
+});
+
+describe("the name on the horizon", () => {
+  // The wide plate on a 1366 by 768 laptop: 660 units drawn 642 px tall, the ring 200 units. The rows are the report's
+  // type as Chromium draws it: the eyebrow, the date, and "Oprah Winfrey" at 64, 48 and 40 px.
+  const scale = 642 / 660;
+  const PLATE_AT = { cx: 500, cy: 330, ringRadius: 200, scale };
+  const ROWS = { eyebrow: { width: 130.2, height: 15 }, written: { width: 147.8, height: 16 }, gap: 10 };
+  const OPRAH = [{ size: 64, width: 408.63, height: 69.12 }, { size: 48, width: 298.73, height: 51.84 }, { size: 40, width: 245.73, height: 43.2 }];
+  const markerRight = -200 * scale + MARKER_REACH * scale;
+  const named = (width: number) => placeName({ ...PLATE_AT, ...ROWS, names: [{ size: 64, width, height: 69.12 }], bodies: [] });
+  const bodiesOf = (key: string) => {
+    const chart = fixtureChart(key);
+    return placeBodies({
+      cx: 500, cy: 330, ringRadius: 200, frameDegree: chart.angles!.ascendant.absoluteDegree, frameOn: "degree",
+      bodies: [
+        { key: "sun", absoluteDegree: chart.planets.sun.absoluteDegree, size: 120 },
+        { key: "moon", absoluteDegree: chart.planets.moon.absoluteDegree, size: 72 },
+      ],
+    });
+  };
+  // Px from a disc to a row, the row taken back out of its air.
+  const gapTo = (b: PlacedBody, r: Rect) => {
+    const air = NAME_AIR / scale;
+    const box = { x: r.x + air, y: r.y + air, w: r.w - 2 * air, h: r.h - 2 * air };
+    const dx = Math.max(box.x - b.x, 0, b.x - (box.x + box.w));
+    const dy = Math.max(box.y - b.y, 0, b.y - (box.y + box.h));
+    return (Math.hypot(dx, dy) - b.size / 2) * scale;
+  };
+
+  it("keeps a name centred, at its own size, while it clears the rising marker by NAME_AIR", () => {
+    const place = named(-2 * (markerRight + NAME_AIR))!;
+    expect(place.clearance).toBeNull();
+    expect(place.size).toBe(64);
+    expect(placeName({ ...PLATE_AT, ...ROWS, scale: 0, names: OPRAH, bodies: [] })).toBeNull();
+  });
+
+  it("stands a name that would reach the marker on the line: NAME_AIR above the marker, its date as far below", () => {
+    const place = named(-2 * (markerRight + NAME_AIR) + 1)!;
+    expect(place.size).toBe(64);
+    expect(place.clearance).toBeCloseTo(MARKER_REACH * scale + NAME_AIR, 9);
+    expect(place.scale).toBeCloseTo(scale, 9);
+    const [, name, written] = place.obstacles;
+    expect(name.y + name.h).toBeCloseTo(330 - MARKER_REACH, 9);
+    expect(written.y).toBeCloseTo(330 + MARKER_REACH, 9);
+    expect(written.x + written.w / 2).toBeCloseTo(500, 9);
+  });
+
+  it("takes the rung below where standing would cover a body: Oprah Winfrey's Moon, just above her Ascendant", () => {
+    const bodies = bodiesOf("oprah-winfrey");
+    const moon = bodies.find((b) => b.key === "moon")!;
+    const standing = placeName({ ...PLATE_AT, ...ROWS, names: OPRAH.slice(0, 1), bodies })!;
+    expect(standing.clearance).not.toBeNull();
+    expect(Math.min(...standing.obstacles.map((r) => gapTo(moon, r)))).toBeLessThan(0);
+    const place = placeName({ ...PLATE_AT, ...ROWS, names: OPRAH, bodies })!;
+    // At 48 px the name no longer reaches the marker, so it is centred there, with NAME_AIR from every body.
+    expect(place.size).toBe(48);
+    expect(place.clearance).toBeNull();
+    expect(-OPRAH[1].width / 2).toBeGreaterThan(markerRight + NAME_AIR);
+    for (const b of bodies) for (const r of place.obstacles) expect(gapTo(b, r)).toBeGreaterThanOrEqual(NAME_AIR);
   });
 });
 

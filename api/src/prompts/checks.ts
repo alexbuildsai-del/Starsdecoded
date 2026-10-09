@@ -1,11 +1,14 @@
 /**
  * Every check a section or a Timeline reading can fail, classified (ADR-81;
- * the annex `docs/annex/pair-reliability-checks.md`, rows 1 to 48). A check blocks
+ * the annex `docs/annex/pair-reliability-checks.md`, rows 1 to 52). A check blocks
  * only when the text would be wrong or harmful for the reader or would cost
  * money; everything else is fixed in code, logged, or buffered by 20% around
  * the target the prompt states. Rule ids are stable so the failure log and
  * the Failures tab can count them (ADR-85).
  */
+import { PASSAGES } from "./examples.js";
+import { SCENES } from "./scenes.js";
+
 export type CheckClass = "block" | "fix" | "warn" | "buffer" | "repair";
 
 export interface Check {
@@ -40,11 +43,11 @@ export const RULES: Record<string, { row: number; cls: CheckClass }> = {
   "chk-18": { row: 18, cls: "block" },
   "chk-19": { row: 19, cls: "warn" },
   "chk-20": { row: 20, cls: "fix" },
-  "chk-21a": { row: 21, cls: "block" },
+  "chk-21a": { row: 21, cls: "warn" },
   "chk-21b": { row: 21, cls: "warn" },
   "chk-22": { row: 22, cls: "block" },
   "chk-23": { row: 23, cls: "buffer" },
-  "chk-24": { row: 24, cls: "block" },
+  "chk-24": { row: 24, cls: "warn" },
   "chk-25": { row: 25, cls: "block" },
   "chk-26": { row: 26, cls: "fix" },
   "chk-27": { row: 27, cls: "warn" },
@@ -69,6 +72,10 @@ export const RULES: Record<string, { row: number; cls: CheckClass }> = {
   "chk-46": { row: 46, cls: "block" },
   "chk-47": { row: 47, cls: "buffer" },
   "chk-48": { row: 48, cls: "fix" },
+  "chk-49": { row: 49, cls: "warn" },
+  "chk-50": { row: 50, cls: "warn" },
+  "chk-51": { row: 51, cls: "warn" },
+  "chk-52": { row: 52, cls: "warn" },
 };
 
 export const block = (rule: string, message: string): Check => ({ rule, cls: "block", message });
@@ -140,11 +147,11 @@ export interface RegisterHit {
   sentence: string;
 }
 
-/** Claims only quote the prose, so reading them would count a word twice. */
+/** Claims only quote the prose, so reading them would count a word twice; `noticed` is the observations table's, not the writer's. */
 function proseLeaves(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") out.push(value);
   else if (Array.isArray(value)) for (const v of value) proseLeaves(v, out);
-  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) if (k !== "claims") proseLeaves(v, out);
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) if (k !== "claims" && k !== "noticed") proseLeaves(v, out);
   return out;
 }
 
@@ -290,8 +297,8 @@ function figureOf(sentence: string): string | null {
   return isSimile(sentence) ? "simile" : null;
 }
 
-/** Copied text is counted where it was written: a claim's quote, an amendment's quote and the sentence it follows, a reference. */
-const COPIED = new Set(["claims", "quote", "after", "evidence"]);
+/** Copied text is counted where it was written: a claim's quote, an amendment's quote and the sentence it follows, a reference, the observations table's idea. */
+const COPIED = new Set(["claims", "quote", "after", "evidence", "noticed"]);
 
 function readerLeaves(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") out.push(value);
@@ -352,4 +359,153 @@ export function plainChecks(value: unknown): Check[] {
     if (!total) return [];
     return [warned("chk-43", `${kind}: ${total} of ${sentences} sentences (${[...counts].map(([w, n]) => (n > 1 ? `${w} ×${n}` : w)).join(", ")})`)];
   });
+}
+
+/**
+ * Dignity and sect words (explain-like-a-friend §3, acceptance 2; R-5.1): the brief and the doctrine keep them as
+ * keys the writer reasons with, and the reader gets the idea in plain words ("at home in", "least at ease"). The lab
+ * counts the same list (R19-19). "exalted" is the form a writer reaches for most, and the one evidence labels print.
+ */
+export const DIGNITY_WORDS: readonly string[] = [
+  "domicile", "exaltation", "exalted", "detriment", "fall", "peregrine", "sect", "cadent", "succedent", "angular",
+];
+
+/** Whole words, so "sect" never fires inside "section" or "insect"; "fall" and "angular" are everyday words ("fall asleep", "an angular face") until astrology frames them. */
+function dignityPattern(word: string): RegExp {
+  if (word === "fall") return /\b(?:in|its)\s+fall\b/gi;
+  if (word === "angular") return /\bangular\s+(?:house|planet)s?\b/gi;
+  return new RegExp(String.raw`\b${word}\b`, "gi");
+}
+
+const DIGNITY: Listed = DIGNITY_WORDS.map((word) => [word, dignityPattern(word)] as const);
+
+/** The chapters' Did you know card (R19-20's schema): read with the prose for its words, and alone for its wording. */
+const CARD = "didYouKnow";
+
+interface Written {
+  text: string;
+  card: boolean;
+}
+
+/**
+ * What the writer wrote for the reader, the card apart so a message can say where a word fell. Copied text is counted
+ * where it was written, and a house's Often noticed is filled in code from `observations.ts`, never by the writer.
+ */
+function writtenLeaves(value: unknown, card = false, out: Written[] = []): Written[] {
+  if (typeof value === "string") out.push({ text: value, card });
+  else if (Array.isArray(value)) for (const v of value) writtenLeaves(v, card, out);
+  else if (value && typeof value === "object") {
+    for (const [k, v] of Object.entries(value)) if (!COPIED.has(k) && k !== "noticed") writtenLeaves(v, card || k === CARD, out);
+  }
+  return out;
+}
+
+/** Each card's title and body as one text, so a title that frames the idea as tradition counts for the card. */
+function cardsOf(value: unknown, out: string[] = []): string[] {
+  if (Array.isArray(value)) for (const v of value) cardsOf(v, out);
+  else if (value && typeof value === "object") {
+    for (const [k, v] of Object.entries(value)) {
+      if (k === CARD) {
+        if (v && typeof v === "object") out.push(writtenLeaves(v).map((l) => l.text).join("\n"));
+      } else if (!COPIED.has(k)) cardsOf(v, out);
+    }
+  }
+  return out;
+}
+
+/**
+ * A card worded as tradition (reading 7: "is often read as", "old astrology tends to", "many people find", "some
+ * astrologers say"), with the near forms the explain-like-a-friend artifact's own cards use ("Many astrologers read
+ * your Sun as your father", "The lesson often read here", "Read that way"), so an approved card never fires.
+ */
+const TRADITION: readonly RegExp[] = [
+  /\b(?:often|sometimes|usually|commonly|traditionally)\s+(?:read|said|seen|called|linked|tied|taken|described)\b/i,
+  /\bread (?:that|this) way\b/i,
+  /\bastrolog(?:ers?|y)\b/i,
+  /\b(?:many|some) people find\b/i,
+  /\btradition(?:s|al|ally)?\b/i,
+  /\bit(?:'s|’s| is) (?:often |sometimes )?said\b/i,
+];
+
+/** Six words in a row (explain-like-a-friend §10): long enough that a writer's own sentence rarely meets a scene by chance. */
+const RUN = 6;
+const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
+
+/** A run stops at a sentence's end, so two ordinary sentences side by side never add up to a copy. */
+function sentenceSplit(text: string): string[] {
+  return text.split(/(?<=[.!?…][”"’')\]]?)\s+|\n+/);
+}
+
+/** Lower case, the apostrophe straight, words only: a copy with other capitals or punctuation is still a copy. */
+function runsIn(sentence: string): string[] {
+  const words = (sentence.toLowerCase().match(WORD) ?? []).map((w) => w.replace(/’/g, "'"));
+  const runs: string[] = [];
+  for (let i = 0; i + RUN <= words.length; i++) runs.push(words.slice(i, i + RUN).join(" "));
+  return runs;
+}
+
+let sourceRuns: Map<string, string> | undefined;
+
+/** Every run of the scene pool and the model passages, keyed to the id a message names; built on the first call. */
+function copySources(): Map<string, string> {
+  if (sourceRuns) return sourceRuns;
+  const runs = new Map<string, string>();
+  const add = (id: string, text: string) => {
+    for (const sentence of sentenceSplit(text)) for (const run of runsIn(sentence)) if (!runs.has(run)) runs.set(run, id);
+  };
+  for (const pool of [SCENES.body, SCENES.sign, SCENES.house]) {
+    for (const scenes of Object.values(pool)) for (const scene of scenes) add(`scene ${scene.id}`, scene.text);
+  }
+  for (const passage of PASSAGES) add(`passage ${passage.id}`, passage.text);
+  return (sourceRuns = runs);
+}
+
+function tally(counts: ReadonlyMap<string, number>): string {
+  return [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
+}
+
+/**
+ * chk-49 to 51 (annex rows 49 to 51, ADR-385) on the parsed reply of a reader-facing call: a dignity or sect word in
+ * the prose or the Did you know card (49), six words in a row from a scene or a model passage (50), a card worded as
+ * fact (51). None makes the text wrong for the reader (ADR-81), so each is a WARN row for the Failures tab, never a
+ * block, a retry or a lab fault. Words count anywhere in a sentence, in strings as parsed, never in the reply's raw
+ * JSON, where an escape's letter can hide one (R15-04, R16-21). A foundation's internal text is the writer's own
+ * reasoning, where these keys belong (reading 3), so it is never passed here. A message names the list's words, a
+ * scene's or a passage's id and a count, never the reader's text.
+ */
+export function explainChecks(value: unknown): Check[] {
+  const checks: Check[] = [];
+  const leaves = writtenLeaves(value);
+
+  for (const card of [false, true]) {
+    const texts = leaves.filter((l) => l.card === card).map((l) => l.text);
+    const words = new Map<string, number>();
+    for (const [word, pattern] of DIGNITY) {
+      const n = texts.reduce((sum, text) => sum + [...text.matchAll(pattern)].length, 0);
+      if (n) words.set(word, n);
+    }
+    if (words.size) checks.push(warned("chk-49", `a dignity or sect word in the ${card ? "Did you know card" : "prose"}: ${tally(words)}`));
+  }
+
+  const sources = copySources();
+  const copied = new Map<string, number>();
+  for (const { text } of leaves) {
+    for (const sentence of sentenceSplit(text)) {
+      const from = new Set<string>();
+      for (const run of runsIn(sentence)) {
+        const id = sources.get(run);
+        if (id) from.add(id);
+      }
+      for (const id of from) copied.set(id, (copied.get(id) ?? 0) + 1);
+    }
+  }
+  if (copied.size) checks.push(warned("chk-50", `six words in a row from ${tally(copied)}`));
+
+  const bare = cardsOf(value).filter((text) => !TRADITION.some((p) => p.test(text))).length;
+  if (bare) {
+    const which = bare === 1 ? "a Did you know card reads" : `${bare} Did you know cards read`;
+    checks.push(warned("chk-51", `${which} as fact, with no tradition wording ("is often read as", "old astrology tends to", "many people find", "some astrologers say")`));
+  }
+
+  return checks;
 }

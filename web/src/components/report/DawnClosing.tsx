@@ -10,7 +10,7 @@
  * The Sun renders only while --p is above zero, so scrolling away removes it.
  * Reduced motion renders the final frame and listens to nothing.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { SUN_HERO } from "@/lib/planet-renders";
 import { Checklist } from "@/components/report/Checklist";
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
@@ -18,14 +18,14 @@ import { itemKey } from "@/lib/workbook";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { FocusGroup, FocusSection } from "@/types/chart";
 
-// Practice is what a reader keeps working on, so its items are the ones that pin to the dashboard (ADR-174).
-const GROUPS: { key: "leanInto" | "notice" | "practice"; title: string; pinnable?: boolean }[] = [
+// Every tick-box item pins to the dashboard, three a report (Review 05/10 §7; ADR-174).
+const GROUPS: { key: "leanInto" | "notice" | "practice"; title: string }[] = [
   { key: "leanInto", title: "Do more of" },
   { key: "notice", title: "Notice" },
-  { key: "practice", title: "Practice", pinnable: true },
+  { key: "practice", title: "Practice" },
 ];
 
-function GroupCard({ title, group, path, pinnable }: { title: string; group: FocusGroup; path: string; pinnable?: boolean }) {
+function GroupCard({ title, group, path }: { title: string; group: FocusGroup; path: string }) {
   return (
     <div className="rp-box" style={{ marginTop: 0 }}>
       <span className="rp-lab">{title}</span>
@@ -33,7 +33,7 @@ function GroupCard({ title, group, path, pinnable }: { title: string; group: Foc
       {/* The dashboard ticks and pins these under the same keys, so a tick there is a tick here; renaming a key loses both. */}
       <Checklist
         heading="What to do"
-        pinnable={pinnable}
+        pinnable
         items={group.bullets.map((b, i) => ({
           key: itemKey("focus", `${path}.bullets`, i),
           action: b.point,
@@ -44,7 +44,7 @@ function GroupCard({ title, group, path, pinnable }: { title: string; group: Foc
   );
 }
 
-export function DawnClosing({ s, counter }: { s: FocusSection; counter?: CitationCounter }) {
+export function DawnClosing({ s, counter, fact }: { s: FocusSection; counter?: CitationCounter; fact?: ReactNode }) {
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const k = counter ?? newCitationCounter();
@@ -99,10 +99,12 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
         <p className="rp-pull max-w-[44ch]">
           {CitedText({ text: s.closing, claims: s.claims, counter: k })}
         </p>
+        {/* The chapter's fact card sits here, after the closing and before the tick-box cards, so it reads before the actions. */}
+        {fact}
         {/* One column at every width, as on a phone: three columns left a pinned Practice item about fifteen letters a line on a desktop, and the third card ran over the Sun. */}
         <div className="mt-10 grid gap-[22px]">
           {GROUPS.map((g) => (
-            <GroupCard key={g.key} title={g.title} group={s[g.key]} path={g.key} pinnable={g.pinnable} />
+            <GroupCard key={g.key} title={g.title} group={s[g.key]} path={g.key} />
           ))}
         </div>
       </div>

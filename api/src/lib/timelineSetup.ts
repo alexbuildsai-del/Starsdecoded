@@ -16,7 +16,7 @@ import {
   db, profilesTable, reportsTable, testersTable, timelineSetupsTable, usersTable, type TimelineSetupRow,
 } from "@workspace/db";
 import type { GetTimelineSetupResponse } from "@workspace/api-zod";
-import { enqueue, nextUtcMidnight, type JobHandler } from "./jobs.js";
+import { enqueue, nextUtcMidnight, type JobHandler, type JobKind } from "./jobs.js";
 import { logger } from "./logger.js";
 import { QA_PAIR } from "./qaPair.js";
 import { activeSubscription } from "./subscriptions.js";
@@ -43,6 +43,8 @@ const SIX_MONTHS = RANGE_DAYS["six-months"];
 
 const NO_READINGS: ReadingStatuses = new Map();
 const QA_EMAILS: ReadonlySet<string> = new Set(Object.values(QA_PAIR).map((member) => member.email.toLowerCase()));
+// The pair's marks alone: /qa's own account is marked too, and its Timeline is set up as anyone's (ADR-387).
+const PAIR_MARKS: ReadonlySet<string> = new Set(Object.keys(QA_PAIR));
 
 /** What a setup writes for a reader, in the reader's days: each step's keys, soonest first. */
 export interface SetupPlan {
@@ -155,7 +157,7 @@ async function queueWrites(profileId: string, keys: readonly string[]): Promise<
 async function queueRefreshes(reader: ReaderChart, keys: readonly string[]): Promise<void> {
   try {
     const stale = await staleReadings(reader, keys);
-    if (stale.length === 0 || (await isQaAccount(reader.userId))) return;
+    if (stale.length === 0 || (await isQaPair(reader.userId))) return;
     const first = Date.now();
     for (const [i, key] of stale.entries()) {
       await enqueue("timeline.refresh", { profileId: reader.profileId, key }, { runAt: new Date(first + i), dedupeKey: refreshJobKey(reader.profileId, key) });
@@ -171,15 +173,25 @@ function armAhead(userId: string, to: string, zone: string): Promise<string | nu
 }
 
 /** The staging walk's two accounts, by their mark or by their address, as the Sales page tells them. */
-async function isQaAccount(userId: string): Promise<boolean> {
+async function isQaPair(userId: string): Promise<boolean> {
   const [tester] = await db
     .select({ qa: testersTable.qa, email: testersTable.email })
     .from(testersTable)
     .where(eq(testersTable.userId, userId))
     .limit(1);
-  if (tester && (tester.qa !== null || QA_EMAILS.has(tester.email.toLowerCase()))) return true;
+  if (tester && ((tester.qa !== null && PAIR_MARKS.has(tester.qa)) || QA_EMAILS.has(tester.email.toLowerCase()))) return true;
   const [user] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   return !!user?.email && QA_EMAILS.has(user.email.toLowerCase());
+}
+
+/**
+ * A job's own look at whom it writes for, since the checks that queue jobs are not the only way into the queue: one
+ * that reaches the QA pair writes nothing and ends (ADR-315), its line naming its kind alone.
+ */
+async function forQaPair(kind: JobKind, userId: string): Promise<boolean> {
+  if (!(await isQaPair(userId))) return false;
+  logger.warn({ kind }, "a Timeline job for the QA pair wrote nothing");
+  return true;
 }
 
 /** The account's setup, with the chart it was made for: the profile of the report it read, null once that report is gone. */
@@ -247,9 +259,10 @@ async function stateOf(reader: ReaderChart, zone: string | null | undefined, ope
   }
   const lists: Record<ReadingStep, string[]> = { week: plan.week, month: plan.month, months: plan.months, cycles: plan.cycles };
   const steps = SETUP_STEPS.map((id): SetupStep => {
-    if (id === "chart" || id === "planets") return { id, done: true, count: null };
+    if (id === "chart" || id === "planets") return { id, done: true, count: null, landed: null };
     const keys = lists[id];
-    return { id, done: state === "ready" || keys.every(landed), count: keys.length };
+    // The loading bar moves on this count alone (ADR-394), so a key no job holds counts as landed, as `done` reads it.
+    return { id, done: state === "ready" || keys.every(landed), count: keys.length, landed: keys.filter(landed).length };
   });
   const replay = row.replayFrom && row.replayTo && !row.replaySeenAt && today >= row.replayFrom
     ? { from: row.replayFrom, to: row.replayTo }
@@ -268,7 +281,7 @@ async function stateOf(reader: ReaderChart, zone: string | null | undefined, ope
  */
 export async function startSetup(reader: ReaderChart, zone?: string | null): Promise<TimelineSetup> {
   const tz = validZone(zone) ?? reader.zone;
-  if (await isQaAccount(reader.userId)) return stateOf(reader, tz, false);
+  if (await isQaPair(reader.userId)) return stateOf(reader, tz, false);
   const today = dayIn(new Date(), tz);
   const row = await setupRow(reader.userId);
   if (row && stands(row, reader, today)) {
@@ -376,15 +389,15 @@ async function readerOfProfile(profileId: string): Promise<ReaderChart | null> {
 /**
  * `timeline.reading { profileId, key }`: one reading of a setup, idempotent by its key, since a reading kept on the
  * reader's basis is left as it is. Its reader is found again from the profile, so a report deleted meanwhile writes
- * nothing. A paused day waits for the next; a reading another write holds is looked at again once that write could
- * have died.
+ * nothing, nor does one for the QA pair. A paused day waits for the next; a reading another write holds is looked at
+ * again once that write could have died.
  */
 export const readingJob: JobHandler = async (payload) => {
   const profileId = idIn(payload.profileId);
   const key = idIn(payload.key);
   if (!profileId || !key) return;
   const reader = await readerOfProfile(profileId);
-  if (!reader) return;
+  if (!reader || (await forQaPair("timeline.reading", reader.userId))) return;
   const outcome = await writeQueuedReading(reader, key);
   if (outcome.status === "paused") return { retryAt: nextUtcMidnight() };
   return outcome.status === "held" ? { retryAt: outcome.until } : undefined;
@@ -394,11 +407,11 @@ export const readingJob: JobHandler = async (payload) => {
  * `timeline.ahead { userId }` (reading 9): a week before the readings written end, with Timeline still open to the
  * reader, it queues the next six months' readings, to `stretchEnd` should it run late, moves the setup on to them and
  * sets them to be drawn once, then waits for the week before those end. Without access it writes nothing and stops; a
- * new payment, or a visit once access is back, queues it again.
+ * new payment, or a visit once access is back, queues it again. For the QA pair it queues nothing and stops.
  */
 export const aheadJob: JobHandler = async (payload) => {
   const userId = idIn(payload.userId);
-  if (!userId) return;
+  if (!userId || (await forQaPair("timeline.ahead", userId))) return;
   const row = await setupRow(userId);
   if (!row) return;
   const reader = await readerChart({ userId, sessionId: "" });
@@ -423,13 +436,13 @@ export const aheadJob: JobHandler = async (payload) => {
  * `timeline.refresh { profileId, key }` (reading 10): a kept reading the reader's open found gone stale, written again
  * in place when what it is written from moved, moved onto the new basis when it did not. Idempotent by its key, since
  * a reading on the reader's basis is left as it is; its reader is found again from the profile, so a report deleted
- * meanwhile writes nothing. A paused day waits for the next.
+ * meanwhile writes nothing, nor does one for the QA pair. A paused day waits for the next.
  */
 export const refreshJob: JobHandler = async (payload) => {
   const profileId = idIn(payload.profileId);
   const key = idIn(payload.key);
   if (!profileId || !key) return;
   const reader = await readerOfProfile(profileId);
-  if (!reader) return;
+  if (!reader || (await forQaPair("timeline.refresh", reader.userId))) return;
   return (await refreshReading(reader, key)).status === "paused" ? { retryAt: nextUtcMidnight() } : undefined;
 };

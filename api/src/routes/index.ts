@@ -21,6 +21,7 @@ import {
   anonWriteLimit, askLimit, checkoutLimit, generationLimits, portalLimit, previewLimit, sendLimit, timelineNowLimit,
   timelineReadingLimit, timelineSetupLimit,
 } from "../lib/limits";
+import { qaAccountCap } from "../lib/qaAccount";
 import { spendGate } from "../lib/spendCap";
 import { requireTimelineAccess } from "../lib/timelineAccess";
 import { requireAccount } from "../middlewares/requireAccount";
@@ -31,9 +32,10 @@ const router: IRouter = Router();
 // Every route that spends or sends meets its limit here, ahead of the router that answers it, so the routes a limit guards
 // read as one list (ADR-199). Writing first needs an account on production (ADR-140), so a signed-out request takes no
 // count there. Elsewhere a signed-out write takes one from the count they all share (S1), then each caller's own limits;
-// none of these costs a query. Then the day's spend breaker. Exported so the limits' test can stand this very chain ahead
-// of a stub route.
-export const writing = [requireAccount(), ...anonWriteLimit, ...generationLimits, spendGate()];
+// none of these costs a query. Then the day's spend breaker, and last /qa's own account's day (ADR-387), which reads the
+// database on staging alone, so a flood meets the counts first. Exported so the limits' test can stand this very chain
+// ahead of a stub route.
+export const writing = [requireAccount(), ...anonWriteLimit, ...generationLimits, spendGate(), qaAccountCap];
 router.post("/reports", writing);
 router.post("/reports/:id/regenerate", writing);
 router.post("/compatibility", writing);

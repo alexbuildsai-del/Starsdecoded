@@ -2,22 +2,23 @@
  * The quick look a tap on the circle opens (ADR-182, review-01-10 scope 3):
  * the name and birth date, Sun, Moon and Rising with degrees, then for a pair
  * with the reader "With you" and its block, or for the reader chapter 08's
- * superpower and growing edge, then the buttons and a close control. Nothing
- * from the old card comes with it: no elements, houses or Generate (reading 2).
- * A report that could not be written opens nothing, so under the triad its
- * coded line (ADR-84) stands in place of the rest, with Try again where the
- * reader may rewrite it (reading 10). Its content is `GET /home`'s, so nothing
- * loads on open (reading 4); whether "Share with" is offered, and why a report
- * failed, are `GET /reports`', the copy the page already holds for its picker.
- * The reader's own quick look alone asks for more: who their report is shared
- * with, since Stop sharing lives on its list (ADR-235, reading 5).
+ * superpower and growing edge. Below, two buttons of one width and height
+ * (Make You & {name} or Open Compatibility report, then Open {name}'s report),
+ * and a line on what they can read with a small text Share that opens the one
+ * Share window (sharing-and-circle §5, ADR-333, 335, 337). No story, no drawer
+ * (ADR-338). Nothing from the old card comes with it: no elements, houses or
+ * Generate (reading 2). A report that could not be written opens nothing, so
+ * under the triad its coded line (ADR-84) stands in place of the rest, with
+ * Try again where the reader may rewrite it (reading 10). Its content is
+ * `GET /home`'s, so nothing loads on open (reading 4); why a report failed is
+ * `GET /reports`', the copy the page already holds for its picker.
  *
  * It is content only: the page frames it as the panel beside the circle on
  * desktop and as the bottom sheet on a phone, so one quick look serves both.
  * Key it by the person, so each one rises afresh. `rp-root` scopes the report's
  * tokens, so the triad row and the blocks read as the report's own.
  */
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "wouter";
 import { X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,30 +27,26 @@ import {
   getListReportsQueryKey,
   getListSharesQueryKey,
   useListReports,
-  useListShares,
   useRegenerateReport,
   useShareBack,
   type HomePair,
   type HomePerson,
 } from "@workspace/api-client-react";
-import { SendDialog } from "@/components/SendDialog";
 import { StatusDots } from "@/components/StatusDots";
 import { TriadRow } from "@/components/TriadRow";
 import { BlockFrame, BlockHeading, BlockLine, PairBlock } from "@/components/dashboard/PairBlock";
-import { ShareMySheet } from "@/components/dashboard/ShareMySheet";
-import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
-import { StoryPreview } from "@/components/report/ShareCard";
+import { ShareWindow } from "@/components/share/ShareWindow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useHome } from "@/hooks/useHome";
 import {
-  OWN_LINES, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, failureLine, firstName, isFailed, offersShareBack, offersShareMine,
-  offersTryAgain, quickLookDoors, shareControl, shareErrorLine, shareLine, shareName, shareStateText, shareTargetFor, sharedBackText,
-  tryAgainErrorLine, withYouText, writingText,
-  type Door, type ShareTarget,
+  OWN_LINES, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, canPair, failureLine, firstName, isFailed, isFinished, offersShareBack,
+  offersTryAgain, quickLookDoors, shareErrorLine, shareLine, sharedBackText, tryAgainErrorLine, withYouText, writingText,
+  type Door,
 } from "@/lib/home-view";
+import { makePairText, openReportText, readsYoursLine } from "@/lib/pair-row";
 import { refusalLine } from "@/lib/refusals";
-import { SHARE_LABELS, pairStoryText } from "@/lib/share-card";
+import { footerLine } from "@/lib/share-window";
 import { triadRowsOf } from "@/lib/triad-row";
 
 export interface QuickLookProps {
@@ -59,6 +56,8 @@ export interface QuickLookProps {
   /** The reader's own quick look, opened from the centre. */
   self: boolean;
   onClose: () => void;
+  /** Make You & {name}: the page opens the picker with both people picked (`/dashboard?pair=`). */
+  onMakePair: (profileId: string) => void;
 }
 
 const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em]";
@@ -66,28 +65,21 @@ const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] trac
 const STATUS = "items-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] font-label font-medium text-[var(--indigo-lt)]";
 const WIDE_STATUS = `flex min-h-10 w-full justify-center px-4 text-[13.5px] ${STATUS}`;
 const WIDE = "w-full whitespace-normal px-4 text-center font-label text-[13.5px]";
-// Sharing your own report keeps the indigo outline Share with wears on a report's own page (SendLine).
+// Share yours back keeps the indigo outline Share with wears on a report's own page (SendLine).
 const SHARE_OUTLINE = `${WIDE} text-[var(--indigo-lt)] [border-color:rgba(92,107,192,.6)]`;
 const ALERT = "text-sm leading-[1.45] text-[#E79AB2]";
 
-function DoorView({ door, primary = false }: { door: Door; primary?: boolean }) {
+// The two actions share one box, so a status stands in its button's place and size (ADR-130).
+function DoorView({ door, main = false }: { door: Door; main?: boolean }) {
   if (door.kind === "writing") {
-    return primary ? (
-      <div className={`flex min-h-10 w-full justify-center px-4 text-[13.5px] ${STATUS}`}>
+    return (
+      <div className={WIDE_STATUS}>
         <StatusDots label={door.label} />
       </div>
-    ) : (
-      <span className={`inline-flex min-h-8 px-3 text-xs ${STATUS}`}>
-        <StatusDots label={door.label} />
-      </span>
     );
   }
-  return primary ? (
-    <Button asChild size="lg" className={WIDE}>
-      <Link href={door.href}>{door.label}</Link>
-    </Button>
-  ) : (
-    <Button asChild variant="outline" size="sm" className="font-label text-xs">
+  return (
+    <Button asChild size="lg" variant={main ? "default" : "outline"} className={WIDE}>
       <Link href={door.href}>{door.label}</Link>
     </Button>
   );
@@ -179,69 +171,30 @@ function ShareBack({ person }: { person: HomePerson }) {
   );
 }
 
-/** Who the reader's own report is shared with, each with Stop sharing, whatever state the report is in, so a share can always end (reading 5). */
-function SharedWith({ onStop }: { onStop: (target: StopTarget) => void }) {
+export function QuickLook({ person, pair, self, onClose, onMakePair }: QuickLookProps) {
   const headingId = useId();
-  const shares = useListShares({ query: { queryKey: getListSharesQueryKey() } });
-  const list = Array.isArray(shares.data) ? shares.data : [];
-  if (list.length === 0) return null;
-  return (
-    <section aria-labelledby={headingId} className="grid gap-1">
-      <h4 id={headingId} className={`${EYEBROW} text-[var(--paper-dim)]`}>{SHARE_MINE.sharedWith}</h4>
-      <ul className="grid">
-        {list.map((share) => {
-          const name = shareName(share);
-          return (
-            <li key={share.id} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2.5 last:border-b-0">
-              <div className="min-w-0">
-                <p className="text-[13.5px] leading-[1.3] text-[var(--paper)] [overflow-wrap:anywhere]">{name}</p>
-                <p className="mt-0.5 text-xs leading-[1.3] text-[var(--paper-dim)]">{shareStateText(share)}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                aria-label={`${SHARE_MINE.stop} with ${name}`}
-                onClick={() => onStop({ kind: "share", id: share.id, name })}
-                className="shrink-0 font-label text-xs"
-              >
-                {SHARE_MINE.stop}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
-  const headingId = useId();
-  const storyId = useId();
-  const reduced = useReducedMotion();
-  const storyRef = useRef<HTMLDivElement>(null);
-  const [storyOpen, setStoryOpen] = useState(false);
-  const [sending, setSending] = useState<ShareTarget | null>(null);
-  const [sharingMine, setSharingMine] = useState(false);
-  const [stopping, setStopping] = useState<StopTarget | null>(null);
+  const home = useHome().data;
+  const [sharing, setSharing] = useState(false);
 
   // The page polls this list for its picker; a quick look reads that copy rather than asking again as it opens.
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey(), refetchOnMount: false } });
   const listed = Array.isArray(reports.data) ? reports.data : [];
   const summaryOf = (reportId: string | undefined) => (reportId ? listed.find((r) => r.id === reportId) : undefined);
-  const sendOf = (reportId: string | undefined) => summaryOf(reportId)?.send ?? null;
 
   const failed = isFailed(person.status);
   const look = { person, pair: self ? undefined : pair, self };
   const doors = quickLookDoors(look);
   const triad = triadRowsOf(person.triad, { blind: blindRisingText(person.name, self) });
-  const share = shareTargetFor(look, { person: sendOf(person.reportId), pair: sendOf(look.pair?.reportId) });
-  const control = share ? shareControl(share, person.name) : null;
-  const story = look.pair ? pairStoryText(look.pair) : null;
-
-  // On a phone the sheet may hold the story below its fold, so the story is brought into view as it opens.
-  useEffect(() => {
-    if (storyOpen) storyRef.current?.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
-  }, [storyOpen, reduced]);
+  const reportDoor: Door | null =
+    doors.report?.kind === "open" ? { ...doors.report, label: openReportText(person.name) } : doors.report;
+  // A pair is one credit and needs two readable reports; the page's `canPair` says so for every entry (ADR-332).
+  const canMake = !look.self && !look.pair && isFinished(person.status) && !!home && canPair(home);
+  const ownReady = !!home?.you && isFinished(home.you.status);
+  const shareBack = offersShareBack(look);
+  const readsLine =
+    look.self ? (isFinished(person.status) ? footerLine(person.readers) : null)
+    : ownReady && !shareBack ? readsYoursLine(person.name, person.readsYours)
+    : null;
 
   return (
     <article
@@ -289,57 +242,40 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
             </div>
           )}
 
-          <DoorView door={doors.primary} primary />
-
-          {offersShareMine(look) && (
-            <Button variant="outline" size="lg" onClick={() => setSharingMine(true)} className={SHARE_OUTLINE}>
-              {SHARE_MINE.open}
-            </Button>
-          )}
-
-          {offersShareBack(look) && <ShareBack person={person} />}
-
-          {(doors.report || share || story) && (
-            <div className="flex flex-wrap gap-2">
-              {doors.report && <DoorView door={doors.report} />}
-              {control?.status && <span className="self-center font-label text-xs text-[var(--paper-dim)]">{control.status}</span>}
-              {share && control && (
-                <Button variant="outline" size="sm" onClick={() => setSending(share)} className="font-label text-xs">
-                  {control.label}
+          <div className="grid gap-2.5">
+            {canMake ? (
+              <>
+                <Button size="lg" onClick={() => onMakePair(person.profileId)} className={WIDE}>
+                  {makePairText(person.name)}
                 </Button>
-              )}
-              {story && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-expanded={storyOpen}
-                  aria-controls={storyId}
-                  onClick={() => setStoryOpen((open) => !open)}
-                  className="font-label text-xs"
-                >
-                  {SHARE_LABELS.share}
-                </Button>
-              )}
-            </div>
-          )}
+                <DoorView door={doors.primary} />
+              </>
+            ) : (
+              <>
+                <DoorView door={doors.primary} main />
+                {reportDoor && <DoorView door={reportDoor} />}
+              </>
+            )}
+          </div>
 
-          {story && (
-            <div id={storyId} ref={storyRef} hidden={!storyOpen} className="scroll-mb-4">
-              {storyOpen && <StoryPreview text={story} />}
+          {shareBack && <ShareBack person={person} />}
+
+          {readsLine && (
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2.5">
+              <p className="min-w-0 text-[13px] leading-[1.4] text-[var(--paper-dim)]">{readsLine}</p>
+              <button
+                type="button"
+                onClick={() => setSharing(true)}
+                className="-mr-2 inline-flex min-h-9 shrink-0 items-center rounded-md px-2 font-label text-[13px] font-medium text-[var(--indigo-lt)] underline-offset-4 transition-colors hover:text-[var(--paper)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
+              >
+                Share
+              </button>
             </div>
           )}
         </>
       )}
 
-      {self && <SharedWith onStop={setStopping} />}
-
-      <SendDialog open={sending !== null} onClose={() => setSending(null)} target={sending} />
-      {self && (
-        <>
-          <ShareMySheet open={sharingMine} onClose={() => setSharingMine(false)} />
-          <StopSharingDialog target={stopping} onClose={() => setStopping(null)} />
-        </>
-      )}
+      <ShareWindow open={sharing} onClose={() => setSharing(false)} target={{ kind: "own" }} />
     </article>
   );
 }

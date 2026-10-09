@@ -20,12 +20,12 @@ import type { Lens, PairInput } from "./pairBrief.js";
 import type { TokenShape } from "./labRules.js";
 import { zoneAt } from "./places.js";
 import { resolveSection } from "./promptLoader.js";
-import { RANGE_DAYS, dayIn, dayStart, lifeView, nowView, validZone, type ReaderChart, type ReadingStatuses } from "./timeline.js";
+import { RANGE_DAYS, dayIn, dayStart, lifeView, nowView, readingTimes, validZone, type ReaderChart, type ReadingStatuses } from "./timeline.js";
 import { passagesFor } from "./timelineReadings.js";
 import { ALL_SECTIONS, buildBrief, sectionById, sectionsFor, toStrictJsonSchema } from "../prompts/index.js";
 import { PAIR_FOUNDATION, pairChapterIds, pairChapterTitle, pairSpecsFor } from "../prompts/pair/index.js";
 import { DATA_CLOSE, DATA_LABELS, DATA_OPEN, dataBlock, outsideDataBlocks } from "../prompts/data.js";
-import { READING_KEY, ReadingSchema, readingPrompt, type ReadingEvent, type ReadingInput } from "../prompts/timeline/index.js";
+import { CHILD_UNDER, READING_KEY, ReadingSchema, readingPrompt, type ReadingEvent, type ReadingInput } from "../prompts/timeline/index.js";
 import {
   ASK_KEYS, askAnswerPrompt, askPlanPrompt,
   type AskAnswerCard, type AskAnswerInput, type AskCallKey, type AskContext, type AskEvent, type AskPerson, type AskReport, type AskTurn,
@@ -38,6 +38,8 @@ export interface DryRow {
   baselineInputTokens: number | null;
   schemaOk: boolean;
   error?: string;
+  /** Timeline's rows: which of `HELD_KINDS` the event is, so a render is read by eye for the six. */
+  holds?: HeldKind[];
 }
 
 /** A strict schema is one every object of which closes itself and requires every property. */
@@ -151,19 +153,56 @@ function middayOf(day: string, zone: string): Date {
 }
 
 /**
+ * What the dry Timeline render must hold per chart, each when the chart's window has one (R19-19; Review 05/10
+ * acceptance 11, Review 08/10 §1): a retrograde, an eclipse, the nodes' opposition, a cycle from before 16, a Light
+ * reading (tone "easy") and a contact with three passes.
+ */
+export const HELD_KINDS = ["retrograde", "eclipse", "nodes opposition", "cycle before 16", "light", "three passes"] as const;
+export type HeldKind = (typeof HELD_KINDS)[number];
+
+
+/** Which of the six an event is; a Light eclipse or contact is two of them. */
+export function heldKinds(event: ReadingEvent): HeldKind[] {
+  if (!("kind" in event)) return [...(event.id === "node-opposition" ? ["nodes opposition" as const] : []), ...(event.age < CHILD_UNDER ? ["cycle before 16" as const] : [])];
+  return [
+    ...(event.kind === "retrograde" ? ["retrograde" as const] : []),
+    ...(event.kind === "eclipse" ? ["eclipse" as const] : []),
+    ...(event.tone === "easy" ? ["light" as const] : []),
+    ...(event.kind === "contact" && event.passes.length >= 3 ? ["three passes" as const] : []),
+  ];
+}
+
+/** The six that none of a chart's rows (their `holds`) is, in the order above: what its window did not have. */
+export function missingKinds(rows: readonly Pick<DryRow, "holds">[]): HeldKind[] {
+  const held = new Set(rows.flatMap((r) => r.holds ?? []));
+  return HELD_KINDS.filter((k) => !held.has(k));
+}
+
+/**
  * The events a dry reading renders for one chart: the first five that read
  * (reading 7) in the six months from `from` in the reader's days, in the
  * engine's order, then the three life cycles nearest that day, nearest first.
+ * Then, for each of the six `HELD_KINDS` those eight leave out, the first
+ * event of the window that is one (a cycle: the nearest to that day), so the
+ * render needs no luck of the chart; a window without one leaves it out.
  */
 export function dryEvents(chart: NatalChartData, zone: string, from = DRY_FROM): ReadingEvent[] {
   const start = dayStart(from, zone);
   const end = dayStart(addDays(from, RANGE_DAYS["six-months"]), zone);
-  const events = skyEvents(chart, start, new Date(end.getTime() - 1)).filter(readsAs).slice(0, READINGS_A_CHART);
+  const reads = skyEvents(chart, start, new Date(end.getTime() - 1)).filter(readsAs);
   const at = start.getTime();
   const away = (cycle: LifeCycle) => Math.max(0, cycle.window.start.getTime() - at, at - cycle.window.end.getTime());
   // The sort is stable, so cycles as near as each other keep the engine's order.
-  const cycles = lifeCycles(natalLongitudes(chart), new Date(chart.datetimeUtc)).sort((x, y) => away(x) - away(y)).slice(0, CYCLES_A_CHART);
-  return [...events, ...cycles];
+  const all = lifeCycles(natalLongitudes(chart), new Date(chart.datetimeUtc)).sort((x, y) => away(x) - away(y));
+  const sky: ReadingEvent[] = reads.slice(0, READINGS_A_CHART);
+  const cycles: ReadingEvent[] = all.slice(0, CYCLES_A_CHART);
+  for (const kind of HELD_KINDS) {
+    if ([...sky, ...cycles].some((e) => heldKinds(e).includes(kind))) continue;
+    const [into, pool]: [ReadingEvent[], readonly ReadingEvent[]] = kind === "nodes opposition" || kind === "cycle before 16" ? [cycles, all] : [sky, reads];
+    const found = pool.find((e) => heldKinds(e).includes(kind));
+    if (found) into.push(found);
+  }
+  return [...sky, ...cycles];
 }
 
 type Prompt = { system: string; user: string };
@@ -199,8 +238,9 @@ export async function dryTimeline(reader: DryReader, from = DRY_FROM): Promise<D
   for (const event of events) {
     try {
       const { excerpts } = passagesFor(event, reader.chart, reader.report);
-      const prompt = await readingOf({ event, brief, excerpts, name: reader.name, blind });
-      out.push({ fixture: reader.fixture, section: event.key, inputTokens: tokens(prompt), baselineInputTokens: null, schemaOk: strictOk(toStrictJsonSchema(ReadingSchema)) });
+      const times = readingTimes(viewer(reader.chart, reader.zone), event, dayStart(from, reader.zone));
+      const prompt = await readingOf({ event, brief, excerpts, name: reader.name, blind, ...times });
+      out.push({ fixture: reader.fixture, section: event.key, inputTokens: tokens(prompt), baselineInputTokens: null, schemaOk: strictOk(toStrictJsonSchema(ReadingSchema)), holds: heldKinds(event) });
     } catch (err) {
       out.push(failedRow(reader.fixture, event.key, err));
     }
@@ -526,7 +566,7 @@ async function timelineInjection(fixtures: InjectionFixture[], charts: ReadonlyM
     const blind = !hasHorizon(chart);
     const briefs = new Map([f.name, plain].map((name) => [name, buildBrief(chart, name)]));
     const input = (event: ReadingEvent, name: string): ReadingInput =>
-      ({ event, brief: briefs.get(name)!, excerpts: [{ source: "Your report", text: namedPassage(name) }], name, blind });
+      ({ event, brief: briefs.get(name)!, excerpts: [{ source: "Your report", text: namedPassage(name) }], name, blind, ...readingTimes(viewer(chart, readerZone(f)), event, dayStart(DRY_FROM, readerZone(f))) });
     for (const event of events) {
       rows.push(await probe({ fixture: f.fixture, set: "timeline", section: event.key }, [f.name], () => render(input(event, f.name)), () => render(input(event, plain))));
     }

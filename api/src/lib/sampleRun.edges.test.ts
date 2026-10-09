@@ -134,6 +134,7 @@ test("the week's changes are the things its sentence counts: rebuilt from them, 
         end: eases ? inWeek(5) : new Date(open + 90 * DAY_MS),
         exact: mine.some((c) => c.change === "peaks") ? [inWeek(3)] : [],
       },
+      crosses: [], passes: [], backwards: [],
     };
   });
   assert.ok(events.length > 0, "something moves in the week");

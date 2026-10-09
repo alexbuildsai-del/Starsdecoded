@@ -5,7 +5,8 @@
  * reads real reports and spends nothing (ADR-315). Nothing here calls a model.
  *
  * Both stay banned in Clerk outside a walk. A walk opens them for as long as it runs and signs them in only with the
- * sign-in tokens its hold makes, and each start bans them again unless a walk here holds them.
+ * sign-in tokens its hold makes, and each start bans them again unless a walk here holds them. A stop bans whatever a
+ * walk here still holds before the process exits, and from then on nothing here opens them.
  *
  * Staging only (reading 10): every function refuses anywhere else, on APP_ENV alone and never on a request (R13-08),
  * so production can't make, top up, reset or seed them.
@@ -13,13 +14,14 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import {
   db,
   askMessagesTable,
   bundlesTable,
   creditsTable,
   inviteTokensTable,
+  jobsTable,
   labRunsTable,
   profileSharesTable,
   profilesTable,
@@ -30,6 +32,7 @@ import {
   subscriptionsTable,
   testersTable,
   timelineReadingsTable,
+  timelineSetupsTable,
   usersTable,
   type InsertLabRun,
   type Report,
@@ -204,15 +207,16 @@ async function confirmPair(pair: QaPair): Promise<string[]> {
 
 /**
  * Puts both accounts back at the walk's start: what either one made goes (invites and gifts, shares, reports and
- * pairs, credits and grants) and Timeline's plan ends, then Mira holds 20 test credits and Idris none. A customer can't
- * leave a Stripe test clock and goes when its clock does, so each account's customer is forgotten and the next walk
- * makes a fresh one. Purchases stay, as a payment's record stays when an account goes, so a late webhook still finds
- * its row.
+ * pairs, credits and grants), Timeline's plan ends and its setup goes with every job still queued to write for either
+ * account, then Mira holds 20 test credits and Idris none. A customer can't leave a Stripe test clock and goes when its
+ * clock does, so each account's customer is forgotten and the next walk makes a fresh one. Purchases stay, as a
+ * payment's record stays when an account goes, so a late webhook still finds its row.
  */
 export async function resetQaPair(pair: QaPair): Promise<void> {
   stagingOnly("resetting the pair");
   const ids = await confirmPair(pair);
   const endedAt = new Date();
+  let timeline = { setups: 0, jobs: 0 };
   await db.transaction(async (tx) => {
     const profileIds = (await tx.select({ id: profilesTable.id }).from(profilesTable).where(inArray(profilesTable.userId, ids))).map((p) => p.id);
     const relationshipIds = (await tx.select({ id: relationshipsTable.id }).from(relationshipsTable).where(inArray(relationshipsTable.userId, ids))).map(
@@ -228,6 +232,23 @@ export async function resetQaPair(pair: QaPair): Promise<void> {
     }
     if (profileIds.length) await tx.delete(profilesTable).where(inArray(profilesTable.id, profileIds));
     await tx.delete(timelineReadingsTable).where(inArray(timelineReadingsTable.userId, ids));
+    // Setup never starts for the pair, since a deploy spends nothing (ADR-315): whatever got past the checks that keep it
+    // so goes here. A job a worker already holds is left to its handler's own check.
+    const setups = await tx
+      .delete(timelineSetupsTable)
+      .where(inArray(timelineSetupsTable.userId, ids))
+      .returning({ userId: timelineSetupsTable.userId });
+    const jobs = await tx
+      .delete(jobsTable)
+      .where(and(
+        eq(jobsTable.status, "queued"),
+        or(
+          and(eq(jobsTable.kind, "timeline.ahead"), inArray(sql`(${jobsTable.payload}->>'userId')`, ids)),
+          and(inArray(jobsTable.kind, ["timeline.reading", "timeline.refresh"]), inArray(sql`(${jobsTable.payload}->>'profileId')`, profileIds)),
+        ),
+      ))
+      .returning({ id: jobsTable.id });
+    timeline = { setups: setups.length, jobs: jobs.length };
     await tx.delete(askMessagesTable).where(inArray(askMessagesTable.userId, ids));
     await tx.delete(creditsTable).where(inArray(creditsTable.userId, ids));
     await tx.delete(bundlesTable).where(inArray(bundlesTable.userId, ids));
@@ -257,13 +278,24 @@ export async function resetQaPair(pair: QaPair): Promise<void> {
         .values(Array.from({ length: count }, () => ({ id: randomUUID(), userId, bundleId, status: "available", usedForReportId: null, isTest: true })));
     }
   });
+  // Any at all means a check upstream let Timeline's writes in for the pair.
+  if (timeline.setups || timeline.jobs) logger.warn(timeline, "QA pair: the reset took Timeline's setup or queued jobs");
 }
 
 /** Made as the reader signs in and used at once, so two minutes is room enough. */
 const TICKET_SECONDS = 120;
 
-/** Walks in this process holding the pair open; a start bans neither while one does. */
-let walksOpen = 0;
+/**
+ * The holds of the walks in this process, each with its open's unban, kept until its close has banned both. A start
+ * bans neither account while one is here. A stop bans a hold only once that unban has landed, since sent together Clerk
+ * could apply the unban last, and waits on a close already under way, which the exit would otherwise cut.
+ */
+const holds = new Map<QaPairHold, Promise<unknown>>();
+
+/** Set for good once this process begins to stop: from then on no walk here opens the pair. */
+let stopping = false;
+
+const STOPPING_LINE = "the API is stopping, so no walk opens the pair";
 
 /** The newest walk's own reports, by the stored step whose write answered each: the only ones storeQaSeed may keep. */
 let newestWalkWrote = new Map<SeedStep, string>();
@@ -276,7 +308,8 @@ export interface QaPairHold {
   wrote(step: SeedStep, reportId: string): void;
   /**
    * Bans both again, even while another walk here holds them: a walk that outlived its limit can't leave them open for
-   * one that came after. A second call does nothing.
+   * one that came after. A second call bans nothing more and settles as the first does, so the walk's own end and a
+   * stop can both wait on it.
    */
   close(): Promise<void>;
 }
@@ -293,20 +326,24 @@ async function eachAccount(userIds: string[], call: (userId: string) => Promise<
 
 /**
  * Opens both accounts for one walk: their bans lift before the hold makes any sign-in token, and its close bans them
- * again. An open that fails part way bans both again before it throws, so a walk never leaves one open behind it.
+ * again. An open that fails part way, or that a stop overtakes, bans both again before it throws, so a walk never
+ * leaves one open behind it. Once this process is stopping it opens nothing.
  */
 export async function openQaPair(pair: QaPair): Promise<QaPairHold> {
   stagingOnly("opening the pair");
+  if (stopping) throw new Error(STOPPING_LINE);
   // Asked of Clerk, not of the pair handed in: only the accounts holding the locked addresses ever open.
   const held = await Promise.all(QA_ROLES.map((role) => clerk.find(QA_PAIR[role].email)));
   if (pair.mira.userId === pair.idris.userId || QA_ROLES.some((role, i) => held[i] !== pair[role].userId)) {
     throw new Error("these accounts are not the QA pair ensureQaPair marked");
   }
+  // The stop may have come while Clerk looked them up; it found no hold of this walk's to ban.
+  if (stopping) throw new Error(STOPPING_LINE);
   const ids = QA_ROLES.map((role) => pair[role].userId);
-  walksOpen += 1;
   const wrote = new Map<SeedStep, string>();
   newestWalkWrote = wrote;
   let holding = true;
+  let closing: Promise<void> | null = null;
   const hold: QaPairHold = {
     async ticket(role) {
       if (!holding) throw new Error("the walk has let the pair go, so no sign-in token is made");
@@ -319,20 +356,71 @@ export async function openQaPair(pair: QaPair): Promise<QaPairHold> {
     wrote(step, reportId) {
       wrote.set(step, reportId);
     },
-    async close() {
-      if (!holding) return;
-      holding = false;
-      walksOpen -= 1;
-      await eachAccount(ids, (userId) => clerk.ban(userId));
+    close() {
+      return (closing ??= (async () => {
+        holding = false;
+        try {
+          await eachAccount(ids, (userId) => clerk.ban(userId));
+        } finally {
+          holds.delete(hold);
+        }
+      })());
     },
   };
+  const opening = eachAccount(ids, (userId) => clerk.unban(userId));
+  holds.set(hold, opening);
   try {
-    await eachAccount(ids, (userId) => clerk.unban(userId));
+    await opening;
   } catch (err) {
     await hold.close().catch(() => undefined);
     throw err;
   }
+  if (stopping) {
+    await hold.close().catch(() => undefined);
+    throw new Error(STOPPING_LINE);
+  }
   return hold;
+}
+
+/** Whether this process has begun to stop, so a walk not yet begun never begins (release.ts, routes/qa.ts). */
+export function qaPairStopping(): boolean {
+  return stopping;
+}
+
+/**
+ * As the API stops (index.ts, at SIGTERM): nothing here opens the pair from now on, and each hold a walk here still
+ * keeps is closed, a close under way waited on and an open still lifting the bans let land first. A walk the stop cuts
+ * off never reaches its own close, and the next start's ban comes only once that start has booted. Waits `ms` at most
+ * and never throws: a Clerk that is slow or down is a warn line, and the next start bans both. Off staging no walk ever
+ * holds them, so it asks nothing.
+ */
+export async function banQaPairAtStop(ms: number): Promise<void> {
+  stopping = true;
+  const open = [...holds.entries()];
+  if (open.length === 0) return;
+  let banned = 0;
+  let failed = 0;
+  const closes = open.map(async ([hold, opening]) => {
+    await opening.catch(() => undefined);
+    try {
+      await hold.close();
+      banned += 1;
+    } catch {
+      failed += 1;
+    }
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms);
+  });
+  try {
+    await Promise.race([Promise.all(closes), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+  const unsettled = open.length - banned - failed;
+  if (failed || unsettled) logger.warn({ walks: open.length, failed, unsettled }, "QA pair: not banned at the stop");
+  else logger.info({ walks: open.length }, "QA pair: banned at the stop");
 }
 
 /** A Clerk error's HTTP status, the one part of it a log line may carry. */
@@ -349,11 +437,11 @@ function statusOf(err: unknown): number | null {
  */
 export async function banQaPairUnlessWalking(): Promise<void> {
   try {
-    if (readAppEnv() !== "staging" || walksOpen > 0) return;
+    if (readAppEnv() !== "staging" || holds.size > 0) return;
     const found = await Promise.all(QA_ROLES.map((role) => clerk.find(QA_PAIR[role].email)));
     const ids = found.filter((id): id is string => id !== null);
     // A walk may have opened them while Clerk looked them up; its own close bans them.
-    if (ids.length === 0 || walksOpen > 0) return;
+    if (ids.length === 0 || holds.size > 0) return;
     const failed = (await Promise.allSettled(ids.map((userId) => clerk.ban(userId)))).filter((r): r is PromiseRejectedResult => r.status === "rejected");
     if (failed.length) {
       logger.warn({ accounts: ids.length, failed: failed.length, status: statusOf(failed[0].reason) }, "QA pair: not banned at the start");

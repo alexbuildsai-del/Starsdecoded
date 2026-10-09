@@ -64,6 +64,15 @@ export function installFakeModel(replies: FakeModel["replies"]): FakeModel {
 const PARA = "You investigate first and commit second. You keep going after the room has given up.";
 const ACTION = { action: "Write the plan before the call.", why: "so you stop agreeing before you have thought about it" };
 const ITEMS = [{ item: "Field research", reason: "you test before you trust" }, { item: "Laboratory work", reason: "you keep going when others stop" }, { item: "Teaching", reason: "you explain by showing" }];
+const GOES_BACKWARDS = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Chiron"];
+/**
+ * The one Did you know card the canned chapters carry, the rest null as on a chart where they have none (ADR-383). It
+ * names no sign or house, since every fixture shares it, and speaks as tradition, so the explain checks stay quiet.
+ */
+const CARD = {
+  title: "Your Sun is read as your father?",
+  body: "Many astrologers read the Sun as your father and the Moon as your mother. Read that way, your Sun shows what he showed you, and what you had to learn from him. You can keep what helped, and give yourself what was missing.",
+};
 
 /**
  * Schema-valid natal replies for every section, drawn or blind, citing the
@@ -86,26 +95,34 @@ export function cannedNatalReplies(opts: { drawn: boolean; sunSign?: string; sun
   if (opts.drawn) triad.rising = { label: "Rising", text: PARA };
   return {
     natal_foundation: foundation,
-    natal_overview: { headline: PARA, concentration: PARA, temperament: PARA, distinctive: PARA, bridge: "Everything here points toward depth.", claims: claims() },
+    natal_overview: { headline: PARA, concentration: PARA, temperament: PARA, distinctive: PARA, bridge: "Everything here points toward depth.", claims: claims(), didYouKnow: null },
     natal_triad: triad,
-    natal_houses: { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) },
-    natal_mind: { howYouThink: PARA, howYouDecide: PARA, howYouAreUnderstood: PARA, practice: PARA, claims: claims() },
-    natal_career: { vocationalPull: PARA, howYouShowUp: PARA, growthThroughWork: PARA, actions: [ACTION, ACTION, ACTION], careerPaths: ITEMS, claims: claims() },
+    // Every card offers a block for each body that can go backwards and a stellium, so validate keeps the ones this
+    // chart calls for and a stored report carries the blocks a written one would, whatever the chart.
+    natal_houses: { houses: Array.from({ length: 12 }, (_, i) => ({
+      house: i + 1,
+      reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.",
+      retrograde: GOES_BACKWARDS.map((planet) => ({ planet, text: "You may turn this over on your own before it shows. It can take longer to come out, and it tends to last." })),
+      stellium: { text: "A lot of your attention may go to this part of life. You might come back to it more often than the people around you.", balance: "Everyday talk and a short walk can bring you back when this gets too full." },
+    })) },
+    natal_mind: { howYouThink: PARA, howYouDecide: PARA, howYouAreUnderstood: PARA, practice: PARA, claims: claims(), didYouKnow: null },
+    natal_career: { vocationalPull: PARA, howYouShowUp: PARA, growthThroughWork: PARA, actions: [ACTION, ACTION, ACTION], careerPaths: ITEMS, claims: claims(), didYouKnow: null },
     natal_money: { relationshipToResources: PARA, whatWorks: PARA, sharedAndExposed: PARA, actions: [ACTION, ACTION, ACTION], claims: claims() },
     natal_relationships: { howYouLove: PARA, theChallenge: "You leave the room a minute before you are asked to.", whatPartnershipAsks: PARA, actions: [ACTION, ACTION, ACTION], connectBestWith: ITEMS, claims: claims() },
-    natal_family: { whatYouCarry: PARA, whatRootsYou: PARA, theInheritedEdge: PARA, actions: [ACTION, ACTION], claims: claims() },
+    natal_family: { whatYouCarry: PARA, whatRootsYou: PARA, theInheritedEdge: PARA, actions: [ACTION, ACTION], claims: claims(), didYouKnow: CARD },
     natal_superpowers: {
       superpower: { title: "Total focus", text: PARA, actions: [ACTION, ACTION] },
       chronicPattern: { title: "Late exits", text: PARA, actions: [ACTION, ACTION] },
       growingEdge: { title: "Asking early", text: PARA, actions: [ACTION, ACTION] },
       claims: claims(),
+      didYouKnow: null,
     },
-    natal_discoveries: { opening: PARA, paradoxes: [1, 2].map(() => ({ title: "Care and control", tension: PARA, invitation: PARA })), claims: claims() },
+    natal_discoveries: { opening: PARA, paradoxes: [1, 2].map(() => ({ title: "Care and control", tension: PARA, invitation: PARA })), claims: claims(), didYouKnow: null },
     natal_focus: {
       leanInto: { intro: PARA, bullets: [1, 2, 3].map(() => ({ point: "Finish what only you can finish.", why: "so the work carries your mark" })) },
       notice: { intro: PARA, bullets: [1, 2, 3].map(() => ({ point: "Notice the late exit.", why: "so you leave while it still costs little" })) },
       practice: { intro: PARA, bullets: [1, 2, 3].map(() => ({ point: "Ask one question early.", why: "so you stop guessing what people need" })) },
-      closing: PARA, claims: claims(),
+      closing: PARA, claims: claims(), didYouKnow: null,
     },
   };
 }

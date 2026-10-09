@@ -2,12 +2,13 @@
  * The QA pair (ADR-314, 315; reading 10) with Clerk stubbed and a model client that fails if called. Every function
  * refuses off staging before it asks Clerk or the database anything. On the stubbed Clerk alone: a start bans both
  * unless a walk here holds them and never throws; a walk's hold lifts both bans before it makes a sign-in token and
- * bans both again at its close. On a scratch Postgres named by WALK_DATABASE_URL: ensure makes the two once, reset puts
- * them back at the walk's start, and the reports a Release's walk wrote are stored as the seed, and no other, and placed
- * back after a reset, with no model call. Without one those skip, saying why. Every chart is the engine's, computed
- * from the sample people's fixtures; the report text is stand-in text.
+ * bans both again at its close; a stop bans what a walk holds and opens nothing after. On a scratch Postgres named by
+ * WALK_DATABASE_URL: ensure makes the two once, reset puts them back at the walk's start, Timeline's setup and queued
+ * jobs included, and the reports a Release's walk wrote are stored as the seed, and no other, and placed back after a
+ * reset, with no model call. Without one those skip, saying why. Every chart is the engine's, computed from the sample
+ * people's fixtures; the report text is stand-in text.
  */
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -33,6 +34,7 @@ const modelCalls: unknown[] = [];
 };
 
 const Q = await import("./qaPair.js");
+const { logger } = await import("./logger.js");
 const { chartForProfile } = await import("./profiles.js");
 const { natalReportAccess } = await import("./access.js");
 const { isOutdated } = await import("../routes/reports.js");
@@ -57,6 +59,8 @@ const SEED_KEYS = ["mira.qa-seed", "idris.qa-seed", "mira-idris.qa-seed"];
 /** Each run's own accounts, so a second run, or the walk on the same database, finds nothing of the first. */
 const run = randomUUID().slice(0, 8);
 const BYSTANDER = `user_bystander_${run}`;
+/** The key of every Timeline job this file queues, so its clean-up finds them after their profiles are gone. */
+const JOB_KEY = `qa-pair-test-${run}`;
 
 /** Clerk as the pair meets it, keeping each account's ban and refusing a call for an account when told to. */
 function stubClerk(accounts: Map<string, string>) {
@@ -113,13 +117,14 @@ before(async () => {
 if (SCRATCH) {
   after(async () => {
     const ids = [...clerkAccounts.values(), BYSTANDER];
+    await q("delete from jobs where payload->>'key' = $2 or payload->>'userId' = any($1)", [ids, JOB_KEY]);
     await q("delete from invite_tokens where created_by_user_id = any($1) or claimed_by_user_id = any($1)", [ids]);
     await q("delete from profile_shares where owner_user_id = any($1) or reader_user_id = any($1)", [ids]);
     await q("delete from report_workbooks where reader = any($1)", [ids]);
     await q("delete from reports where relationship_id in (select id from relationships where user_id = any($1))", [ids]);
     await q("delete from relationships where user_id = any($1)", [ids]);
     await q("delete from profiles where user_id = any($1)", [ids]);
-    for (const table of ["timeline_readings", "ask_messages", "credits", "bundles", "purchases", "subscriptions", "testers"]) {
+    for (const table of ["timeline_readings", "timeline_setups", "ask_messages", "credits", "bundles", "purchases", "subscriptions", "testers"]) {
       await q(`delete from ${table} where user_id = any($1)`, [ids]);
     }
     await q("delete from users where id = any($1)", [ids]);
@@ -260,8 +265,28 @@ async function invite(kind: string, from: string, claimedBy: string, links: { pr
   return id;
 }
 
+/**
+ * Timeline's setup and its jobs still queued, as only a check that failed upstream would leave them for the pair, due a
+ * day from now so no other file's drain takes them meanwhile. Answers the jobs' ids.
+ */
+async function timelineWork(userId: string, reportId: string, profileId: string): Promise<string[]> {
+  await q("insert into timeline_setups (user_id, report_id, from_day, to_day, state) values ($1, $2, current_date, current_date + 181, 'writing')", [userId, reportId]);
+  const jobs: Array<[string, Record<string, string>]> = [
+    ["timeline.reading", { profileId, key: JOB_KEY }],
+    ["timeline.refresh", { profileId, key: JOB_KEY }],
+    ["timeline.ahead", { userId }],
+  ];
+  const ids: string[] = [];
+  for (const [kind, payload] of jobs) {
+    const id = randomUUID();
+    await q("insert into jobs (id, kind, payload, status, run_at) values ($1, $2, $3, 'queued', now() + interval '1 day')", [id, kind, JSON.stringify(payload)]);
+    ids.push(id);
+  }
+  return ids;
+}
+
 /** What a Release's walk leaves in the two accounts, step by step, and what an admin and Timeline could add. */
-async function leaveAWalk(): Promise<string[]> {
+async function leaveAWalk(): Promise<{ reportIds: string[]; jobIds: string[] }> {
   const [mira, idris] = ids;
   const customer = { mira: `cus_${run}_mira`, idris: `cus_${run}_idris` };
   await q("update users set stripe_customer_id = $2 where id = $1", [mira, customer.mira]);
@@ -298,7 +323,8 @@ async function leaveAWalk(): Promise<string[]> {
   await bundle(idris, "grant", 3);
   await q("insert into timeline_readings (id, user_id, profile_id, event_key, basis, status) values ($1, $2, $3, 'saturn-asc', 'b', 'ready')", [randomUUID(), mira, miraOwn.profileId]);
   await q(`insert into ask_messages (id, user_id, role, body) values ($1, $2, 'reader', '{"text": "Stand-in question."}')`, [randomUUID(), mira]);
-  return [miraOwn.reportId, idrisOwn.reportId, pair.reportId];
+  const jobIds = [...(await timelineWork(mira, miraOwn.reportId, miraOwn.profileId)), ...(await timelineWork(idris, idrisOwn.reportId, idrisOwn.profileId))];
+  return { reportIds: [miraOwn.reportId, idrisOwn.reportId, pair.reportId], jobIds };
 }
 
 /** Someone who is not the pair, so a reset is seen to leave them alone. */
@@ -307,12 +333,15 @@ async function bystanderRows() {
     `select (select count(*) from profiles where user_id = $1)::int as profiles,
             (select count(*) from reports r join profiles p on p.id = r.profile_id where p.user_id = $1)::int as reports,
             (select count(*) from credits where user_id = $1)::int as credits,
-            (select count(*) from invite_tokens where created_by_user_id = $1)::int as invites`,
+            (select count(*) from invite_tokens where created_by_user_id = $1)::int as invites,
+            (select count(*) from timeline_setups where user_id = $1)::int as setups,
+            (select count(*) from jobs where status = 'queued'
+               and (payload->>'userId' = $1 or payload->>'profileId' in (select id from profiles where user_id = $1)))::int as jobs`,
     [BYSTANDER],
   )).rows[0];
 }
 
-const leftovers = async (reportIds: string[]) => (await q(
+const leftovers = async ({ reportIds, jobIds }: { reportIds: string[]; jobIds: string[] }) => (await q(
   `select (select count(*) from profiles where user_id = any($1))::int as profiles,
           (select count(*) from reports where id = any($2))::int as reports,
           (select count(*) from relationships where user_id = any($1))::int as pairs,
@@ -321,8 +350,10 @@ const leftovers = async (reportIds: string[]) => (await q(
           (select count(*) from report_workbooks where reader = any($1))::int as workbooks,
           (select count(*) from subscriptions where user_id = any($1))::int as plans,
           (select count(*) from timeline_readings where user_id = any($1))::int as readings,
+          (select count(*) from timeline_setups where user_id = any($1))::int as setups,
+          (select count(*) from jobs where id = any($3))::int as jobs,
           (select count(*) from ask_messages where user_id = any($1))::int as asks`,
-  [ids, reportIds],
+  [ids, reportIds, jobIds],
 )).rows[0];
 
 const ledger = async () => ({
@@ -335,17 +366,27 @@ const TOPPED_UP = (mira: string) => ({
   bundles: [{ user_id: mira, source: "test", is_test: true, n: 20 }],
 });
 
-test("reset deletes what a walk left, ends its plan and forgets both Stripe customers; Mira holds 20 test credits and Idris none, and the next walk's plan is kept", { skip: NO_DB }, async () => {
+test("reset deletes what a walk left, Timeline's setup and queued jobs included, ends its plan and forgets both Stripe customers; Mira holds 20 test credits and Idris none, and the next walk's plan is kept", { skip: NO_DB }, async () => {
   await q("insert into users (id, email) values ($1, 'bystander@example.com')", [BYSTANDER]);
   const theirs = await ownReport(BYSTANDER, "tomas", "Madrid");
   await bundle(BYSTANDER, "purchase", 3);
   await invite("send", BYSTANDER, BYSTANDER, { profileId: theirs.profileId });
+  await timelineWork(BYSTANDER, theirs.reportId, theirs.profileId);
   const bystander = await bystanderRows();
+  assert.deepEqual([bystander.setups, bystander.jobs], [1, 3]);
 
-  const reportIds = await leaveAWalk();
-  await Q.resetQaPair(pair);
+  const left = await leaveAWalk();
+  const warned = mock.method(logger, "warn", () => undefined);
+  try {
+    await Q.resetQaPair(pair);
+    // A line of counts alone: no account's id or address.
+    const said = warned.mock.calls.map((call) => call.arguments as unknown[]);
+    assert.deepEqual(said, [[{ setups: 2, jobs: 6 }, "QA pair: the reset took Timeline's setup or queued jobs"]]);
+  } finally {
+    warned.mock.restore();
+  }
 
-  assert.deepEqual(await leftovers(reportIds), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 1, readings: 0, asks: 0 });
+  assert.deepEqual(await leftovers(left), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 1, readings: 0, setups: 0, jobs: 0, asks: 0 });
   // The plan's row stays beside its purchase, ended, and the read every plan check uses finds no plan for either.
   assert.deepEqual(
     (await q("select id, status, cancel_at_period_end, current_period_end <= now() as ended from subscriptions where user_id = any($1)", [ids])).rows,
@@ -674,6 +715,71 @@ test("a walk's hold lifts both bans before it makes a sign-in token, makes one o
     await assert.rejects(Q.openQaPair({ mira: held.idris, idris: held.mira }), /not the QA pair/);
     assert.deepEqual(clerk.calls, [...finds, ...finds]);
   } finally {
+    restore();
+  }
+  assert.deepEqual(modelCalls, []);
+});
+
+// Last in this file: a stop is for good, so no test after it could open the pair.
+test("a stop bans what the walks here hold, a close under way included and an open still lifting the bans only once its unbans land, waits for Clerk no longer than its limit with a line of counts alone, and opens nothing after", { timeout: 10_000 }, async () => {
+  const accounts = new Map([[MIRA_EMAIL, "user_stop_mira"], [IDRIS_EMAIL, "user_stop_idris"]]);
+  const clerk = stubClerk(accounts);
+  const both = ["user_stop_idris", "user_stop_mira"];
+  const held = pairOf(accounts);
+  const gate = () => {
+    let open!: () => void;
+    const shut = new Promise<void>((resolve) => {
+      open = resolve;
+    });
+    return { shut, open };
+  };
+  const [unbans, bans] = [gate(), gate()];
+  const restore = Q.setQaClerk(clerk.clerk);
+  const warned = mock.method(logger, "warn", () => undefined);
+  try {
+    assert.equal(Q.qaPairStopping(), false);
+    const walking = await Q.openQaPair(held);
+    const ending = await Q.openQaPair(held);
+    // From here Clerk answers late: a third walk's open has sent its unbans, and the second walk's close its bans.
+    Q.setQaClerk({
+      ...clerk.clerk,
+      async unban(userId) {
+        await unbans.shut;
+        return clerk.clerk.unban(userId);
+      },
+      async ban(userId) {
+        await bans.shut;
+        return clerk.clerk.ban(userId);
+      },
+    });
+    const opening = Q.openQaPair(held);
+    await new Promise((resolve) => setImmediate(resolve));
+    const ended = ending.close();
+    clerk.calls.length = 0;
+
+    // The stop waits on the close under way and bans the first walk's hold, but can't wait for the third open's unbans,
+    // so its limit ends it.
+    const stop = Q.banQaPairAtStop(50);
+    bans.open();
+    await stop;
+    await ended;
+    assert.equal(Q.qaPairStopping(), true);
+    assert.deepEqual(clerk.calls.splice(0), ["ban user_stop_mira", "ban user_stop_idris", "ban user_stop_mira", "ban user_stop_idris"]);
+    const said = warned.mock.calls.map((call) => call.arguments as unknown[]);
+    assert.deepEqual(said, [[{ walks: 3, failed: 0, unsettled: 1 }, "QA pair: not banned at the stop"]]);
+    await assert.rejects(walking.ticket("mira"), /let the pair go/);
+    await walking.close();
+    assert.deepEqual(clerk.calls.splice(0), [], "the walk's own end, after the stop, bans nothing more");
+    await assert.rejects(Q.openQaPair(held), /API is stopping/);
+    assert.deepEqual(clerk.calls.splice(0), [], "a walk that comes after the stop asks Clerk nothing");
+
+    // Once the third open's unbans land, it is banned again, after them, and its walk hears why.
+    unbans.open();
+    await assert.rejects(opening, /API is stopping/);
+    assert.deepEqual(clerk.calls.splice(0), ["unban user_stop_mira", "unban user_stop_idris", "ban user_stop_mira", "ban user_stop_idris"]);
+    assert.deepEqual([...clerk.banned].sort(), both);
+  } finally {
+    warned.mock.restore();
     restore();
   }
   assert.deepEqual(modelCalls, []);

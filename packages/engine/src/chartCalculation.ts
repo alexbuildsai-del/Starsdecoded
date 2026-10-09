@@ -123,12 +123,11 @@ function calcMeanNorthNode(date: Date): number {
   );
 }
 
-// Whole-sign house: which whole sign is the planet in, counting from Asc's sign as house 1
-function calcWholeSignHouse(planetLon: number, ascendantLon: number): number {
+// Whole-sign house: the body's stated sign counted from the Ascendant's sign as house 1. From the sign, not the
+// longitude: a banded Sun or Moon is stated in the band's majority sign, which its centre degree may not be in.
+function calcWholeSignHouse(sign: string, ascendantLon: number): number {
   const ascSignIndex = Math.floor(normalizeAngle(ascendantLon) / 30);
-  const planetSignIndex = Math.floor(normalizeAngle(planetLon) / 30);
-  const diff = (planetSignIndex - ascSignIndex + 12) % 12;
-  return diff + 1;
+  return ((SIGNS.indexOf(sign) - ascSignIndex + 12) % 12) + 1;
 }
 
 // House cusps using whole-sign system (each sign starts a new house)
@@ -221,8 +220,9 @@ function calcAspects(positions: Record<string, number>, bands: Record<string, De
  * so cached charts on profiles are recomputed on next use (see profiles.ts,
  * R-3.2). 3: the horizon status and the birth-time band (ADR-33, ADR-34).
  * 4: Chiron from the JPL Horizons table, absent outside 1800 to 2150 (ADR-221).
+ * 5: a banded Sun or Moon sits in the house of the sign it is given (R19-49).
  */
-export const CHART_VERSION = 4;
+export const CHART_VERSION = 5;
 
 export type HorizonStatus = "known" | "approximate" | "unknown";
 
@@ -599,8 +599,8 @@ export function calculateNatalChart(
   const icLon = normalizeAngle(mcLon + 180);
 
   // The Sun and Moon across the band: where each was at the two ends. A sign
-  // change inside the band reads as the sign covering the larger share; the
-  // degree stays the centre time's.
+  // change inside the band reads as the sign covering the larger share, and the
+  // house is that sign's; the degree stays the centre time's.
   const bands: Record<string, DegreeBand | undefined> = {};
   if (windowMinutes > 0) {
     const from = new Date(dayStartUtc + bandStart * 60_000);
@@ -616,11 +616,12 @@ export function calculateNatalChart(
   // Build planet objects, with whole-sign house assignments only when there is a horizon to count from.
   const planets: NatalChartData["planets"] = {};
   for (const [name, pos] of Object.entries(rawPlanets)) {
+    const sign = signOverride[name] ?? getSign(pos.lon);
     planets[name] = {
-      sign: signOverride[name] ?? getSign(pos.lon),
+      sign,
       degree: r2(getDegreeInSign(pos.lon)),
       absoluteDegree: r2(pos.lon),
-      ...(drawn ? { house: calcWholeSignHouse(pos.lon, ascLon) } : {}),
+      ...(drawn ? { house: calcWholeSignHouse(sign, ascLon) } : {}),
       retrograde: pos.retrograde,
       speed: Math.round(pos.speed * 1000) / 1000,
       ...(bands[name] ? { band: bands[name] } : {}),

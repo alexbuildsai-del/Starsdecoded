@@ -140,12 +140,14 @@ paths:
       description: >
         Everything the dashboard shows in one call, so no card loads a report
         to open: the reader's circle with each person's birth date and Sun,
-        Moon and Rising, their quick looks, their pairs and stories, and what
-        they are practising (ADR-174). The circle is the reader plus everyone
-        whose Personal report they can read, the people GET /reports lists
-        (ADR-182). A reader with Timeline gets `week`, Your week in their own
-        days; a reader without it whose own Personal report is finished gets
-        `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
+        Moon and Rising, their quick looks, their pairs, who can read each
+        report and its state, Your first steps, and what they are practising
+        (ADR-174, ADR-341). The circle is the reader plus everyone whose
+        Personal report they can read, the people GET /reports lists
+        (ADR-182). A reader with Timeline whose own Personal report is
+        finished gets `week`, Your week in their own days; a reader without
+        Timeline whose own Personal report is finished gets `teaser`; anyone
+        else neither (ADR-211, ADR-212, ADR-262, ADR-297 to 312).
       parameters:
         - $ref: "#/components/parameters/ReaderZone"
       responses:
@@ -1134,14 +1136,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InviteRecord"
-        "403":
-          description: Not the owner of the profile
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: Profile not found
+          description: Profile not found, or not the caller's
           content:
             application/json:
               schema:
@@ -1171,7 +1167,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Caller is not the owner of the profile/relationship
+          description: The caller cannot send this pair (not its maker, not one of its two, stopped, or both charts their own)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found, or not the caller's
           content:
             application/json:
               schema:
@@ -1230,7 +1232,10 @@ paths:
         keep hands nothing over: it makes their side a participant and answers
         `profileId: null` (ADR-285). A gift moves its held credit into the claimer's
         balance and answers `redirectTo: /dashboard`; it puts no one on an
-        orbit (ADR-139). A share writes a grant to read the sharer's own
+        orbit (ADR-139). When its giver said Yes at the gift, the claim writes
+        a grant of the giver's own Personal report to the claimer; the
+        claimer's own Yes, `shareBack` in the body, becomes a grant of theirs
+        to the giver once their report is finished (ADR-331). A share writes a grant to read the sharer's own
         Personal report, never a hand-over, and answers `shareBack` (ADR-235).
       parameters:
         - name: token
@@ -1238,6 +1243,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimInviteBody"
       responses:
         "200":
           description: Invite claimed
@@ -1320,6 +1331,66 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  # Its own key beside /invites/{token}: a link is cancelled by the invite's id, which GET /home's
+  # readers carry, never by its token, which only its email holds (ADR-390).
+  /invites/{id}:
+    delete:
+      operationId: cancelInvite
+      tags: [invites]
+      summary: Cancel a waiting link the viewer sent
+      description: >
+        Cancel invite (ADR-390): a waiting link the viewer sent, for a report,
+        a pair or their own Personal report, stops opening at once, and so
+        does every link of that invite, the one its email carried included. A
+        gift is taken back at DELETE /gifts/{id}, which returns its credit.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The invite's id, as GET /home's readers carry it, never its token.
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The link no longer opens (ADR-390)
+        "404":
+          description: No waiting link of the viewer's with this id, claimed, expired and cancelled ones included (ADR-390)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invites/{id}/link:
+    post:
+      operationId: copyInviteLink
+      tags: [invites]
+      summary: A link to copy for a waiting invite the viewer sent
+      description: >
+        Copy their link (ADR-390): only a link's hash is kept, so an old link
+        can never be read back; this answers a link to the same waiting invite
+        to send by hand, and the one its email carried keeps working. Cancel
+        invite ends both.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The invite's id, as GET /home's readers carry it, never its token.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A link to the waiting invite (ADR-390)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteLink"
+        "404":
+          description: No waiting link of the viewer's with this id, claimed, expired and cancelled ones included (ADR-390)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /gifts:
     get:
       operationId: listGifts
@@ -1339,7 +1410,7 @@ paths:
       operationId: createGift
       tags: [gifts]
       summary: Gift a report
-      description: Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
+      description: Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275). The giver's answer to sharing their own Personal report is kept on the gift and becomes a grant when it is claimed (ADR-331).
       requestBody:
         required: true
         content:
@@ -2790,14 +2861,64 @@ components:
       required: [item, reason]
 
     HouseReading:
-      description: One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+      description: >
+        One generated house-card reading, 40 to 70 words, ending on a behaviour check. From v12
+        the card also carries a block for each body going backwards in the house, its stellium
+        and one idea often noticed; a report before v12 has none of the three (ADR-396, ADR-398,
+        ADR-403).
       type: object
       properties:
         house:
           type: integer
         reading:
           type: string
+        retrograde:
+          type: array
+          description: One block for each body going backwards at birth in this house, a planet or Chiron, never a node, written for it in this house against it moving forward; empty when none is (ADR-396).
+          items:
+            type: object
+            properties:
+              planet:
+                type: string
+              text:
+                type: string
+            required: [planet, text]
+        stellium:
+          type: object
+          nullable: true
+          description: The stellium block when the house holds one, the writer's text and its one thing to do through the opposite house, after "To balance it"; null when it holds none (ADR-398).
+          properties:
+            text:
+              type: string
+            balance:
+              type: string
+          required: [text, balance]
+        noticed:
+          type: object
+          nullable: true
+          description: Often noticed, one idea from the observations table that this house matches and its reason, filled in code and never model text; null when none matches (ADR-403).
+          properties:
+            idea:
+              type: string
+            why:
+              type: string
+          required: [idea, why]
       required: [house, reading]
+
+    DidYouKnow:
+      type: object
+      description: >
+        A chapter's Did you know card, outside its prose, at most one a chapter: an idea the
+        report is not read by, worded as tradition, what it could mean for this chart and the
+        lesson (ADR-377, ADR-383).
+      properties:
+        title:
+          type: string
+          description: The title that finishes "Did you know".
+        body:
+          type: string
+          description: Two to four sentences.
+      required: [title, body]
 
     Workbook:
       description: The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).
@@ -2828,7 +2949,7 @@ components:
         nullable: true
 
     Home:
-      description: The dashboard's one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).
+      description: The dashboard's one read, everything its circle, quick looks, rows, pairs, Share window, first steps and practice show, and each pair's story card (ADR-174, ADR-341).
       type: object
       properties:
         you:
@@ -2861,7 +2982,7 @@ components:
           items:
             $ref: "#/components/schemas/HomePractice"
         week:
-          description: Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262).
+          description: Your week, for a reader with Timeline whose own Personal report is finished; absent or null for anyone else (ADR-211, ADR-262, ADR-297 to 312).
           anyOf:
             - $ref: "#/components/schemas/Week"
             - type: "null"
@@ -2873,7 +2994,15 @@ components:
           anyOf:
             - $ref: "#/components/schemas/Teaser"
             - type: "null"
-      required: [you, several, people, pairs, practising]
+        firstSteps:
+          description: >
+            Your first steps, from the reader's own Personal report to their first Compatibility
+            report: the step they are on and whom it names (ADR-330, ADR-341, ADR-390); null once
+            the reader has a Compatibility report.
+          anyOf:
+            - $ref: "#/components/schemas/FirstSteps"
+            - type: "null"
+      required: [you, several, people, pairs, practising, firstSteps]
 
     HomePerson:
       description: One person in the reader's circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).
@@ -2932,7 +3061,26 @@ components:
             growingEdge:
               type: string
           required: [superpower, growingEdge]
-      required: [profileId, reportId, name, birthDate, status, access, isSelf, triad, lines]
+        createdAt:
+          type: string
+          description: When this report was made, ISO 8601, for "Report from <date>" on the person's row (ADR-297 to 312).
+        readsYours:
+          type: string
+          enum: [can-read, invited, "no"]
+          description: >
+            Whether this person can read the reader's own Personal report, for the quick look's
+            line: can-read through a grant that stands, invited while a link to them waits, no
+            otherwise and on `you` (ADR-235, ADR-341).
+        readers:
+          type: array
+          description: >
+            Who can read this report besides the reader, or is invited to, as the Share window
+            lists them (ADR-329, ADR-341): on `you`, everyone the reader's own Personal report is
+            shared with (ADR-235); on a report the reader made, its subject (ADR-181); empty on
+            any other seat.
+          items:
+            $ref: "#/components/schemas/HomeReader"
+      required: [profileId, reportId, name, birthDate, status, access, isSelf, triad, lines, createdAt, readsYours, readers]
 
     Spot:
       description: Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).
@@ -2973,7 +3121,7 @@ components:
       required: [sign, degree]
 
     HomePair:
-      description: One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).
+      description: One Compatibility report on the reader's list, with what its row's chip, its pair block and its story card show (ADR-174, ADR-175, ADR-337).
       type: object
       properties:
         reportId:
@@ -3021,7 +3169,7 @@ components:
         story:
           type: object
           nullable: true
-          description: The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+          description: The 9:16 story's text for the story card at the end of the Compatibility report, never on the dashboard, chapter 01's headline and strengths; null until chapter 01 is written (ADR-175, ADR-338).
           properties:
             headline:
               type: string
@@ -3030,7 +3178,97 @@ components:
               items:
                 type: string
           required: [headline, strengths]
-      required: [reportId, lens, label, a, b, status, stoppedBy, strong, challenge, story]
+        share:
+          type: object
+          description: >
+            The row's one chip (ADR-337, ADR-341): only-you while no one else reads it, and on a
+            closed pair (ADR-236); can-read once its other person reads it; waiting while their
+            link waits; shared-by on a pair its other person made and shared with the reader.
+          properties:
+            state:
+              type: string
+              enum: [only-you, can-read, waiting, shared-by]
+            name:
+              type: string
+              description: The pair's other person's first name, which every chip but only-you prints (ADR-337).
+          required: [state, name]
+        readers:
+          type: array
+          description: >
+            Who can read this Compatibility report besides the reader, or is invited to, as the
+            Share window lists them: its other person once the reader sends it to them; empty
+            before, and on a pair someone else made (ADR-329, ADR-341, MB-82).
+          items:
+            $ref: "#/components/schemas/HomeReader"
+      required: [reportId, lens, label, a, b, status, stoppedBy, strong, challenge, story, share, readers]
+
+    HomeReader:
+      type: object
+      description: >
+        One person who can read a report on the reader's circle, or is invited to, as the Share
+        window lists them under Who can read it (ADR-329, ADR-341): a claimed reader by first
+        name, a waiting one by the address the reader typed, never by an address the reader did
+        not type (ADR-135).
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Their first name once they can read it; null while their link waits (ADR-135).
+        email:
+          type: string
+          nullable: true
+          description: The address the reader typed, while the link waits; null once they can read it (ADR-135, R-3.6).
+        state:
+          type: string
+          enum: [can-read, invited]
+          description: can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329).
+        shareId:
+          type: string
+          nullable: true
+          description: The grant they read the reader's own Personal report through, which Remove access ends at DELETE /shares/{id}; null while their link waits and on any other report (ADR-235, ADR-390).
+        inviteId:
+          type: string
+          nullable: true
+          description: Their waiting link, which Copy their link (POST /invites/{id}/link) and Cancel invite (DELETE /invites/{id}) take; null once they can read it (ADR-390).
+      required: [name, email, state, shareId, inviteId]
+
+    FirstSteps:
+      type: object
+      description: >
+        Your first steps (ADR-330, ADR-390): 1 Your Personal report, 2 Add someone, 3 Share it
+        with them (a gift is done once it is sent), 4 either You & {name}, your Compatibility
+        report, or Add someone else, back to step 2. The server says which step the reader is
+        on; Hide is kept in the browser.
+      properties:
+        step:
+          type: integer
+          enum: [1, 2, 3, 4]
+          description: >
+            The step the reader is on: 1 until their own Personal report is written, 2 until they
+            add someone, 3 until that person's report is shared with them or their gift is sent,
+            then 4 (ADR-330).
+        person:
+          type: object
+          nullable: true
+          description: The person the reader added last, whom steps 2 to 4 name; null until step 2 is done (ADR-330).
+          properties:
+            profileId:
+              type: string
+              description: >
+                Their profile on the reader's circle, which You & {name} picks (ADR-336). A gift
+                makes no profile (ADR-139), so on the gift road it is an empty string until they
+                share their own report back, and `pairReady` stays false until then.
+            name:
+              type: string
+              description: Their first name, as the steps print it (ADR-330).
+          required: [profileId, name]
+        gift:
+          type: boolean
+          description: The person came by Gift a report, so step 3 is done once the gift is sent and You & {name} waits for them to share back (ADR-331).
+        pairReady:
+          type: boolean
+          description: You & {name} can be made now, since the reader can read both finished Personal reports, their own and {name}'s; on the gift road, once {name} shares theirs back (ADR-331, ADR-332).
+      required: [step, person, gift, pairReady]
 
     HomePractice:
       description: >
@@ -3469,6 +3707,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [headline, concentration, temperament, distinctive, bridge, claims]
         triad:
           type: object
@@ -3508,6 +3751,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [howYouThink, howYouDecide, howYouAreUnderstood, practice, claims]
         career:
           type: object
@@ -3530,6 +3778,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [vocationalPull, howYouShowUp, growthThroughWork, actions, careerPaths, claims]
         money:
           type: object
@@ -3588,6 +3841,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [whatYouCarry, whatRootsYou, theInheritedEdge, actions, claims]
         superpowers:
           type: object
@@ -3602,6 +3860,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [superpower, chronicPattern, growingEdge, claims]
         discoveries:
           type: object
@@ -3624,6 +3887,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [opening, paradoxes, claims]
         focus:
           type: object
@@ -3640,6 +3908,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
+            didYouKnow:
+              description: Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).
+              anyOf:
+                - $ref: "#/components/schemas/DidYouKnow"
+                - type: "null"
           required: [leanInto, notice, practice, closing, claims]
         personalPlanets:
           type: object
@@ -4324,7 +4597,31 @@ components:
           type: string
           nullable: true
           description: The giver's note on a gift's cover, at most 280 characters; null without one (ADR-128).
-      required: [token, email, profileName, expiresAt, alreadyClaimed]
+        giverShares:
+          type: boolean
+          description: On a gift, the giver said Yes to sharing their own Personal report, so the claim asks "Share yours back?"; false on a gift without that Yes, a send and a share (ADR-331).
+      required: [token, email, profileName, expiresAt, alreadyClaimed, giverShares]
+
+    ClaimInviteBody:
+      type: object
+      description: The claimer's answers at a claim; a claim with no body answers Not now (ADR-331).
+      properties:
+        shareBack:
+          type: boolean
+          default: false
+          description: >
+            On a gift, the claimer's answer to sharing their own Personal report with the giver:
+            true keeps their Yes and becomes a grant once their report is finished; false, Not
+            now, writes nothing (ADR-331, R-3.6). Read on a gift's claim only.
+
+    InviteLink:
+      type: object
+      description: What Copy their link answers, a link to a waiting invite to send by hand (ADR-390).
+      properties:
+        claimUrl:
+          type: string
+          description: A link to the same waiting invite; the one its email carried keeps working.
+      required: [claimUrl]
 
     InviteClaimResponse:
       type: object
@@ -4405,6 +4702,13 @@ components:
             space at either end. The same rule as every typed name (ADR-202).
         email: { type: string, format: email }
         note: { type: string, maxLength: 280 }
+        shareOwn:
+          type: boolean
+          default: false
+          description: >
+            The giver's answer to "Share your report with {name} too?": true keeps their Yes on
+            the gift, and its claim writes a grant of the giver's own Personal report to whoever
+            claims it; false, Not now, shares nothing (ADR-331, R-3.6).
       required: [recipientName, email]
 
     ChangeAddressBody:
@@ -4749,7 +5053,7 @@ components:
 
     TimelineSpan:
       type: object
-      description: One stretch an event is within orb, from coming into it to leaving it (ADR-207).
+      description: One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).
       properties:
         start:
           type: string
@@ -4807,6 +5111,27 @@ components:
           description: The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).
           items:
             $ref: "#/components/schemas/TimelineSpan"
+        # Both default to none, so an event kept before them, as an Ask day card keeps its events, still reads through this contract.
+        passes:
+          type: array
+          default: []
+          description: A contact's exact passes in order, one for each of `exact`, each forward or backwards by the moving body's speed at that moment; empty off a contact (ADR-392).
+          items:
+            type: object
+            properties:
+              at:
+                type: string
+                format: date-time
+              direction:
+                type: string
+                enum: [forward, backwards]
+            required: [at, direction]
+        backwards:
+          type: array
+          default: []
+          description: The moving body's stretches going backwards, station to station with their true dates, that meet a contact's window; empty off a contact and when none does (ADR-392).
+          items:
+            $ref: "#/components/schemas/TimelineSpan"
         orbNow:
           type: number
           nullable: true
@@ -4836,7 +5161,7 @@ components:
           description: The everyday line, the reading's own once it is written; null before (ADR-210).
         reading:
           $ref: "#/components/schemas/ReadingStatus"
-      required: [key, kind, body, aspect, target, houses, start, end, exact, spans, orbNow, tone, headline, facts, line, reading]
+      required: [key, kind, body, aspect, target, houses, start, end, exact, spans, passes, backwards, orbNow, tone, headline, facts, line, reading]
 
     NatalPoint:
       type: object
@@ -5214,6 +5539,11 @@ components:
           nullable: true
           minimum: 0
           description: How many readings the step writes, the engine's count; null for the chart and the planets, which write none.
+        landed:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: How many of the step's readings have landed, written or failed, so the loading bar moves only with real work; null for the chart and the planets, which write none (ADR-394).
       required: [id, done, count]
 
     TimelineSetupReplay:
@@ -5263,7 +5593,7 @@ components:
 
     Week:
       type: object
-      description: Your week on the dashboard, seven days from today in the reader's zone (ADR-211).
+      description: Your week on the dashboard, Monday to Sunday of the week today falls in, in the reader's zone (ADR-211, ADR-297 to 312).
       properties:
         headline:
           type: string
@@ -5280,7 +5610,7 @@ components:
             - type: "null"
         days:
           type: array
-          description: The seven days with their tones (ADR-211).
+          description: The seven days, Monday to Sunday, with their tones (ADR-211, ADR-297 to 312).
           items:
             $ref: "#/components/schemas/TimelineDay"
         "on":
@@ -5469,6 +5799,25 @@ components:
         createdAt:
           type: string
           format: date-time
+        offer:
+          type: object
+          nullable: true
+          description: >
+            Ask's one pair offer, after an answer about someone the reader has no Compatibility
+            report with, once a person in a thread: "See {name}'s side too", one reason and the
+            reader's credits; null or absent on every other message (ADR-297 to 312).
+          properties:
+            profileId:
+              type: string
+              description: The person's profile, which Write it opens the picker with, the reader and them picked.
+            name:
+              type: string
+              description: Their first name, as the card prints it.
+            credits:
+              type: integer
+              minimum: 0
+              description: The reader's credits, as its line counts them ("You have 5 credits. This uses 1."); 0 shows Get a credit.
+          required: [profileId, name, credits]
       required: [id, role, text, cards, choices, createdAt]
 
     AskThread:

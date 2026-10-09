@@ -99,8 +99,8 @@ export function useLiveReport(id: string) {
     sinceMilestoneMs: now - milestoneAt.current,
   }), [serverStatus, chartReady, sections, registry, required, now]);
 
-  // Open means the reader took the door or the page opened itself; a report
-  // that was already complete or revising when the page loaded needs no door.
+  // Open means the reader took the door (the page never opens itself, even at
+  // 100%); a report that was already complete or revising when the page loaded needs no door.
   const [opened, setOpened] = useState(false);
   const settledAtLoad = useRef<boolean | null>(null);
   if (settledAtLoad.current === null && serverStatus !== undefined) {

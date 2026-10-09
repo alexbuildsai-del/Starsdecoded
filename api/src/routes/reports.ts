@@ -43,7 +43,7 @@ import {
   type SendState,
   type Viewer,
 } from "../lib/access.js";
-import { sharedProfileIds } from "../lib/shares.js";
+import { grantShareBacksOn, sharedProfileIds } from "../lib/shares.js";
 import { firstNameOf } from "../lib/names.js";
 import { PIN_LIMIT, isWorkbookKey, pairListed, patchWorkbook, workbookOf, type Workbook, type WorkbookPatch } from "../lib/home.js";
 import { hasCredit, noCredit, refundCredit, returnExpiredHolds, writeWithCredit } from "../lib/credits.js";
@@ -1065,6 +1065,8 @@ router.post("/reports/:id/regenerate", async (req, res) => {
           .where(eq(reportsTable.id, r.id));
         // A subscriber who paid before their own report came starts Timeline's setup now (ADR-362); it never rejects.
         await setupAfterReport(r.id);
+        // A Yes kept at a gift's claim waits for this report, Try again's included (reading 16); it never rejects.
+        await grantShareBacksOn(p.id);
       } catch (err) {
         await failReport(r.id, err);
       }
@@ -1148,6 +1150,8 @@ async function generateReport(
       .where(eq(reportsTable.id, id));
     // A subscriber who paid before their own report came starts Timeline's setup now (ADR-362); it never rejects.
     await setupAfterReport(id);
+    // A Yes kept at a gift's claim becomes a grant once its claimer's own report is finished (reading 16); never rejects.
+    await grantShareBacksOn(profileId);
   } catch (err) {
     await failReport(id, err);
   }

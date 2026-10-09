@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { profilesTable } from "./profiles";
 import { relationshipsTable } from "./relationships";
 import { creditsTable } from "./credits";
@@ -42,12 +42,24 @@ export const inviteTokensTable = pgTable(
     // null = unknown / pre-migration rows.
     emailDelivered: boolean("email_delivered"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
+    // A gift's two answers (ADR-331, reading 16). The giver's Yes to "Share your report with {name} too?" grants their
+    // own Personal report to whoever claims the gift, at the claim, and stays as their answer. The recipient's Yes at
+    // the claim waits here until their own Personal report is finished, then becomes their grant and is cleared, so it
+    // grants once and a later report never undoes their Stop sharing. Not now, and every gift from before, is false.
+    giverShares: boolean("giver_shares").notNull().default(false),
+    shareBack: boolean("share_back").notNull().default(false),
+    // Copy their link on a waiting send or share (ADR-390): only a hash is kept, so each copy is a new link and takes
+    // the place of the one copied before; the link in their email, token_hash, keeps working. Cancel invite ends both.
+    linkHash: text("link_hash"),
   },
   (t) => [
     index("invite_tokens_token_hash_idx").on(t.tokenHash),
     index("invite_tokens_profile_id_idx").on(t.profileId),
     index("invite_tokens_relationship_id_idx").on(t.relationshipId),
     index("invite_tokens_created_by_user_id_kind_idx").on(t.createdByUserId, t.kind),
+    // A unique index, never the column's `.unique()`: the push stops to ask before it puts a unique constraint on a
+    // table that holds rows, and a deploy has no one to answer.
+    uniqueIndex("invite_tokens_link_hash_idx").on(t.linkHash),
   ],
 );
 

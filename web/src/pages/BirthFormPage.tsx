@@ -6,7 +6,14 @@ import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@workspace/api-client-react";
+import {
+  useCreateReport,
+  useListProfiles,
+  useListReports,
+  getListProfilesQueryKey,
+  getListReportsQueryKey,
+  type ProfileSummary,
+} from "@workspace/api-client-react";
 import { offsetAtBirth } from "@workspace/engine";
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
@@ -32,6 +39,30 @@ function focusById(id: string): true | undefined {
   el?.focus();
   if (el instanceof HTMLInputElement) el.select();
   return el ? true : undefined;
+}
+
+// About 5 km: the same place picked again can come back from the search with a slightly different point.
+const SAME_PLACE_DEGREES = 0.05;
+
+/**
+ * The reader's own chart when the details typed are its birth details. Date, time and place only: never the name, since
+ * the reader may type any name for themselves or for someone born at the same moment in the same town.
+ */
+function ownChartMatching(
+  profiles: readonly ProfileSummary[] | null | undefined,
+  birthDate: string,
+  birthTime: string | undefined,
+  place: GeocodeResult | null,
+): ProfileSummary | undefined {
+  if (!Array.isArray(profiles) || !birthDate || !birthTime || !place) return undefined;
+  return profiles.find(
+    (p) =>
+      p.isSelf === true &&
+      p.birthDate === birthDate &&
+      p.birthTime.slice(0, 5) === birthTime.slice(0, 5) &&
+      Math.abs(p.latitude - place.latitude) < SAME_PLACE_DEGREES &&
+      Math.abs(p.longitude - place.longitude) < SAME_PLACE_DEGREES,
+  );
 }
 
 export default function BirthFormPage() {
@@ -95,6 +126,17 @@ export default function BirthFormPage() {
   const canSubmit = isPersonName(name.trim()) && birthDate && time !== null && selectedPlace;
   // Said once the reader leaves the field, so a name is not scolded mid-word; it clears the moment the name is fine.
   const nameRule = nameLeft ? nameRuleLine(name) : null;
+
+  // Told, never blocked: the reader may still save these details as someone else's (ADR-340).
+  const ownChart = ownChartMatching(profiles, birthDate, time?.birthTime, selectedPlace);
+  const { data: reports } = useListReports({
+    query: { queryKey: getListReportsQueryKey(), enabled: !!ownChart, staleTime: 60_000 },
+  });
+  const ownReport = ownChart && Array.isArray(reports)
+    ? reports
+        .filter((r) => r.kind === "natal" && r.profileId === ownChart.id)
+        .sort((x, y) => y.createdAt.localeCompare(x.createdAt))[0]
+    : undefined;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,6 +294,20 @@ export default function BirthFormPage() {
                 </p>
               </div>
             </button>
+
+            {ownChart && (
+              <p role="status" className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3 text-sm leading-snug">
+                These are your own birth details.
+                {ownReport && (
+                  <>
+                    {" "}
+                    <Link href={`/report/${ownReport.id}`} className="text-primary underline underline-offset-2">
+                      Open your report
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
 
             <Button
               type="submit"

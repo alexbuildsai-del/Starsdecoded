@@ -2,7 +2,9 @@
  * The staging walk (R17-25) on a stubbed page, a stubbed Stripe and a stubbed Clerk under the pair's real hold, with a
  * model client that fails if called. Pinned: the list walked in its order with the local steps named, a deploy's walk
  * on a stored seed and with none (reading 11), its one write at Idris's zero balance (reading 17), a Release's walk
- * writing each stored step once and its hold keeping those reports alone for the seed, a failure stopping the rest,
+ * writing each stored step once and its hold keeping those reports alone for the seed, its pair landing on the loading
+ * screen and opened only by Start reading (ADR-336, 393), Idris's Not now to both share questions (ADR-331), a
+ * failure stopping the rest,
  * findings with no email, token, link or Clerk id (R14-14), the door in front of every write, no Chromium as
  * `unconfigured`, and the walk refused off staging. The pair: the walk resets nothing itself (walkOnce does, B-39),
  * signs each reader in with a ticket made for their account alone after both bans lift, and bans both again whatever
@@ -63,7 +65,9 @@ type Role = "mira" | "idris";
 const STAGING = { APP_ENV: "staging" } as NodeJS.ProcessEnv;
 const WEB = "https://starsdecoded-staging.vercel.app";
 const DAY = 86_400_000;
-const LOCAL = ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"];
+const LOCAL = ["hanna-gift", "hanna-claims", "hanna-report", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"];
+/** What each local step's reason names: who has no account on staging, or the paid readings a deploy never writes. */
+const WHY_LOCAL = (id: string) => (id === "timeline-setup" ? /paid readings/ : id.startsWith("hanna-") ? /Hanna/ : /Tomás/);
 const STORED = ["own-report", "idris-report", "pair"];
 const SEED_READERS = ["no-credit", "share", "share-back", "pair-shared", "timeline", "timeline-ends"];
 // Clerk's ids are long, so the walk's findings are pinned against ids shaped as Clerk makes them.
@@ -99,7 +103,13 @@ class FakeSite {
   };
   readonly history: Record<Role, Array<{ kind: string; count: number; label: string }>> = { mira: [], idris: [] };
   readonly reports = new Map<string, FakeReport>();
-  readonly invites = new Map<string, { kind: "gift" | "share" | "send"; from: Role; claimed: boolean; report?: string }>();
+  readonly invites = new Map<string, { kind: "gift" | "share" | "send"; from: Role; claimed: boolean; report?: string; giverShares: boolean }>();
+  /** The giver's answer each gift was posted with, as sent. */
+  readonly shareOwn: unknown[] = [];
+  /** Each claim's kind and the answer it was posted with, null for none. */
+  readonly claims: Array<[string, unknown]> = [];
+  /** A site that keeps a giver's Yes whatever the gift was posted with. */
+  keepsYes = false;
   readonly purchases = new Map<string, { item: string; status: "granted" | "refunded"; credits: number | null; returnTo: string; unused: number }>();
   plan: { periodEnd: Date; cancel: boolean } | null = null;
   emailDelivered = true;
@@ -134,9 +144,9 @@ class FakeSite {
     return true;
   }
 
-  private link(kind: "gift" | "share" | "send", from: Role, report?: string): string {
+  private link(kind: "gift" | "share" | "send", from: Role, report?: string, giverShares = false): string {
     const token = `${randomUUID().replaceAll("-", "")}.${randomUUID().replaceAll("-", "")}`;
-    this.invites.set(token, { kind, from, claimed: false, report });
+    this.invites.set(token, { kind, from, claimed: false, report, giverShares });
     return `${WEB}/claim?token=${encodeURIComponent(token)}`;
   }
 
@@ -202,19 +212,24 @@ class FakeSite {
       if (me.available <= 0) return { status: 402, body: { error: "no_credit", message: "You have no credits left." } };
       me.available -= 1;
       me.held += 1;
-      const gift = body as { recipientName: string; email: string; note?: string };
+      const gift = body as { recipientName: string; email: string; note?: string; shareOwn?: boolean };
+      this.shareOwn.push(gift.shareOwn);
+      const claimUrl = this.link("gift", role, undefined, this.keepsYes || gift.shareOwn === true);
       return made({
         id: randomUUID(), recipientName: gift.recipientName, email: gift.email, note: gift.note ?? null, sentAt: at, returnsAt: at,
-        remindedAt: null, state: "waiting", creditHeld: true, claimUrl: this.link("gift", role), emailDelivered: this.emailDelivered,
+        remindedAt: null, state: "waiting", creditHeld: true, claimUrl, emailDelivered: this.emailDelivered,
       });
     }
     if ((m = /^\/api\/invites\/([^/]+)(\/claim)?$/.exec(path))) {
       const token = decodeURIComponent(m[1]);
       const invite = this.invites.get(token);
       if (!invite) return { status: 404, body: { error: "not_found" } };
-      if (!m[2]) return ok({ token, email: PAIR.idris.email, profileName: null, expiresAt: at, alreadyClaimed: invite.claimed, kind: invite.kind });
+      if (!m[2]) {
+        return ok({ token, email: PAIR.idris.email, profileName: null, expiresAt: at, alreadyClaimed: invite.claimed, kind: invite.kind, giverShares: invite.giverShares });
+      }
       if (invite.claimed) return { status: 409, body: { error: "already_claimed" } };
       invite.claimed = true;
+      this.claims.push([invite.kind, body ?? null]);
       if (invite.kind === "gift") {
         this.balance[invite.from].held -= 1;
         me.available += 1;
@@ -567,7 +582,7 @@ test("a deploy's walk on a stored seed runs the list in its order: the live step
   for (const step of verdict.steps) {
     const want = LOCAL.includes(step.id) ? "local" : STORED.includes(step.id) ? "stored" : "pass";
     assert.equal(step.status, want, step.id);
-    if (want === "local") assert.match(step.reason ?? "", step.id === "timeline-setup" ? /paid readings/ : /Tomás/, step.id);
+    if (want === "local") assert.match(step.reason ?? "", WHY_LOCAL(step.id), step.id);
   }
   // Reading 17: one write, Idris's, at a zero balance, answered by the 402; no pair is written and no Timeline page opens.
   assert.deepEqual(site.paid, ["idris POST /api/reports"]);
@@ -587,7 +602,29 @@ test("a deploy's walk on a stored seed runs the list in its order: the live step
   ]);
   assert.deepEqual(bannedNow(clerk), BOTH);
   assert.deepEqual(wrote, [], "a deploy's walk writes nothing, so its hold keeps nothing for the seed");
+  // The seed's pair is finished, so no tab lands on a loading screen.
+  assert.deepEqual(site.screens.filter((screen) => /"(loading|opened)"/.test(screen)), []);
   assert.deepEqual(modelCalls, []);
+});
+
+test("Idris's road says Not now to both share questions, each sent as a stated false, and a share or a send claims with no answer, as the claim page does", async () => {
+  const { verdict, site } = await walk("deploy", { seeded: true });
+  assert.equal(verdict.status, "pass");
+  assert.deepEqual(site.shareOwn, [false]);
+  assert.deepEqual(site.claims, [["gift", { shareBack: false }], ["share", null], ["send", null]]);
+
+  // A cover that asks "Share yours back when it's ready?" when Mira said Not now fails the claim's step before anything
+  // is claimed.
+  const kept = new FakeSite();
+  kept.keepsYes = true;
+  const wrong = await walk("deploy", { site: kept });
+  assert.equal(wrong.verdict.status, "fail");
+  assert.deepEqual([statusOf(wrong.verdict).gift, statusOf(wrong.verdict)["gift-claimed"]], ["pass", "fail"]);
+  assert.deepEqual(
+    [wrong.verdict.findings[0].title, wrong.verdict.findings[0].detail],
+    ["the gift's cover", 'read ["gift",false,true], not ["gift",false,false]'],
+  );
+  assert.deepEqual(kept.claims, []);
 });
 
 test("with no seed yet, the stored steps and every step that reads their reports wait for the first Release", async () => {
@@ -621,8 +658,17 @@ test("a Release's walk writes each stored step once, for real, never copies a se
   // Each the report its step's own write answered: storeQaSeed keeps these and no other.
   const reports = [...site.reports.values()];
   const natalOf = (role: Role) => reports.find((report) => report.owner === role && report.type === "natal")?.id;
+  const pairId = reports.find((report) => report.type === "compatibility")?.id;
   assert.equal(reports.length, 3);
-  assert.deepEqual(wrote, [["own-report", natalOf("mira")], ["idris-report", natalOf("idris")], ["pair", reports.find((report) => report.type === "compatibility")?.id]]);
+  assert.deepEqual(wrote, [["own-report", natalOf("mira")], ["idris-report", natalOf("idris")], ["pair", pairId]]);
+  // Make it lands Mira's tab on the pair's loading screen, and once the pair is written she taps Start reading, the one
+  // way into a report (ADR-336, 393); the step's check then opens it afresh, finished.
+  const names = JSON.stringify([PAIR.mira.name.split(" ")[0], PAIR.idris.name.split(" ")[0], "Compatibility Report"]);
+  assert.deepEqual(site.screens.filter((screen) => /^mira .*(\/compatibility\/|"opened")/.test(screen)), [
+    `mira /compatibility/${pairId} {"loading":true}`,
+    `mira (here) {"opened":${names}}`,
+    `mira /compatibility/${pairId} {"title":${names}}`,
+  ]);
   assert.deepEqual(bannedNow(clerk), BOTH);
 });
 
@@ -964,6 +1010,89 @@ test("a page signs in with the ticket the walk made for that address, once it st
   const neverIn = { ...stub, waitForFunction: async () => { throw new Error("page.waitForFunction: Timeout 30000ms exceeded."); } };
   const stuck = new ChromiumPage(neverIn as unknown as typeof page, WEB, signInWith, tickets);
   await assert.rejects(stuck.signIn(PAIR.mira.email), /Clerk never signed the page in with the walk's sign-in token/);
+});
+
+/**
+ * A report's tab as ChromiumPage meets Playwright: its title, and its loading screen, whose Start reading shows once
+ * the story has run `doorAfter` of the walk's waits; a tap takes the screen away. Each wait moves the mocked clock on.
+ */
+function reportTab(advance: (ms: number) => void, state: { title: string; loading: boolean; doorAfter: number | null }) {
+  const done: string[] = [];
+  let waits = 0;
+  const door = {
+    first: () => door,
+    isVisible: async () => state.loading && state.doorAfter !== null && waits >= state.doorAfter,
+    click: async () => {
+      done.push("tap");
+      state.loading = false;
+    },
+  };
+  const screen = {
+    first: () => screen,
+    isVisible: async () => state.loading,
+    waitFor: async ({ state: want }: { state: "visible" | "hidden" }) => {
+      if ((want === "visible") !== state.loading) throw new Error(`locator.waitFor: Timeout 30000ms exceeded waiting for ${want}`);
+    },
+    getByRole: (role: string, options: { name: RegExp }) => {
+      done.push(`${role} ${options.name}`);
+      return door;
+    },
+  };
+  const page = {
+    goto: async (url: string) => {
+      done.push(`open ${url}`);
+      return null;
+    },
+    url: () => `${WEB}/compatibility/pair-1`,
+    title: async () => state.title,
+    waitForTimeout: async (ms: number) => {
+      waits += 1;
+      advance(ms);
+    },
+    getByRole: (role: string, options: { name: string; exact?: boolean }) => {
+      done.push(`${role} "${options.name}"${options.exact ? " exact" : ""}`);
+      return screen;
+    },
+  };
+  const never = async (): Promise<never> => {
+    throw new Error("a report's tab signs no one in");
+  };
+  return { tab: new ChromiumPage(page as unknown as ConstructorParameters<typeof ChromiumPage>[0], WEB, never, never), done };
+}
+
+const PAIR_TITLE = ["Mira", "Idris", "Compatibility Report"];
+// The pair's page names its two in the tab's title as soon as they load, under its loading screen too.
+const NAMED = "Mira & Idris · Compatibility Report · Stars Decoded";
+
+test("a report opens only on Start reading: on its loading screen the walk waits for the tap, taps it once and reads the title, though the title named the pair before", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"] });
+  const state = { title: NAMED, loading: true, doorAfter: 3 };
+  const { tab, done } = reportTab((ms) => t.mock.timers.tick(ms), state);
+  await tab.screen(null, { opened: PAIR_TITLE });
+  assert.deepEqual(done, ['dialog "Your report is being written" exact', "button /^Start reading\\b/", "tap"]);
+  assert.equal(state.loading, false);
+
+  // The loading screen itself, where Make it lands while the pair is written.
+  const landed = reportTab((ms) => t.mock.timers.tick(ms), { title: NAMED, loading: true, doorAfter: null });
+  await landed.tab.screen("/compatibility/pair-1", { loading: true });
+  assert.deepEqual(landed.done, [`open ${WEB}/compatibility/pair-1`, 'dialog "Your report is being written" exact']);
+});
+
+test("a report finished before its page loaded opens with no tap, and a loading screen that never offers Start reading fails its step in plain words", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"] });
+  const finished = reportTab((ms) => t.mock.timers.tick(ms), { title: NAMED, loading: false, doorAfter: null });
+  await finished.tab.screen("/compatibility/pair-1", { opened: PAIR_TITLE });
+  assert.equal(finished.done.includes("tap"), false);
+
+  const writing = reportTab((ms) => t.mock.timers.tick(ms), { title: NAMED, loading: true, doorAfter: null });
+  await assert.rejects(
+    writing.tab.screen(null, { opened: PAIR_TITLE }),
+    /^Error: the screen at \/compatibility\/pair-1 didn't show the report open under a title with Mira, Idris, Compatibility Report$/,
+  );
+  assert.equal(writing.done.includes("tap"), false);
+
+  const gone = reportTab((ms) => t.mock.timers.tick(ms), { title: NAMED, loading: false, doorAfter: null });
+  await assert.rejects(gone.tab.screen(null, { loading: true }), /didn't show the report's loading screen$/);
 });
 
 test("findings are cleaned by the value wherever it sits, never by the key it came under", () => {

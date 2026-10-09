@@ -1,7 +1,10 @@
 // The buyer walk (ADR-273): the Owner's critical flow, the shared step list (steps.ts) in its order, end to end on a
-// scratch Postgres with three accounts. Mira pays for Family & friends at checkout, writes her Personal report and
-// gifts one to her parent Idris, who has no credit to write with until he claims it; the two share their reports both
-// ways, and Mira writes a parent and child report and shares it with Idris, who claims it from its link (ADR-285).
+// scratch Postgres with four accounts. Mira pays for Family & friends at checkout, writes her Personal report and
+// gifts one to her parent Idris, who has no credit to write with until he claims it; both say Not now to the gift's
+// share questions, so the two then share their reports both ways by hand. She gifts one to her friend Hanna too, and
+// both say Yes, so each reads the other's once Hanna's is written (ADR-331, 342). Either way Your first steps then
+// offers You & them. Mira picks herself and Idris in the picker, which opens the parent and child report on its
+// loading screen, and shares it with Idris, who claims it from its link (ADR-285, 336).
 // Stripe refunds the Family & friends purchase, so Mira, out of credits, buys a Couple from the birth form, writes her
 // partner Tomás's Personal report and a partners report, and sends Tomás both. Last, she starts Timeline yearly: it
 // opens and renews a year on; its first payment sets it up, so each reading the engine lists for her chart is written
@@ -87,6 +90,23 @@ process.env.RESEND_BASE_URL = `http://127.0.0.1:${await listening(mailStub)}`;
 let replies: Record<string, unknown> = {};
 const modelCalls: string[] = [];
 const unanswered: string[] = [];
+// A step can hold the stand-in's answers to read a report while it is still being written, as its loading screen does.
+// The hold lets go by itself after a while, so a call made before the step's own answer can only fail the step, never
+// stall the walk.
+let held: Promise<void> | null = null;
+function holdModel(): () => void {
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  held = hold;
+  const letGo = () => {
+    clearTimeout(timer);
+    if (held === hold) held = null;
+    release();
+  };
+  const timer = setTimeout(letGo, 15_000);
+  timer.unref();
+  return letGo;
+}
 function schemaOf(body: string): string {
   try {
     return String(JSON.parse(body)?.response_format?.json_schema?.name ?? "");
@@ -97,9 +117,10 @@ function schemaOf(body: string): string {
 const modelStub = http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
-  req.on("end", () => {
+  req.on("end", async () => {
     const schema = schemaOf(body);
     modelCalls.push(schema);
+    if (held) await held;
     const reply = replies[schema];
     if (reply === undefined) {
       unanswered.push(schema || "a call with no schema");
@@ -189,7 +210,7 @@ async function call(who: Viewer, method: string, path: string, body?: unknown) {
   return { status: res.status, body: text && json ? JSON.parse(text) : text || null };
 }
 
-const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [] };
+const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } };
 const NO_CREDITS = { available: 0, used: 0, held: 0 };
 // No plan, and a finished Personal report of one's own (reading 1): Mira before Timeline and after it, Idris always.
 const TIMELINE_CLOSED = { access: false, source: null, hasPersonalReport: true, ask: null };
@@ -275,11 +296,32 @@ async function preview(who: Viewer, token: string) {
   zod.GetInviteResponse.parse(r.body);
   return r.body;
 }
-async function claim(who: Viewer, token: string) {
-  const r = await call(who, "POST", claimPath(token));
+/** A send or a share claims with no answer; a gift with its claimer's answer, Not now a stated false (ClaimPage). */
+async function claim(who: Viewer, token: string, answer?: { shareBack: boolean }) {
+  const r = await call(who, "POST", claimPath(token), answer);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   zod.ClaimInviteResponse.parse(r.body);
   return r.body;
+}
+/** What a gift keeps of its two share answers: the giver's Yes, and the claimer's while it waits for their report. */
+const answersOf = async (giftId: string) =>
+  (await q("select giver_shares, share_back from invite_tokens where id = $1", [giftId])).rows[0];
+/** The grants a gift's answers wrote, each the row a Share writes (reading 16). */
+const grantsOf = async (giftId: string) =>
+  (await q(
+    "select id, profile_id, owner_user_id, reader_user_id from profile_shares where invite_id = $1 and revoked_at is null order by created_at",
+    [giftId],
+  )).rows;
+
+/** Reads until `done` holds, for what the API writes just after it answers. */
+async function until<T>(what: string, read: () => Promise<T>, done: (value: T) => boolean): Promise<T> {
+  const end = Date.now() + 10_000;
+  for (;;) {
+    const value = await read();
+    if (done(value)) return value;
+    if (Date.now() > end) throw new Error(`${what} after 10 s: ${JSON.stringify(value)}`);
+    await sleep(50);
+  }
 }
 async function checkoutOptions(who: Viewer) {
   const r = await call(who, "GET", "/checkout/options");
@@ -496,19 +538,24 @@ const IDRIS_SIGNED_OUT: Viewer = { user: null, session: "s-idris" };
 const IDRIS: Viewer = { user: "user_idris", session: IDRIS_SIGNED_OUT.session };
 const TOMAS_SIGNED_OUT: Viewer = { user: null, session: "s-tomas" };
 const TOMAS: Viewer = { user: "user_tomas", session: TOMAS_SIGNED_OUT.session };
+const HANNA_SIGNED_OUT: Viewer = { user: null, session: "s-hanna" };
+const HANNA: Viewer = { user: "user_hanna", session: HANNA_SIGNED_OUT.session };
 const MIRA_EMAIL = "mira@example.com";
 const IDRIS_EMAIL = "idris@example.com";
 const TOMAS_EMAIL = "tomas@example.com";
+const HANNA_EMAIL = "hanna@example.com";
 const GIFT_NOTE = "Happy birthday. Love, Mira.";
-// Who each is to Mira on the site: herself, her parent and her partner.
+// Who each is to Mira on the site: herself, her parent, her friend and her partner.
 const MIRA_BIRTH = samplePerson("mira");
 const IDRIS_BIRTH = samplePerson("idris");
+const HANNA_BIRTH = samplePerson("hanna");
 const TOMAS_BIRTH = samplePerson("tomas");
 const miraChart = chartForProfile({ ...MIRA_BIRTH, birthTimeWindowMinutes: 0 });
 const idrisChart = chartForProfile({ ...IDRIS_BIRTH, birthTimeWindowMinutes: 0 });
+const hannaChart = chartForProfile({ ...HANNA_BIRTH, birthTimeWindowMinutes: 0 });
 const tomasChart = chartForProfile({ ...TOMAS_BIRTH, birthTimeWindowMinutes: 0 });
-// Family & friends pays for Mira's report, the gift Idris writes with and her pair with Idris; the refund takes the two
-// left. The Couple pays for Tomás's report and her pair with Tomás, and keeps one.
+// Family & friends pays for Mira's report, the gifts Idris and Hanna write with and her pair with Idris; the refund
+// takes the one left. The Couple pays for Tomás's report and her pair with Tomás, and keeps one.
 const FAMILY = bundleById("family");
 const COUPLE = bundleById("couple");
 const YEARLY = PLANS.find((plan) => plan.id === "timeline_year");
@@ -526,6 +573,11 @@ let idrisReportId = "";
 let giftId = "";
 let giftCreditId = "";
 let giftToken = "";
+let hannaGiftId = "";
+let hannaCreditId = "";
+let hannaToken = "";
+let hannaProfileId = "";
+let hannaReportId = "";
 let idrisPairId = "";
 let idrisPairRelationshipId = "";
 let tomasProfileId = "";
@@ -631,6 +683,13 @@ const WALK: Record<StepId, Step> = {
     miraProfileId = read.profileId;
     assert.deepEqual([read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], [sun.sign, sun.degree]);
     assert.deepEqual([read.interpretation.meta.promptVersion, read.interpretation.meta.horizon], [PROMPT_VERSION, "known"]);
+    // One chapter's card is stored and read back whole and the other six carry none (R19-20): the pipeline keeps a Did
+    // you know card beside the prose and sets nothing where the writer gave null.
+    const cards = Object.fromEntries(
+      ["overview", "mind", "career", "family", "superpowers", "discoveries", "focus"].map((id) => [id, (read.interpretation as unknown as Record<string, { didYouKnow?: { title: string; body: string } | null }>)[id].didYouKnow ?? null]),
+    );
+    assert.deepEqual(Object.keys(cards).filter((id) => cards[id] !== null), ["family"]);
+    assert.ok(cards.family!.title.endsWith("?") && cards.family!.body.length > 0, JSON.stringify(cards.family));
     // The evidence under a claim is drawn from the chart in code, never from the model's words.
     assert.equal(read.interpretation.triad.claims[0].evidence[0].label, `Sun ${sun.degree.toFixed(1)}° ${sun.sign}, ${ordinal(sun.house!)} house`);
     assert.deepEqual(unanswered, []);
@@ -638,13 +697,17 @@ const WALK: Record<StepId, Step> = {
     const home = await readHome(MIRA);
     assert.deepEqual([home.you?.profileId, home.you?.reportId, home.you?.access, home.you?.isSelf], [miraProfileId, miraReportId, "owner", true]);
     assert.deepEqual(home.you?.triad?.sun, { sign: sun.sign, degree: sun.degree, house: sun.house });
+    // Your first steps ticks her own report and moves on to adding someone (ADR-330).
+    assert.deepEqual(home.firstSteps, { step: 2, person: null, gift: false, pairReady: false });
     assert.deepEqual(await credits(MIRA), { available: 4, used: 1, held: 0 });
     assert.deepEqual(await history(MIRA), [["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"]]);
   },
 
   gift: async () => {
     const mailsBefore = mails.length;
-    const sent = await call(MIRA, "POST", "/gifts", { recipientName: "Idris", email: IDRIS_EMAIL, note: GIFT_NOTE });
+    // "Share your report with Idris too?" Not now, sent as a stated false as GiftFlow sends it: nothing is kept for his
+    // claim to grant (ADR-331).
+    const sent = await call(MIRA, "POST", "/gifts", { recipientName: "Idris", email: IDRIS_EMAIL, note: GIFT_NOTE, shareOwn: false });
     assert.equal(sent.status, 201, JSON.stringify(sent.body));
     zod.CreateGiftResponse.parse(sent.body);
     assert.deepEqual([sent.body.state, sent.body.creditHeld, sent.body.emailDelivered], ["waiting", true, true]);
@@ -659,20 +722,32 @@ const WALK: Record<StepId, Step> = {
 
     giftCreditId = (await q("select credit_id from invite_tokens where id = $1", [giftId])).rows[0].credit_id;
     assert.deepEqual(await creditRow(giftCreditId), { status: "held", user_id: MIRA.user, used_for_report_id: null });
+    assert.deepEqual(await answersOf(giftId), { giver_shares: false, share_back: false });
     assert.deepEqual(await credits(MIRA), { available: 3, used: 1, held: 1 });
     assert.deepEqual(await gifts(MIRA), [[giftId, "Idris", IDRIS_EMAIL, "waiting", true]]);
+    // A gift is done once it's sent, so Your first steps is on step 4, naming Idris as she typed him: nothing of his
+    // reaches her before he shares it, so there is no report to pair yet (ADR-330, 331).
+    assert.deepEqual((await readHome(MIRA)).firstSteps, { step: 4, person: { profileId: "", name: "Idris" }, gift: true, pairReady: false });
   },
 
   "gift-claimed": async () => {
     const opened = await preview(IDRIS_SIGNED_OUT, giftToken);
-    assert.deepEqual([opened.kind, opened.inviterName, opened.recipientName, opened.note, opened.alreadyClaimed], ["gift", "Mira", "Idris", GIFT_NOTE, false]);
+    // Mira said Not now, so the cover asks "Share your report with Mira when it's ready?", not "Share yours back when
+    // it's ready?".
+    assert.deepEqual(
+      [opened.kind, opened.inviterName, opened.recipientName, opened.note, opened.alreadyClaimed, opened.giverShares],
+      ["gift", "Mira", "Idris", GIFT_NOTE, false, false],
+    );
     assert.equal((await call(IDRIS_SIGNED_OUT, "POST", claimPath(giftToken))).status, 401);
 
     // He signs in from the email's link, and his balance holds nothing until the claim.
     await signIn(IDRIS, IDRIS_EMAIL);
     assert.deepEqual(await credits(IDRIS), NO_CREDITS);
-    const claimed = await claim(IDRIS, giftToken);
+    const claimed = await claim(IDRIS, giftToken, { shareBack: false });
     assert.deepEqual([claimed.kind, claimed.redirectTo], ["gift", "/dashboard"]);
+    // Not now on both sides writes nothing and keeps nothing for his report (reading 16).
+    assert.deepEqual(await grantsOf(giftId), []);
+    assert.deepEqual(await answersOf(giftId), { giver_shares: false, share_back: false });
 
     assert.deepEqual(await creditRow(giftCreditId), { status: "available", user_id: IDRIS.user, used_for_report_id: null });
     assert.deepEqual(await credits(IDRIS), { available: 1, used: 0, held: 0 });
@@ -757,21 +832,166 @@ const WALK: Record<StepId, Step> = {
 
     const read = await readReport(MIRA, idrisReportId);
     assert.deepEqual([read.access, read.giverName, read.canRegenerate], ["shared", "Idris", false]);
-    assert.deepEqual((await readHome(MIRA)).people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[idrisProfileId, idrisReportId, "shared", false]]);
+    const home = await readHome(MIRA);
+    assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[idrisProfileId, idrisReportId, "shared", false]]);
+    // Her gift's step 4 now names his own seat, and both reports are finished, so You & Idris is ready (ADR-331, 332).
+    assert.deepEqual(home.firstSteps, { step: 4, person: { profileId: idrisProfileId, name: "Idris" }, gift: true, pairReady: true });
     assert.deepEqual((await readHome(IDRIS)).people.map((p) => [p.profileId, p.shareBack]), [[miraProfileId, false]]);
   },
 
+  "hanna-gift": async () => {
+    const mailsBefore = mails.length;
+    // "Share your report with Hanna too?" Yes: kept on the gift, it becomes a grant when she claims it (reading 16).
+    const sent = await call(MIRA, "POST", "/gifts", { recipientName: "Hanna", email: HANNA_EMAIL, shareOwn: true });
+    assert.equal(sent.status, 201, JSON.stringify(sent.body));
+    zod.CreateGiftResponse.parse(sent.body);
+    assert.deepEqual([sent.body.state, sent.body.creditHeld, sent.body.emailDelivered, sent.body.note], ["waiting", true, true, null]);
+    hannaGiftId = sent.body.id;
+
+    const mail = mails.at(-1)!;
+    assert.deepEqual([mails.length - mailsBefore, mail.to, mail.subject], [1, HANNA_EMAIL, "Mira gave you a Personal report"]);
+    onOurWeb(mail);
+    hannaToken = tokenOf(mail);
+    assert.equal(sent.body.claimUrl, claimUrlOf(hannaToken));
+
+    hannaCreditId = (await q("select credit_id from invite_tokens where id = $1", [hannaGiftId])).rows[0].credit_id;
+    assert.deepEqual(await creditRow(hannaCreditId), { status: "held", user_id: MIRA.user, used_for_report_id: null });
+    assert.deepEqual(await answersOf(hannaGiftId), { giver_shares: true, share_back: false });
+    // Nothing is granted before the claim: until then no one holds the link's account.
+    assert.deepEqual(await grantsOf(hannaGiftId), []);
+    assert.deepEqual(await credits(MIRA), { available: 2, used: 1, held: 1 });
+    assert.deepEqual(await gifts(MIRA), [
+      [hannaGiftId, "Hanna", HANNA_EMAIL, "waiting", true], [giftId, "Idris", IDRIS_EMAIL, "claimed", false],
+    ]);
+    // The newest person she added is the one step 4 names.
+    assert.deepEqual((await readHome(MIRA)).firstSteps, { step: 4, person: { profileId: "", name: "Hanna" }, gift: true, pairReady: false });
+  },
+
+  "hanna-claims": async () => {
+    const opened = await preview(HANNA_SIGNED_OUT, hannaToken);
+    // Mira said Yes, so the cover asks "Share yours back when it's ready?" (ADR-331).
+    assert.deepEqual(
+      [opened.kind, opened.inviterName, opened.recipientName, opened.note, opened.alreadyClaimed, opened.giverShares],
+      ["gift", "Mira", "Hanna", null, false, true],
+    );
+    await signIn(HANNA, HANNA_EMAIL);
+    assert.deepEqual(await credits(HANNA), NO_CREDITS);
+    const claimed = await claim(HANNA, hannaToken, { shareBack: true });
+    assert.deepEqual([claimed.kind, claimed.redirectTo], ["gift", "/dashboard"]);
+
+    // Mira's Yes is a grant of her own report to Hanna, written with the claim; Hanna's waits on the gift for her
+    // report.
+    const given = await grantsOf(hannaGiftId);
+    assert.deepEqual(given.map((g) => [g.profile_id, g.owner_user_id, g.reader_user_id]), [[miraProfileId, MIRA.user, HANNA.user]]);
+    const grantId = given[0].id;
+    assert.deepEqual(await answersOf(hannaGiftId), { giver_shares: true, share_back: true });
+    const read = await readReport(HANNA, miraReportId);
+    assert.deepEqual([read.access, read.giverName, read.canRegenerate, read.send], ["shared", "Mira", false, null]);
+    assert.deepEqual(read.interpretation, (await readReport(MIRA, miraReportId)).interpretation, "the text Hanna reads is not the text Mira reads");
+
+    // The giver's Yes read back through GET /home on both sides: Mira's seat on Hanna's circle, with no Share yours
+    // back to offer before Hanna has a report, and Hanna among those who read Mira's, by the grant.
+    const hers = await readHome(HANNA);
+    assert.deepEqual([hers.you, hers.people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack])], [null, [[miraProfileId, miraReportId, "shared", false]]]);
+    assert.deepEqual(hers.firstSteps, { step: 1, person: null, gift: false, pairReady: false });
+    const mira = await readHome(MIRA);
+    assert.deepEqual(mira.you?.readers.filter((r) => r.shareId === grantId).map((r) => [r.state, r.email, r.inviteId]), [["can-read", null, null]]);
+    // Nothing of Hanna's reaches Mira before her report is finished, so step 4 still names her as Mira typed her.
+    assert.deepEqual(mira.firstSteps, { step: 4, person: { profileId: "", name: "Hanna" }, gift: true, pairReady: false });
+
+    assert.deepEqual(await creditRow(hannaCreditId), { status: "available", user_id: HANNA.user, used_for_report_id: null });
+    assert.deepEqual(await credits(HANNA), { available: 1, used: 0, held: 0 });
+    assert.deepEqual(await history(HANNA), [["gift", 1, "A gift from Mira"]]);
+    assert.deepEqual(await credits(MIRA), { available: 2, used: 1, held: 0 });
+    assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Gift to Hanna"]);
+  },
+
+  "hanna-report": async () => {
+    replies = natalTextFor(hannaChart);
+    // The stand-in holds its answers, so the step reads what Mira can while Hanna's report is still being written.
+    const release = holdModel();
+    try {
+      const made = await call(HANNA, "POST", "/reports", birthForm(HANNA_BIRTH, "Berlin", true));
+      assert.equal(made.status, 201, JSON.stringify(made.body));
+      zod.CreateReportResponse.parse(made.body);
+      hannaReportId = made.body.id;
+      assert.deepEqual(await creditRow(hannaCreditId), { status: "used", user_id: HANNA.user, used_for_report_id: hannaReportId });
+      // Her Yes waits for a finished report: while hers is written, Mira reads nothing of it (R-3.6).
+      assert.equal((await call(MIRA, "GET", `/reports/${hannaReportId}`)).status, 404);
+      assert.deepEqual(await answersOf(hannaGiftId), { giver_shares: true, share_back: true });
+    } finally {
+      release();
+    }
+    await written(HANNA, hannaReportId);
+    const read = await readReport(HANNA, hannaReportId);
+    const sun = hannaChart.planets.sun;
+    assert.deepEqual([read.access, read.status, read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], ["owner", "complete", sun.sign, sun.degree]);
+    hannaProfileId = read.profileId;
+    assert.deepEqual(unanswered, []);
+
+    // Once it's finished her kept Yes is a grant of her report to Mira, the row a Share writes, and the gift keeps it
+    // no more (reading 16). It lands just after the report reads complete, so the step waits for it.
+    const grants = await until("Hanna's Yes to become a grant", () => grantsOf(hannaGiftId), (rows) => rows.length === 2);
+    const back = grants.find((g) => g.owner_user_id === HANNA.user);
+    assert.deepEqual([back?.profile_id, back?.reader_user_id], [hannaProfileId, MIRA.user]);
+    assert.deepEqual(await answersOf(hannaGiftId), { giver_shares: true, share_back: false });
+    const hersForMira = await readReport(MIRA, hannaReportId);
+    assert.deepEqual([hersForMira.access, hersForMira.giverName, hersForMira.canRegenerate], ["shared", "Hanna", false]);
+    assert.deepEqual(hersForMira.interpretation, read.interpretation, "the text Mira reads is not the text Hanna reads");
+
+    // Both Yes grants read back through GET /home: each sits on the other's circle, each reads the other's, and Mira's
+    // step 4 names Hanna's own seat with both reports finished, so You & Hanna is ready (ADR-330, 331, 332).
+    const mira = await readHome(MIRA);
+    const seat = mira.people.find((p) => p.profileId === hannaProfileId);
+    assert.deepEqual([seat?.reportId, seat?.access, seat?.isSelf, seat?.shareBack, seat?.readsYours], [hannaReportId, "shared", false, false, "can-read"]);
+    assert.deepEqual(mira.firstSteps, { step: 4, person: { profileId: hannaProfileId, name: "Hanna" }, gift: true, pairReady: true });
+    const hanna = await readHome(HANNA);
+    assert.deepEqual([hanna.you?.reportId, hanna.you?.access, hanna.you?.isSelf], [hannaReportId, "owner", true]);
+    assert.deepEqual(hanna.you?.readers, [{ name: "Mira", email: null, state: "can-read", shareId: back?.id, inviteId: null }]);
+    assert.deepEqual(hanna.people.map((p) => [p.profileId, p.access, p.shareBack, p.readsYours]), [[miraProfileId, "shared", false, "can-read"]]);
+    assert.deepEqual(await history(HANNA), [["spent", 1, "Hanna Berg"], ["gift", 1, "A gift from Mira"]]);
+  },
+
   pair: async () => {
+    // The picker offers each finished Personal report she can read: her own, and Idris's and Hanna's through their
+    // shares (ADR-332).
+    const listed = [...(await listReports(MIRA)).values()];
+    const pickable = listed.filter((r) => r.kind === "natal" && r.status === "complete").map((r) => r.id);
+    assert.deepEqual(pickable.sort(), [miraReportId, idrisReportId, hannaReportId].sort());
     const lens = "parent_child" as const;
     replies = await pairTextFor(lens, "B", miraReportId, idrisReportId);
-    const made = await call(MIRA, "POST", "/compatibility", { reportAId: miraReportId, reportBId: idrisReportId, lens, parent: "B" });
-    assert.equal(made.status, 201, JSON.stringify(made.body));
-    zod.CreateCompatibilityReportResponse.parse(made.body);
-    idrisPairId = made.body.id;
-    idrisPairRelationshipId = made.body.relationshipId;
-    // One credit is one report, the pair too (ADR-42), taken with its row.
-    assert.deepEqual(await creditFor(idrisPairId), [{ status: "used", user_id: MIRA.user }]);
-    assert.deepEqual(await credits(MIRA), { available: 2, used: 2, held: 0 });
+    // The stand-in holds its answers, so the step reads the loading screen's calls while the pair is still written.
+    const release = holdModel();
+    try {
+      // What Make it posts: the two she picked, the lens, and the parent that lens asks for (CompatibilityPicker).
+      const made = await call(MIRA, "POST", "/compatibility", { reportAId: miraReportId, reportBId: idrisReportId, lens, parent: "B" });
+      assert.equal(made.status, 201, JSON.stringify(made.body));
+      zod.CreateCompatibilityReportResponse.parse(made.body);
+      idrisPairId = made.body.id;
+      idrisPairRelationshipId = made.body.relationshipId;
+      // One credit is one report, the pair too (ADR-42), taken with its row.
+      assert.deepEqual(await creditFor(idrisPairId), [{ status: "used", user_id: MIRA.user }]);
+      assert.deepEqual(await credits(MIRA), { available: 1, used: 2, held: 0 });
+      // Make it opens /compatibility/<id> on its loading screen (ADR-336), which reads the pair and its status as it's
+      // written: both people and their charts at once, for the story, and no chapter yet. Until a chapter lands the
+      // row's interpretation is its meta alone, which the contract's whole-or-null doesn't describe, so each parse
+      // leaves that one field out.
+      const opened = await call(MIRA, "GET", `/reports/${idrisPairId}`);
+      assert.equal(opened.status, 200, JSON.stringify(opened.body));
+      const loading = zod.GetReportResponse.omit({ interpretation: true }).parse(opened.body);
+      assert.deepEqual([loading.type, loading.lens, loading.status], ["compatibility", lens, "interpreting"]);
+      assert.deepEqual(
+        (loading.participants ?? []).map((p: any) => [p.name, p.chartData?.planets?.sun?.sign]),
+        [["Mira Costa", miraChart.planets.sun.sign], ["Idris Costa", idrisChart.planets.sun.sign]],
+      );
+      const polled = await call(MIRA, "GET", `/reports/${idrisPairId}/status`);
+      assert.equal(polled.status, 200, JSON.stringify(polled.body));
+      const status = zod.GetReportStatusResponse.omit({ interpretation: true }).parse(polled.body);
+      assert.deepEqual([status.status, status.chartReady], ["interpreting", true]);
+      assert.ok(Object.keys(status.sections).length > 0 && !Object.values(status.sections).includes("done"), JSON.stringify(status.sections));
+    } finally {
+      release();
+    }
     await written(MIRA, idrisPairId);
 
     const read = await readReport(MIRA, idrisPairId);
@@ -786,8 +1006,11 @@ const WALK: Record<StepId, Step> = {
       [PAIR_PROMPT_VERSION, lens, "grown", { a: "Mira Costa", b: "Idris Costa" }, false],
     );
     assert.deepEqual(unanswered, []);
-    const pair = (await readHome(MIRA)).pairs.find((p) => p.reportId === idrisPairId);
+    const home = await readHome(MIRA);
+    const pair = home.pairs.find((p) => p.reportId === idrisPairId);
     assert.deepEqual([pair?.lens, pair?.status, pair?.stoppedBy, pair?.a.name, pair?.b.name], [lens, "complete", null, "Mira Costa", "Idris Costa"]);
+    // Your first steps goes once her first pair is on her list (ADR-330).
+    assert.equal(home.firstSteps, null);
     assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Mira Costa & Idris Costa"]);
   },
 
@@ -845,7 +1068,9 @@ const WALK: Record<StepId, Step> = {
     assert.equal((await call(IDRIS, "GET", `/compatibility/${idrisPairId}/summary`)).status, 200);
     const listed = (await listReports(IDRIS)).get(idrisPairId);
     assert.deepEqual([listed?.access, listed?.sharedBy, listed?.send], ["participant", "Mira", null]);
-    assert.deepEqual((await readHome(IDRIS)).pairs.map((p) => [p.reportId, p.stoppedBy]), [[idrisPairId, null]]);
+    const his = await readHome(IDRIS);
+    assert.deepEqual(his.pairs.map((p) => [p.reportId, p.stoppedBy]), [[idrisPairId, null]]);
+    assert.equal(his.firstSteps, null, "Your first steps stays once a pair is on his list");
     assert.equal((await listReports(MIRA)).get(idrisPairId).send.state, "joined");
     // He reads it as any reader it was sent to does: only Mira, who made it, can share it on.
     const onward = await call(IDRIS, "POST", `/compatibility/${idrisPairId}/send`, { email: MIRA_EMAIL });
@@ -872,27 +1097,31 @@ const WALK: Record<StepId, Step> = {
     await delivered(refunded);
     await delivered(refunded);
 
-    // Reading 3: the two credits she hadn't used go; the two she wrote with and the one Idris claimed and wrote with stay.
+    // Reading 3: the one credit she hadn't used goes; the two she wrote with, and the two Idris and Hanna claimed and
+    // wrote with, stay.
     assert.deepEqual(await credits(MIRA), { available: 0, used: 2, held: 0 });
     assert.deepEqual(await credits(IDRIS), { available: 0, used: 1, held: 0 });
+    assert.deepEqual(await credits(HANNA), { available: 0, used: 1, held: 0 });
     const family = (await q(
       "select c.status, c.user_id, count(*)::int as n from credits c join bundles b on b.id = c.bundle_id where b.purchase_id = $1 group by 1, 2 order by 1, 2",
       [familyPurchaseId],
     )).rows;
     assert.deepEqual(family, [
-      { status: "refunded", user_id: MIRA.user, n: 2 },
+      { status: "refunded", user_id: MIRA.user, n: 1 },
+      { status: "used", user_id: HANNA.user, n: 1 },
       { status: "used", user_id: IDRIS.user, n: 1 },
       { status: "used", user_id: MIRA.user, n: 2 },
     ]);
     assert.deepEqual(await history(MIRA), [
-      ["refunded", 2, "Refunded"], ["spent", 1, "Mira Costa & Idris Costa"], ["spent", 1, "Gift to Idris"], ["spent", 1, "Mira Costa"],
-      ["bought", 5, "5 test credits"],
+      ["refunded", 1, "Refunded"], ["spent", 1, "Mira Costa & Idris Costa"], ["spent", 1, "Gift to Hanna"], ["spent", 1, "Gift to Idris"],
+      ["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"],
     ]);
     assert.deepEqual(await checkoutState(MIRA, familyPurchaseId), { status: "refunded", item: "family", returnTo: CREDITS_SHEET, credits: 5 });
     // What the used credits wrote stays with the people who read it.
     assert.equal((await readReport(MIRA, miraReportId)).status, "complete");
     assert.equal((await readReport(MIRA, idrisPairId)).status, "complete");
     assert.equal((await readReport(IDRIS, idrisReportId)).status, "complete");
+    assert.equal((await readReport(MIRA, hannaReportId)).status, "complete");
   },
 
   "tomas-report": async () => {
@@ -936,8 +1165,11 @@ const WALK: Record<StepId, Step> = {
     const profiles = zod.ListProfilesResponse.parse((await call(MIRA, "GET", "/profiles")).body);
     const tomas = profiles.find((p) => p.id === tomasProfileId);
     assert.deepEqual([tomas?.name, tomas?.ownership, tomas?.isSelf], ["Tomás Reyes", "owner", false]);
-    const seat = (await readHome(MIRA)).people.find((p) => p.profileId === tomasProfileId);
+    const home = await readHome(MIRA);
+    const seat = home.people.find((p) => p.profileId === tomasProfileId);
     assert.deepEqual([seat?.reportId, seat?.access, seat?.isSelf], [tomasReportId, "owner", false]);
+    // Your first steps stays gone after her first pair, though she adds someone (ADR-330).
+    assert.equal(home.firstSteps, null);
     assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Tomás Reyes"]);
   },
 
@@ -967,8 +1199,9 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual(read.send, { state: "can_send", profileId: tomasProfileId, relationshipId: tomasPairRelationshipId, firstName: "Tomás" });
     assert.deepEqual(unanswered, []);
     assert.deepEqual(await history(MIRA), [
-      ["spent", 1, "Mira Costa & Tomás Reyes"], ["spent", 1, "Tomás Reyes"], ["bought", 3, "3 test credits"], ["refunded", 2, "Refunded"],
-      ["spent", 1, "Mira Costa & Idris Costa"], ["spent", 1, "Gift to Idris"], ["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"],
+      ["spent", 1, "Mira Costa & Tomás Reyes"], ["spent", 1, "Tomás Reyes"], ["bought", 3, "3 test credits"], ["refunded", 1, "Refunded"],
+      ["spent", 1, "Mira Costa & Idris Costa"], ["spent", 1, "Gift to Hanna"], ["spent", 1, "Gift to Idris"], ["spent", 1, "Mira Costa"],
+      ["bought", 5, "5 test credits"],
     ]);
   },
 

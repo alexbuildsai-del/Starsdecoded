@@ -14,7 +14,7 @@
 import { readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Browser, Frame, Page, Route } from "playwright-core";
+import type { Browser, Frame, Locator, Page, Route } from "playwright-core";
 import { PLANS, type CatalogueItemId } from "@workspace/commerce";
 import type { QaWalkMode } from "@workspace/db";
 
@@ -27,7 +27,14 @@ export interface ApiAnswer {
 export type Shown =
   | { heading: string; inDialog?: boolean }
   | { control: string }
-  | { title: readonly string[] };
+  | { title: readonly string[] }
+  /** The loading screen a report shows while it is written, where the picker's Make it lands (ADR-336). */
+  | { loading: true }
+  /**
+   * The report open, under a title with each of these: where its loading screen is up, Start reading tapped, since
+   * nothing else opens a report (ADR-393); a report finished before the page loaded shows no such screen.
+   */
+  | { opened: readonly string[] };
 
 /** The screen a reader buys from, and the link they press there, in its sheet when the screen opens one. */
 export interface PayDoor {
@@ -156,6 +163,10 @@ const BACK_MS = 75_000;
 const TIMELINE_APP = "/dashboard/timeline";
 const SETUP_PATH = "/api/timeline/setup";
 
+// The loading screen as OpeningOverlay names it, and its one way into the report (reading 29).
+const LOADING_SCREEN = "Your report is being written";
+const START_READING = /^Start reading\b/;
+
 /** Reading 14: a phone's screen, small enough to keep one a step in the database and read at a glance. */
 const PICTURE = { width: 390, height: 844, quality: 60 };
 const PICTURE_MS = 15_000;
@@ -184,6 +195,8 @@ function expiry(now: Date): string {
 }
 
 function describe(shows: Shown): string {
+  if ("opened" in shows) return `the report open under a title with ${shows.opened.join(", ")}`;
+  if ("loading" in shows) return "the report's loading screen";
   if ("title" in shows) return `a title with ${shows.title.join(", ")}`;
   if ("heading" in shows) return `the heading "${shows.heading}"${shows.inDialog ? " in its sheet" : ""}`;
   return `"${shows.control}"`;
@@ -351,16 +364,9 @@ export class ChromiumPage implements WalkPage {
   }
 
   private async shown(shows: Shown): Promise<void> {
-    if ("title" in shows) {
-      // The tab's title is set once the page has its data: a report's carries its name only when it is complete.
-      const end = Date.now() + SHOWN_MS;
-      for (;;) {
-        const title = await this.page.title();
-        if (shows.title.every((part) => title.includes(part))) return;
-        if (Date.now() > end) throw new Error("no such title");
-        await this.page.waitForTimeout(250);
-      }
-    }
+    if ("title" in shows) return this.titled(shows.title, Date.now() + SHOWN_MS);
+    if ("loading" in shows) return this.loadingScreen().waitFor({ state: "visible", timeout: SHOWN_MS });
+    if ("opened" in shows) return this.opened(shows.opened);
     if ("heading" in shows) {
       const scope = shows.inDialog ? this.page.getByRole("dialog") : this.page;
       await scope.getByRole("heading", { name: shows.heading, exact: true }).first().waitFor({ state: "visible", timeout: SHOWN_MS });
@@ -369,6 +375,44 @@ export class ChromiumPage implements WalkPage {
     const button = this.page.getByRole("button", { name: shows.control, exact: true });
     const link = this.page.getByRole("link", { name: shows.control, exact: true });
     await button.or(link).first().waitFor({ state: "visible", timeout: SHOWN_MS });
+  }
+
+  private async hasTitle(parts: readonly string[]): Promise<boolean> {
+    const title = await this.page.title();
+    return parts.every((part) => title.includes(part));
+  }
+
+  /** The tab's title is set once the page has its data: a report's carries its name only when it is complete. */
+  private async titled(parts: readonly string[], end: number): Promise<void> {
+    while (!(await this.hasTitle(parts))) {
+      if (Date.now() > end) throw new Error("no such title");
+      await this.page.waitForTimeout(250);
+    }
+  }
+
+  private loadingScreen(): Locator {
+    return this.page.getByRole("dialog", { name: LOADING_SCREEN, exact: true }).first();
+  }
+
+  /**
+   * Nothing opens a report but Start reading (ADR-393), so where the loading screen is up the walk waits for it and
+   * taps it, as a reader does; a report finished before the page loaded shows the report at once. A pair's title names
+   * its two while the screen is still up, so a title counts only once no loading screen is.
+   */
+  private async opened(parts: readonly string[]): Promise<void> {
+    const end = Date.now() + SHOWN_MS;
+    const screen = this.loadingScreen();
+    const door = screen.getByRole("button", { name: START_READING }).first();
+    for (;;) {
+      if (await door.isVisible().catch(() => false)) {
+        await door.click({ timeout: SHOWN_MS });
+        await screen.waitFor({ state: "hidden", timeout: SHOWN_MS });
+        return this.titled(parts, end);
+      }
+      if (!(await screen.isVisible().catch(() => false)) && (await this.hasTitle(parts))) return;
+      if (Date.now() > end) throw new Error("the report never opened");
+      await this.page.waitForTimeout(250);
+    }
   }
 
   /** The frame Stripe drew the card fields in, once the session the tick started exists. */

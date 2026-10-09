@@ -6,7 +6,7 @@
  */
 import { z } from "zod/v4";
 import type { Band, PairBrief } from "../../lib/pairBrief.js";
-import { LENS_REGISTER, writtenAge, type Lens } from "../../lib/pairBrief.js";
+import { LENS_REGISTER, backwardsByChapter, backwardsLine, writtenAge, type Lens } from "../../lib/pairBrief.js";
 import { PairClaimsSchema, reconcilePairClaims, type PairClaim } from "./evidence.js";
 import { ASPECTS, BODIES, BODY_LABELS, cap } from "../vocabulary.js";
 import { SECTION_IDS, type ReportSectionId } from "../index.js";
@@ -330,17 +330,21 @@ export function validatePairSection(spec: PairSectionSpec, out: unknown, brief: 
   return { output: own.output, checks: [...prose.checks, ...quotes.checks, ...own.checks] };
 }
 
-/** Evidence lives in claims only (ADR-60): trine and sextile are jargon and block; square, opposition and conjunction block beside a body name and are logged alone; orb blocks (annex rows 21, 22). */
+/**
+ * An aspect named in prose is logged, never blocked, since rule 1 lets it in once with its plain meaning (ADR-385):
+ * trine and sextile wherever they sit, square, opposition and conjunction beside a body name or alone as ordinary
+ * English. An orb still blocks: it is evidence, and evidence lives in the claims (annex rows 21, 22).
+ */
 export function evidenceChecks(text: string): Check[] {
   const checks: Check[] = [];
   const hard = text.match(HARD_ASPECT_RE);
-  if (hard) checks.push(block("chk-21a", `the aspect name "${hard[0]}" sits in the prose; evidence lives in the claims field only`));
+  if (hard) checks.push(warned("chk-21a", `the aspect name "${hard[0]}" sits in the prose; rule 1 lets it in once with its plain meaning, logged`));
   const soft = text.match(SOFT_ASPECT_RE);
   if (soft) {
     const at = soft.index ?? 0;
     const around = text.slice(Math.max(0, at - 40), at + soft[0].length + 40);
     checks.push(BODY_NEAR_RE.test(around)
-      ? block("chk-21b", `the aspect word "${soft[0]}" sits beside a body name in the prose`)
+      ? warned("chk-21b", `the aspect word "${soft[0]}" sits beside a body name in the prose; rule 1 lets it in once with its plain meaning, logged`)
       : warned("chk-21b", `the word "${soft[0]}" sits in the prose; ordinary English, logged`));
   }
   if (/\borbs?\b/i.test(text)) checks.push(block("chk-22", "the word orb sits in the prose; evidence lives in the claims field only"));
@@ -414,7 +418,11 @@ export function spellSmallNumbers(line: string): { line: string; spelled: number
 export const CARD_LINE_WORDS = 12;
 export const CARD_LINE_BUFFER = 15;
 
-/** A card line: twelve words at most with a buffer to fifteen, naming only the two people, no capitalised body, no number (ADR-63; annex rows 23 to 26). */
+/**
+ * A card line: twelve words at most with a buffer to fifteen, naming only the two people, no number (ADR-63; annex
+ * rows 23 to 26). A capitalised body is logged: the line has no room for its plain meaning, yet the name is not wrong
+ * for the reader (ADR-385).
+ */
 export function cardLineChecks(line: string, names: { a: string; b: string }, tag: string): { line: string; checks: Check[] } {
   const checks: Check[] = [];
   const spelled = spellSmallNumbers(line);
@@ -425,7 +433,7 @@ export function cardLineChecks(line: string, names: { a: string; b: string }, ta
   if (w > CARD_LINE_BUFFER) checks.push(block("chk-23", `${tag}: ${w} words, a card line takes ${CARD_LINE_WORDS} at most`));
   else if (w > CARD_LINE_WORDS) checks.push(buffered("chk-23", `${tag}: ${w} words, over the ${CARD_LINE_WORDS} the prompt asks and inside the buffer`));
   const body = out.match(CAPITALISED_BODY_RE);
-  if (body) checks.push(block("chk-24", `${tag}: names ${body[0]}, and a card line names nothing but the two people`));
+  if (body) checks.push(warned("chk-24", `${tag}: names ${body[0]}; a card line has no room for its plain meaning, logged`));
   const stranger = strangerIn(out, names);
   if (stranger) {
     checks.push(stranger.person
@@ -542,7 +550,7 @@ export function twoChartsChecks(out: PairTwoChartsOutput, brief: PairBrief, chap
 }
 
 /** Age bands are now and later (ADR-83): the report is written for the child's age on the day, may look ahead, and never treats a later stage as present. */
-export const NOW_AND_LATER_RULE = "NOW AND LATER. Describe situations of this age now. A later stage may be discussed, framed as later: what will change, what to expect, never as something happening today.";
+export const NOW_AND_LATER_RULE = "NOW AND LATER. Describe situations of this age now. A later stage may be discussed, framed as later and as a possibility: what could change, what to look out for, never as something happening today.";
 /** Over 18, childhood is remembered, never described as present. */
 export const GROWN_RULE = "The child is an adult. Nothing from childhood is described as present: no bedtime, homework, pocket money or curfew today. The focus is a young adult's life: moving out, work, money, partners, visits home. Childhood may be remembered, in the past tense only.";
 
@@ -587,8 +595,18 @@ export function lensChapterId(lens: Lens, n: number): string {
   return `${LENS_KEY[lens]}${String(n).padStart(2, "0")}`;
 }
 
-/** The instruction every lens chapter carries after its own: evidence in claims only, the shape, the register. */
-export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb. The reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange. It invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern. The card and the items sit outside that count. No score, no number, no research named on the page.`;
+/** The instruction every lens chapter carries after its own: evidence in claims only, a name as rule 1 lets it in, the shape, the register. */
+export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. The headline is one sentence in B's voice: plain, a little dry, a verdict, with no body, sign or aspect in it. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number: a card line has no room to say what a name means. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange. It is the moment itself, with no astrology in it, and invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. A because-line or the pattern may name a placement or a link once, where it first matters, as rule 1 says: inside a sentence, its plain meaning in the next one, then when the two of them would notice it. At most one in a paragraph. Never in brackets, and never an orb or a link's number. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern. The card and the items sit outside that count. No score, no number, no research named on the page.`;
+
+/** The lens chapters by number, in report order: the order `backwardsByChapter` gives a planet going backwards to one of them. */
+const LENS_CHAPTER_NUMBERS = [2, 3, 4, 5, 6] as const;
+
+/** The line naming the planet going backwards this chapter says, if the foundation's allocation gave it one. */
+function backwardsFor(brief: PairBrief, lens: Lens, id: string): string[] {
+  const ids = LENS_CHAPTER_NUMBERS.map((n) => lensChapterId(lens, n));
+  const said = backwardsByChapter(brief, ids.map((c) => brief.allocation?.[c] ?? []))[ids.indexOf(id)];
+  return said ? ["", backwardsLine(said)] : [];
+}
 
 export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof PairLensChapterSchema> {
   const id = lensChapterId(input.lens, input.n);
@@ -604,7 +622,7 @@ export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof Pai
     scene: input.scene,
     draws: input.draws,
     instructions: `${input.instructions.trim()}\n\n${LENS_CHAPTER_CONTRACT}`,
-    extraContext: (brief) => [lensContext(brief), "", `GROUNDING (doctrine, never written for the reader): ${input.grounding}`].join("\n"),
+    extraContext: (brief) => [lensContext(brief), ...backwardsFor(brief, input.lens, id), "", `GROUNDING (doctrine, never written for the reader): ${input.grounding}`].join("\n"),
     validate: (out, brief) => lensChapterChecks(out, brief, id, input.bandDoctrine),
   };
 }

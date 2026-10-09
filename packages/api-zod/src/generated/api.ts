@@ -74,7 +74,7 @@ export const ConfirmWaitlistResponse = zod.object({
 
 
 /**
- * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline gets `week`, Your week in their own days; a reader without it whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
+ * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs, who can read each report and its state, Your first steps, and what they are practising (ADR-174, ADR-341). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline whose own Personal report is finished gets `week`, Your week in their own days; a reader without Timeline whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262, ADR-297 to 312).
  * @summary The dashboard's one read (ADR-174)
  */
 export const GetHomeQueryParams = zod.object({
@@ -98,6 +98,8 @@ export const getHomeResponseWeekOneNatalItemHouseMax = 12;
 export const getHomeResponseWeekOneDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getHomeResponseWeekOneOnItemHousesItemMax = 12;
 
+export const getHomeResponseWeekOneOnItemPassesDefault = [];
+export const getHomeResponseWeekOneOnItemBackwardsDefault = [];
 export const getHomeResponseTeaserOneCyclesItemOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
 
@@ -162,7 +164,16 @@ export const GetHomeResponse = zod.object({
   "lines": zod.object({
   "superpower": zod.string(),
   "growingEdge": zod.string()
-}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n')
+}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n'),
+  "createdAt": zod.string().describe('When this report was made, ISO 8601, for "Report from <date>" on the person\'s row (ADR-297 to 312).'),
+  "readsYours": zod.enum(['can-read', 'invited', 'no']).describe('Whether this person can read the reader\'s own Personal report, for the quick look\'s line: can-read through a grant that stands, invited while a link to them waits, no otherwise and on `you` (ADR-235, ADR-341).\n'),
+  "readers": zod.array(zod.object({
+  "name": zod.string().nullable().describe('Their first name once they can read it; null while their link waits (ADR-135).'),
+  "email": zod.string().nullable().describe('The address the reader typed, while the link waits; null once they can read it (ADR-135, R-3.6).'),
+  "state": zod.enum(['can-read', 'invited']).describe('can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329).'),
+  "shareId": zod.string().nullable().describe('The grant they read the reader\'s own Personal report through, which Remove access ends at DELETE /shares/{id}; null while their link waits and on any other report (ADR-235, ADR-390).'),
+  "inviteId": zod.string().nullable().describe('Their waiting link, which Copy their link (POST /invites/{id}/link) and Cancel invite (DELETE /invites/{id}) take; null once they can read it (ADR-390).')
+}).describe('One person who can read a report on the reader\'s circle, or is invited to, as the Share window lists them under Who can read it (ADR-329, ADR-341): a claimed reader by first name, a waiting one by the address the reader typed, never by an address the reader did not type (ADR-135).\n')).describe('Who can read this report besides the reader, or is invited to, as the Share window lists them (ADR-329, ADR-341): on `you`, everyone the reader\'s own Personal report is shared with (ADR-235); on a report the reader made, its subject (ADR-181); empty on any other seat.\n')
 }).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).'),zod.null()]).describe('The reader\'s own Personal report at the circle\'s centre, with chapter 08\'s lines; null with none marked as theirs, or several (ADR-174).'),
   "several": zod.boolean().describe('More than one chart is marked as the reader\'s own, so `you` stays null until they settle which (ADR-120, ADR-174).'),
   "people": zod.array(zod.object({
@@ -225,7 +236,16 @@ export const GetHomeResponse = zod.object({
   "lines": zod.object({
   "superpower": zod.string(),
   "growingEdge": zod.string()
-}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n')
+}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n'),
+  "createdAt": zod.string().describe('When this report was made, ISO 8601, for "Report from <date>" on the person\'s row (ADR-297 to 312).'),
+  "readsYours": zod.enum(['can-read', 'invited', 'no']).describe('Whether this person can read the reader\'s own Personal report, for the quick look\'s line: can-read through a grant that stands, invited while a link to them waits, no otherwise and on `you` (ADR-235, ADR-341).\n'),
+  "readers": zod.array(zod.object({
+  "name": zod.string().nullable().describe('Their first name once they can read it; null while their link waits (ADR-135).'),
+  "email": zod.string().nullable().describe('The address the reader typed, while the link waits; null once they can read it (ADR-135, R-3.6).'),
+  "state": zod.enum(['can-read', 'invited']).describe('can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329).'),
+  "shareId": zod.string().nullable().describe('The grant they read the reader\'s own Personal report through, which Remove access ends at DELETE /shares/{id}; null while their link waits and on any other report (ADR-235, ADR-390).'),
+  "inviteId": zod.string().nullable().describe('Their waiting link, which Copy their link (POST /invites/{id}/link) and Cancel invite (DELETE /invites/{id}) take; null once they can read it (ADR-390).')
+}).describe('One person who can read a report on the reader\'s circle, or is invited to, as the Share window lists them under Who can read it (ADR-329, ADR-341): a claimed reader by first name, a waiting one by the address the reader typed, never by an address the reader did not type (ADR-135).\n')).describe('Who can read this report besides the reader, or is invited to, as the Share window lists them (ADR-329, ADR-341): on `you`, everyone the reader\'s own Personal report is shared with (ADR-235); on a report the reader made, its subject (ADR-181); empty on any other seat.\n')
 }).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).')).describe('The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, and each sharer whose own Personal report they read through a grant, seated as `shared` until that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235).\n'),
   "pairs": zod.array(zod.object({
   "reportId": zod.string(),
@@ -246,8 +266,19 @@ export const GetHomeResponse = zod.object({
   "story": zod.object({
   "headline": zod.string(),
   "strengths": zod.array(zod.string())
-}).nullable().describe('The 9:16 story\'s text, chapter 01\'s headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).')
-}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236).'),
+}).nullable().describe('The 9:16 story\'s text for the story card at the end of the Compatibility report, never on the dashboard, chapter 01\'s headline and strengths; null until chapter 01 is written (ADR-175, ADR-338).'),
+  "share": zod.object({
+  "state": zod.enum(['only-you', 'can-read', 'waiting', 'shared-by']),
+  "name": zod.string().describe('The pair\'s other person\'s first name, which every chip but only-you prints (ADR-337).')
+}).describe('The row\'s one chip (ADR-337, ADR-341): only-you while no one else reads it, and on a closed pair (ADR-236); can-read once its other person reads it; waiting while their link waits; shared-by on a pair its other person made and shared with the reader.\n'),
+  "readers": zod.array(zod.object({
+  "name": zod.string().nullable().describe('Their first name once they can read it; null while their link waits (ADR-135).'),
+  "email": zod.string().nullable().describe('The address the reader typed, while the link waits; null once they can read it (ADR-135, R-3.6).'),
+  "state": zod.enum(['can-read', 'invited']).describe('can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329).'),
+  "shareId": zod.string().nullable().describe('The grant they read the reader\'s own Personal report through, which Remove access ends at DELETE /shares/{id}; null while their link waits and on any other report (ADR-235, ADR-390).'),
+  "inviteId": zod.string().nullable().describe('Their waiting link, which Copy their link (POST /invites/{id}/link) and Cancel invite (DELETE /invites/{id}) take; null once they can read it (ADR-390).')
+}).describe('One person who can read a report on the reader\'s circle, or is invited to, as the Share window lists them under Who can read it (ADR-329, ADR-341): a claimed reader by first name, a waiting one by the address the reader typed, never by an address the reader did not type (ADR-135).\n')).describe('Who can read this Compatibility report besides the reader, or is invited to, as the Share window lists them: its other person once the reader sends it to them; empty before, and on a pair someone else made (ADR-329, ADR-341, MB-82).\n')
+}).describe('One Compatibility report on the reader\'s list, with what its row\'s chip, its pair block and its story card show (ADR-174, ADR-175, ADR-337).')).describe('The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236).'),
   "practising": zod.array(zod.object({
   "reportId": zod.string(),
   "kind": zod.enum(['natal', 'compatibility']),
@@ -271,7 +302,7 @@ export const GetHomeResponse = zod.object({
   "days": zod.array(zod.object({
   "date": zod.string().regex(getHomeResponseWeekOneDaysItemDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
   "tones": zod.array(zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'))
-}).describe('One of the reader\'s days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).')).describe('The seven days with their tones (ADR-211).'),
+}).describe('One of the reader\'s days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).')).describe('The seven days, Monday to Sunday, with their tones (ADR-211, ADR-297 to 312).'),
   "on": zod.array(zod.object({
   "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
   "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
@@ -285,7 +316,15 @@ export const GetHomeResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(getHomeResponseWeekOneOnItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(getHomeResponseWeekOneOnItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -296,7 +335,7 @@ export const GetHomeResponse = zod.object({
   "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
   "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
 }).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).')).describe('What touches the reader\'s chart this week (ADR-211).')
-}).describe('Your week on the dashboard, seven days from today in the reader\'s zone (ADR-211).'),zod.null()]).optional().describe('Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262).'),
+}).describe('Your week on the dashboard, Monday to Sunday of the week today falls in, in the reader\'s zone (ADR-211, ADR-297 to 312).'),zod.null()]).optional().describe('Your week, for a reader with Timeline whose own Personal report is finished; absent or null for anyone else (ADR-211, ADR-262, ADR-297 to 312).'),
   "teaser": zod.union([zod.object({
   "saturn": zod.object({
   "age": zod.number(),
@@ -309,8 +348,17 @@ export const GetHomeResponse = zod.object({
   "age": zod.number().describe('The reader\'s age when it comes, in whole years.'),
   "on": zod.string().regex(getHomeResponseTeaserOneCyclesItemOnRegExp).describe('The day it comes, its first exact pass (ADR-212).')
 }).describe('One of the four big cycles on the teaser, dated from the reader\'s own chart (ADR-212).')).describe('The four big cycles, soonest first (ADR-212).')
-}).describe('Your life\'s big cycles, for a reader without Timeline, pointing to /timeline with no price (ADR-212, ADR-255).'),zod.null()]).optional().describe('Your life\'s big cycles, last on the dashboard, for a reader without Timeline whose own Personal report is finished, never on an empty dashboard; absent or null for anyone else (ADR-212, ADR-255, ADR-262).\n')
-}).describe('The dashboard\'s one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).')
+}).describe('Your life\'s big cycles, for a reader without Timeline, pointing to /timeline with no price (ADR-212, ADR-255).'),zod.null()]).optional().describe('Your life\'s big cycles, last on the dashboard, for a reader without Timeline whose own Personal report is finished, never on an empty dashboard; absent or null for anyone else (ADR-212, ADR-255, ADR-262).\n'),
+  "firstSteps": zod.union([zod.object({
+  "step": zod.union([zod.literal(1),zod.literal(2),zod.literal(3),zod.literal(4)]).describe('The step the reader is on: 1 until their own Personal report is written, 2 until they add someone, 3 until that person\'s report is shared with them or their gift is sent, then 4 (ADR-330).\n'),
+  "person": zod.object({
+  "profileId": zod.string().describe('Their profile on the reader\'s circle, which You & {name} picks (ADR-336). A gift makes no profile (ADR-139), so on the gift road it is an empty string until they share their own report back, and `pairReady` stays false until then.\n'),
+  "name": zod.string().describe('Their first name, as the steps print it (ADR-330).')
+}).nullable().describe('The person the reader added last, whom steps 2 to 4 name; null until step 2 is done (ADR-330).'),
+  "gift": zod.boolean().describe('The person came by Gift a report, so step 3 is done once the gift is sent and You & {name} waits for them to share back (ADR-331).'),
+  "pairReady": zod.boolean().describe('You & {name} can be made now, since the reader can read both finished Personal reports, their own and {name}\'s; on the gift road, once {name} shares theirs back (ADR-331, ADR-332).')
+}).describe('Your first steps (ADR-330, ADR-390): 1 Your Personal report, 2 Add someone, 3 Share it with them (a gift is done once it is sent), 4 either You & {name}, your Compatibility report, or Add someone else, back to step 2. The server says which step the reader is on; Hide is kept in the browser.\n'),zod.null()]).describe('Your first steps, from the reader\'s own Personal report to their first Compatibility report: the step they are on and whom it names (ADR-330, ADR-341, ADR-390); null once the reader has a Compatibility report.\n')
+}).describe('The dashboard\'s one read, everything its circle, quick looks, rows, pairs, Share window, first steps and practice show, and each pair\'s story card (ADR-174, ADR-341).')
 
 
 /**
@@ -792,7 +840,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "triad": zod.object({
   "sun": zod.object({
@@ -820,8 +872,20 @@ export const GetReportResponse = zod.object({
   "houses": zod.object({
   "houses": zod.array(zod.object({
   "house": zod.number().int(),
-  "reading": zod.string()
-}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check.'))
+  "reading": zod.string(),
+  "retrograde": zod.array(zod.object({
+  "planet": zod.string(),
+  "text": zod.string()
+})).optional().describe('One block for each body going backwards at birth in this house, a planet or Chiron, never a node, written for it in this house against it moving forward; empty when none is (ADR-396).'),
+  "stellium": zod.object({
+  "text": zod.string(),
+  "balance": zod.string()
+}).nullish().describe('The stellium block when the house holds one, the writer\'s text and its one thing to do through the opposite house, after "To balance it"; null when it holds none (ADR-398).'),
+  "noticed": zod.object({
+  "idea": zod.string(),
+  "why": zod.string()
+}).nullish().describe('Often noticed, one idea from the observations table that this house matches and its reason, filled in code and never model text; null when none matches (ADR-403).')
+}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check. From v12 the card also carries a block for each body going backwards in the house, its stellium and one idea often noticed; a report before v12 has none of the three (ADR-396, ADR-398, ADR-403).\n'))
 }).optional().describe('The twelve house-card readings in order. They carry no claims, because the card is its own evidence.'),
   "mind": zod.object({
   "howYouThink": zod.string(),
@@ -836,7 +900,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "career": zod.object({
   "vocationalPull": zod.string(),
@@ -858,7 +926,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "money": zod.object({
   "relationshipToResources": zod.string(),
@@ -916,7 +988,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "superpowers": zod.object({
   "superpower": zod.object({
@@ -951,7 +1027,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "discoveries": zod.object({
   "opening": zod.string(),
@@ -968,7 +1048,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "focus": zod.object({
   "leanInto": zod.object({
@@ -1001,7 +1085,11 @@ export const GetReportResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "personalPlanets": zod.record(zod.string(), zod.string()).optional(),
   "aspectMeanings": zod.record(zod.string(), zod.object({
@@ -1690,7 +1778,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "triad": zod.object({
   "sun": zod.object({
@@ -1718,8 +1810,20 @@ export const GetReportStatusResponse = zod.object({
   "houses": zod.object({
   "houses": zod.array(zod.object({
   "house": zod.number().int(),
-  "reading": zod.string()
-}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check.'))
+  "reading": zod.string(),
+  "retrograde": zod.array(zod.object({
+  "planet": zod.string(),
+  "text": zod.string()
+})).optional().describe('One block for each body going backwards at birth in this house, a planet or Chiron, never a node, written for it in this house against it moving forward; empty when none is (ADR-396).'),
+  "stellium": zod.object({
+  "text": zod.string(),
+  "balance": zod.string()
+}).nullish().describe('The stellium block when the house holds one, the writer\'s text and its one thing to do through the opposite house, after "To balance it"; null when it holds none (ADR-398).'),
+  "noticed": zod.object({
+  "idea": zod.string(),
+  "why": zod.string()
+}).nullish().describe('Often noticed, one idea from the observations table that this house matches and its reason, filled in code and never model text; null when none matches (ADR-403).')
+}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check. From v12 the card also carries a block for each body going backwards in the house, its stellium and one idea often noticed; a report before v12 has none of the three (ADR-396, ADR-398, ADR-403).\n'))
 }).optional().describe('The twelve house-card readings in order. They carry no claims, because the card is its own evidence.'),
   "mind": zod.object({
   "howYouThink": zod.string(),
@@ -1734,7 +1838,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "career": zod.object({
   "vocationalPull": zod.string(),
@@ -1756,7 +1864,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "money": zod.object({
   "relationshipToResources": zod.string(),
@@ -1814,7 +1926,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "superpowers": zod.object({
   "superpower": zod.object({
@@ -1849,7 +1965,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "discoveries": zod.object({
   "opening": zod.string(),
@@ -1866,7 +1986,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "focus": zod.object({
   "leanInto": zod.object({
@@ -1899,7 +2023,11 @@ export const GetReportStatusResponse = zod.object({
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.')),
+  "didYouKnow": zod.union([zod.object({
+  "title": zod.string().describe('The title that finishes "Did you know".'),
+  "body": zod.string().describe('Two to four sentences.')
+}).describe('A chapter\'s Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).\n'),zod.null()]).optional().describe('Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383).')
 }).optional(),
   "personalPlanets": zod.record(zod.string(), zod.string()).optional(),
   "aspectMeanings": zod.record(zod.string(), zod.object({
@@ -3157,17 +3285,24 @@ export const GetInviteResponse = zod.object({
   "alreadyClaimed": zod.boolean(),
   "kind": zod.enum(['send', 'gift', 'share']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139), or the sharer\'s own Personal report shared with them (ADR-235).'),
   "recipientName": zod.string().nullish().describe('The name the giver gave a gift\'s recipient, for the cover; null on a send (ADR-128).'),
-  "note": zod.string().nullish().describe('The giver\'s note on a gift\'s cover, at most 280 characters; null without one (ADR-128).')
+  "note": zod.string().nullish().describe('The giver\'s note on a gift\'s cover, at most 280 characters; null without one (ADR-128).'),
+  "giverShares": zod.boolean().describe('On a gift, the giver said Yes to sharing their own Personal report, so the claim asks "Share yours back?"; false on a gift without that Yes, a send and a share (ADR-331).')
 })
 
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). When its giver said Yes at the gift, the claim writes a grant of the giver's own Personal report to the claimer; the claimer's own Yes, `shareBack` in the body, becomes a grant of theirs to the giver once their report is finished (ADR-331). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const ClaimInviteParams = zod.object({
   "token": zod.coerce.string()
 })
+
+export const claimInviteBodyShareBackDefault = false;
+
+export const ClaimInviteBody = zod.object({
+  "shareBack": zod.boolean().default(claimInviteBodyShareBackDefault).describe('On a gift, the claimer\'s answer to sharing their own Personal report with the giver: true keeps their Yes and becomes a grant once their report is finished; false, Not now, writes nothing (ADR-331, R-3.6). Read on a gift\'s claim only.\n')
+}).describe('The claimer\'s answers at a claim; a claim with no body answers Not now (ADR-331).')
 
 export const ClaimInviteResponse = zod.object({
   "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).'),
@@ -3205,6 +3340,30 @@ export const ChangeInviteAddressResponse = zod.object({
 
 
 /**
+ * Cancel invite (ADR-390): a waiting link the viewer sent, for a report, a pair or their own Personal report, stops opening at once, and so does every link of that invite, the one its email carried included. A gift is taken back at DELETE /gifts/{id}, which returns its credit.
+ * @summary Cancel a waiting link the viewer sent
+ */
+export const CancelInviteParams = zod.object({
+  "id": zod.coerce.string().describe('The invite\'s id, as GET /home\'s readers carry it, never its token.')
+})
+
+export const CancelInviteResponse = zod.void()
+
+
+/**
+ * Copy their link (ADR-390): only a link's hash is kept, so an old link can never be read back; this answers a link to the same waiting invite to send by hand, and the one its email carried keeps working. Cancel invite ends both.
+ * @summary A link to copy for a waiting invite the viewer sent
+ */
+export const CopyInviteLinkParams = zod.object({
+  "id": zod.coerce.string().describe('The invite\'s id, as GET /home\'s readers carry it, never its token.')
+})
+
+export const CopyInviteLinkResponse = zod.object({
+  "claimUrl": zod.string().describe('A link to the same waiting invite; the one its email carried keeps working.')
+}).describe('What Copy their link answers, a link to a waiting invite to send by hand (ADR-390).')
+
+
+/**
  * What a giver sees of a gift, its state and nothing the recipient makes (ADR-139). Empty for anonymous users.
  * @summary The viewer's gifts, waiting, claimed or returned
  */
@@ -3223,18 +3382,19 @@ export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
 
 
 /**
- * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275). The giver's answer to sharing their own Personal report is kept on the gift and becomes a grant when it is claimed (ADR-331).
  * @summary Gift a report
  */
 export const createGiftBodyRecipientNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
 export const createGiftBodyNoteMax = 280;
 
-
+export const createGiftBodyShareOwnDefault = false;
 
 export const CreateGiftBody = zod.object({
   "recipientName": zod.string().regex(createGiftBodyRecipientNameRegExp).describe('The recipient\'s name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (\' ’), hyphens, dots (. · ・) and the zero-width non-joiner; at least one letter, and no space at either end. The same rule as every typed name (ADR-202).'),
   "email": zod.string().email(),
-  "note": zod.string().max(createGiftBodyNoteMax).optional()
+  "note": zod.string().max(createGiftBodyNoteMax).optional(),
+  "shareOwn": zod.boolean().default(createGiftBodyShareOwnDefault).describe('The giver\'s answer to "Share your report with {name} too?": true keeps their Yes on the gift, and its claim writes a grant of the giver\'s own Personal report to whoever claims it; false, Not now, shares nothing (ADR-331, R-3.6).\n')
 }).describe('Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).')
 
 export const CreateGiftResponse = zod.object({
@@ -3439,7 +3599,8 @@ export const getTimelineNowResponseNatalItemHouseMax = 12;
 export const getTimelineNowResponseDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getTimelineNowResponseEventsItemHousesItemMax = 12;
 
-
+export const getTimelineNowResponseEventsItemPassesDefault = [];
+export const getTimelineNowResponseEventsItemBackwardsDefault = [];
 
 export const GetTimelineNowResponse = zod.object({
   "range": zod.enum(['week', 'month', 'six-months']).describe('Now and ahead\'s range from today, 7, 30 or 182 days (ADR-207).'),
@@ -3473,7 +3634,15 @@ export const GetTimelineNowResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(getTimelineNowResponseEventsItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(getTimelineNowResponseEventsItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -3578,6 +3747,8 @@ export const getTimelineSetupResponseFromOneRegExp = new RegExp('^\\d{4}-\\d{2}-
 export const getTimelineSetupResponseToOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getTimelineSetupResponseStepsItemCountMin = 0;
 
+export const getTimelineSetupResponseStepsItemLandedMin = 0;
+
 export const getTimelineSetupResponseReplayOneFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getTimelineSetupResponseReplayOneToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
@@ -3589,7 +3760,8 @@ export const GetTimelineSetupResponse = zod.object({
   "steps": zod.array(zod.object({
   "id": zod.enum(['chart', 'planets', 'week', 'month', 'months', 'cycles']).describe('The reader\'s chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).'),
   "done": zod.boolean().describe('Every reading of the step has landed, written or failed; a failed one is written when it is opened.'),
-  "count": zod.number().int().min(getTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.')
+  "count": zod.number().int().min(getTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.'),
+  "landed": zod.number().int().min(getTimelineSetupResponseStepsItemLandedMin).nullish().describe('How many of the step\'s readings have landed, written or failed, so the loading bar moves only with real work; null for the chart and the planets, which write none (ADR-394).')
 }).describe('One of setup\'s six ticks, in order (ADR-302).')).describe('The six steps, in order, with the engine\'s counts.'),
   "replay": zod.union([zod.object({
   "from": zod.string().regex(getTimelineSetupResponseReplayOneFromRegExp).describe('Their first day, the reader\'s.'),
@@ -3610,6 +3782,8 @@ export const startTimelineSetupResponseFromOneRegExp = new RegExp('^\\d{4}-\\d{2
 export const startTimelineSetupResponseToOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const startTimelineSetupResponseStepsItemCountMin = 0;
 
+export const startTimelineSetupResponseStepsItemLandedMin = 0;
+
 export const startTimelineSetupResponseReplayOneFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const startTimelineSetupResponseReplayOneToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
@@ -3621,7 +3795,8 @@ export const StartTimelineSetupResponse = zod.object({
   "steps": zod.array(zod.object({
   "id": zod.enum(['chart', 'planets', 'week', 'month', 'months', 'cycles']).describe('The reader\'s chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).'),
   "done": zod.boolean().describe('Every reading of the step has landed, written or failed; a failed one is written when it is opened.'),
-  "count": zod.number().int().min(startTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.')
+  "count": zod.number().int().min(startTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.'),
+  "landed": zod.number().int().min(startTimelineSetupResponseStepsItemLandedMin).nullish().describe('How many of the step\'s readings have landed, written or failed, so the loading bar moves only with real work; null for the chart and the planets, which write none (ADR-394).')
 }).describe('One of setup\'s six ticks, in order (ADR-302).')).describe('The six steps, in order, with the engine\'s counts.'),
   "replay": zod.union([zod.object({
   "from": zod.string().regex(startTimelineSetupResponseReplayOneFromRegExp).describe('Their first day, the reader\'s.'),
@@ -3648,11 +3823,17 @@ export const GetAskThreadQueryParams = zod.object({
 export const getAskThreadResponseMessagesItemCardsItemOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemOneEventsItemHousesItemMax = 12;
 
+export const getAskThreadResponseMessagesItemCardsItemOneEventsItemPassesDefault = [];
+export const getAskThreadResponseMessagesItemCardsItemOneEventsItemBackwardsDefault = [];
 export const getAskThreadResponseMessagesItemCardsItemTwoFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemTwoToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemTwoDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemFiveDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemFiveEventsItemHousesItemMax = 12;
+
+export const getAskThreadResponseMessagesItemCardsItemFiveEventsItemPassesDefault = [];
+export const getAskThreadResponseMessagesItemCardsItemFiveEventsItemBackwardsDefault = [];
+export const getAskThreadResponseMessagesItemOfferCreditsMin = 0;
 
 export const getAskThreadResponseUsageUsedMin = 0;
 
@@ -3684,7 +3865,15 @@ export const GetAskThreadResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(getAskThreadResponseMessagesItemCardsItemOneEventsItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(getAskThreadResponseMessagesItemCardsItemOneEventsItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -3747,7 +3936,15 @@ export const GetAskThreadResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(getAskThreadResponseMessagesItemCardsItemFiveEventsItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(getAskThreadResponseMessagesItemCardsItemFiveEventsItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -3764,7 +3961,12 @@ export const GetAskThreadResponse = zod.object({
   "label": zod.string().describe('The words on the button.'),
   "kind": zod.enum(['date', 'window', 'person', 'report'])
 }).describe('A choice Ask offers when it asks back; a tap sends its id (ADR-213).')),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "offer": zod.object({
+  "profileId": zod.string().describe('The person\'s profile, which Write it opens the picker with, the reader and them picked.'),
+  "name": zod.string().describe('Their first name, as the card prints it.'),
+  "credits": zod.number().int().min(getAskThreadResponseMessagesItemOfferCreditsMin).describe('The reader\'s credits, as its line counts them ("You have 5 credits. This uses 1."); 0 shows Get a credit.')
+}).nullish().describe('Ask\'s one pair offer, after an answer about someone the reader has no Compatibility report with, once a person in a thread: "See {name}\'s side too", one reason and the reader\'s credits; null or absent on every other message (ADR-297 to 312).\n')
 }).describe('One message in the thread, the reader\'s or Ask\'s, Ask\'s with its cards and choices (ADR-213, MB-191).')),
   "usage": zod.object({
   "used": zod.number().int().min(getAskThreadResponseUsageUsedMin),
@@ -3796,11 +3998,17 @@ export const SendAskMessageBody = zod.object({
 export const sendAskMessageResponseMessagesItemCardsItemOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const sendAskMessageResponseMessagesItemCardsItemOneEventsItemHousesItemMax = 12;
 
+export const sendAskMessageResponseMessagesItemCardsItemOneEventsItemPassesDefault = [];
+export const sendAskMessageResponseMessagesItemCardsItemOneEventsItemBackwardsDefault = [];
 export const sendAskMessageResponseMessagesItemCardsItemTwoFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const sendAskMessageResponseMessagesItemCardsItemTwoToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const sendAskMessageResponseMessagesItemCardsItemTwoDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const sendAskMessageResponseMessagesItemCardsItemFiveDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const sendAskMessageResponseMessagesItemCardsItemFiveEventsItemHousesItemMax = 12;
+
+export const sendAskMessageResponseMessagesItemCardsItemFiveEventsItemPassesDefault = [];
+export const sendAskMessageResponseMessagesItemCardsItemFiveEventsItemBackwardsDefault = [];
+export const sendAskMessageResponseMessagesItemOfferCreditsMin = 0;
 
 export const sendAskMessageResponseUsageUsedMin = 0;
 
@@ -3832,7 +4040,15 @@ export const SendAskMessageResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(sendAskMessageResponseMessagesItemCardsItemOneEventsItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(sendAskMessageResponseMessagesItemCardsItemOneEventsItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -3895,7 +4111,15 @@ export const SendAskMessageResponse = zod.object({
   "spans": zod.array(zod.object({
   "start": zod.coerce.date(),
   "end": zod.coerce.date()
-}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "passes": zod.array(zod.object({
+  "at": zod.coerce.date(),
+  "direction": zod.enum(['forward', 'backwards'])
+})).default(sendAskMessageResponseMessagesItemCardsItemFiveEventsItemPassesDefault).describe('A contact\'s exact passes in order, one for each of `exact`, each forward or backwards by the moving body\'s speed at that moment; empty off a contact (ADR-392).'),
+  "backwards": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).')).default(sendAskMessageResponseMessagesItemCardsItemFiveEventsItemBackwardsDefault).describe('The moving body\'s stretches going backwards, station to station with their true dates, that meet a contact\'s window; empty off a contact and when none does (ADR-392).'),
   "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
   "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
   "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
@@ -3912,7 +4136,12 @@ export const SendAskMessageResponse = zod.object({
   "label": zod.string().describe('The words on the button.'),
   "kind": zod.enum(['date', 'window', 'person', 'report'])
 }).describe('A choice Ask offers when it asks back; a tap sends its id (ADR-213).')),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "offer": zod.object({
+  "profileId": zod.string().describe('The person\'s profile, which Write it opens the picker with, the reader and them picked.'),
+  "name": zod.string().describe('Their first name, as the card prints it.'),
+  "credits": zod.number().int().min(sendAskMessageResponseMessagesItemOfferCreditsMin).describe('The reader\'s credits, as its line counts them ("You have 5 credits. This uses 1."); 0 shows Get a credit.')
+}).nullish().describe('Ask\'s one pair offer, after an answer about someone the reader has no Compatibility report with, once a person in a thread: "See {name}\'s side too", one reason and the reader\'s credits; null or absent on every other message (ADR-297 to 312).\n')
 }).describe('One message in the thread, the reader\'s or Ask\'s, Ask\'s with its cards and choices (ADR-213, MB-191).')),
   "usage": zod.object({
   "used": zod.number().int().min(sendAskMessageResponseUsageUsedMin),

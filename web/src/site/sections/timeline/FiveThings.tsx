@@ -232,7 +232,7 @@ function YourWeek({ mira, order }: { mira: Mira; order: DateOrder }) {
       mark={SAMPLE_ACCOUNT}
     >
       <p className="font-display text-[17px] leading-[1.4] text-[#E8EBF2]">
-        {mira.sentence}.{goesOn ? " The longer ones continue." : ""}
+        {mira.sentence}{goesOn ? " The longer ones continue." : ""}
       </p>
       <DayCells days={mira.days} keyed />
       {changes.length ? (

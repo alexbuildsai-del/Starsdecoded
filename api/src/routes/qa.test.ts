@@ -40,7 +40,7 @@ const modelCalls: unknown[] = [];
 };
 
 const { qaAfterDeploy } = await import("./qa.js");
-const { CUT_OFF, dbQaWalkRecord } = await import("../lib/release.js");
+const { CUT_OFF, dbQaWalkRecord, walkOnce } = await import("../lib/release.js");
 const { GIVE_UP_MS, untilWebServes } = await import("../lib/indexNow.js");
 const { logger } = await import("../lib/logger.js");
 const { default: app } = await import("../app.js");
@@ -115,6 +115,7 @@ function standIns(over: Partial<WalkDeps> = {}) {
     record: dbQaWalkRecord,
     now: () => new Date(),
     limitMs: 60_000,
+    stopping: () => false,
     ...over,
   };
   return { calls, walk };
@@ -192,6 +193,72 @@ test("a record that is down is one warn line, never a rejection, and nothing wal
   assert.deepEqual(outcome, { kind: "failed", reason: "connect ECONNREFUSED 127.0.0.1:5432" });
   assert.deepEqual(lines, [["warn", "QA walk: not walked, connect ECONNREFUSED 127.0.0.1:5432"]]);
   assert.deepEqual(calls, []);
+});
+
+test("a process that has begun to stop starts no walk, before the wait for the web, after it, or as a waiting walk's turn comes: nothing is made ready, reset or walked, and no row begins", async () => {
+  const STOPPED = { kind: "skipped", reason: "this process is stopping" };
+
+  // Stopping from the first: nothing is read or waited on, so even a record that is down is never asked.
+  const fetched: string[] = [];
+  const lines: Array<[string, string]> = [];
+  const early = standIns({ record: downRecord, stopping: () => true });
+  const commit = sha();
+  assert.deepEqual(await qaAfterDeploy({ env: staging(commit), walk: early.walk, webServes: webServing(commit, fetched), log: (level, line) => lines.push([level, line]) }), STOPPED);
+  assert.deepEqual({ calls: early.calls, fetched, lines }, { calls: [], fetched: [], lines: [["info", "QA walk: skipped, this process is stopping"]] });
+
+  // The stop comes while the web is waited for: no row begins, not even a site that never showed the commit leaves one.
+  let stopping = false;
+  const begun: string[] = [];
+  const record: QaWalkRecord = {
+    ...downRecord,
+    settle: async () => 0,
+    walked: async () => false,
+    begin: async ({ sha: walked }) => {
+      begun.push(walked);
+      return `walk-${begun.length}`;
+    },
+    finish: async () => undefined,
+  };
+  const waited = standIns({ record, stopping: () => stopping });
+  for (const live of [true, false]) {
+    stopping = false;
+    const during = sha();
+    const stopsWhileWaiting: QaDeployDeps["webServes"] = async () => {
+      stopping = true;
+      return { live, seen: live ? during : null };
+    };
+    assert.deepEqual(await qaAfterDeploy({ env: staging(during), walk: waited.walk, webServes: stopsWhileWaiting, log: quiet }), STOPPED, `live: ${live}`);
+  }
+  assert.deepEqual({ calls: waited.calls, begun }, { calls: [], begun: [] });
+
+  // A deploy's walk waiting its turn behind another when the stop comes starts nothing once its turn comes.
+  stopping = false;
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const first = standIns({
+    record,
+    stopping: () => stopping,
+    walk: async () => {
+      await held;
+      return UNSEEDED;
+    },
+  });
+  const firstCommit = sha();
+  const firstRun = walkOnce("deploy", firstCommit, first.walk, { oncePerCommit: true });
+  const second = standIns({ record, stopping: () => stopping });
+  const secondCommit = sha();
+  const waiting = qaAfterDeploy({ env: staging(secondCommit), walk: second.walk, webServes: async () => ({ live: true, seen: secondCommit }), log: quiet });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.deepEqual(second.calls, [], "it waits its turn");
+  stopping = true;
+  release();
+  assert.deepEqual(await waiting, STOPPED);
+  assert.equal((await firstRun)?.verdict.status, "unseeded");
+  assert.deepEqual(second.calls, [], "nothing made ready, reset or walked");
+  assert.deepEqual(begun, [firstCommit], "and no row but the first walk's");
+  assert.deepEqual(modelCalls, []);
 });
 
 test("after a deploy, once the web serves the commit, the pair is made ready, reset and walked in deploy mode, one row a commit, and the model is never called", { skip: NO_DB }, async () => {

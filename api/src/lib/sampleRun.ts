@@ -101,7 +101,7 @@ export interface MiraContact {
   runs: [Day, Day][];
 }
 
-/** Something that starts, peaks or eases, counted as `weekSentence` counts it: a window's ends, an exact pass, an eclipse. */
+/** Something that starts, peaks or eases on her days: a window's ends, an exact pass, an eclipse. */
 export interface MiraChange {
   day: Day;
   key: string;
@@ -138,8 +138,9 @@ export interface MiraWeek {
   /** Each body at 12:00 UTC on each frame's day, and the runs of frames it moves backwards in. */
   sky: { body: SkyBody; lon: number[]; retrograde: [number, number][] }[];
   contacts: MiraContact[];
+  /** `weekSentence`'s, which counts the transits on the week's days rather than its changes (reading 23). */
   sentence: string;
-  /** What starts, peaks and eases on the week's days, the very things its sentence counts. */
+  /** What starts, peaks and eases on the week's days, as the page lists them under the sentence. */
   changes: MiraChange[];
   /** The first three after the Monday, within the six months. */
   next: MiraChange[];
@@ -210,7 +211,7 @@ function spans(indexes: number[]): [number, number][] {
 
 const CHANGE_ORDER: Record<MiraChange["change"], number> = { starts: 0, peaks: 1, eases: 2 };
 
-/** Each event's moments as `weekSentence` reads them: a window's start and end and its exact passes, a retrograde's stations, an eclipse. */
+/** Each event's moments: a window's start and end and its exact passes, a retrograde's stations, an eclipse. */
 function momentsOf(event: SkyEvent): Array<{ at: Date; change: MiraChange["change"] }> {
   switch (event.kind) {
     case "contact":
@@ -274,7 +275,7 @@ export function miraWeek(monday: Day, birth: MiraBirth): MiraWeek {
 
   const events = skyEvents(chart, midnight(monday), midnight(addDays(monday, MIRA_DAYS)));
   const contacts = events.filter((event): event is ContactEvent => event.kind === "contact");
-  // weekSentence counts seven days of hours from the Monday's midnight, so the listed changes use the same edges.
+  // weekSentence reads seven whole days from the Monday's midnight, so the listed changes use the same edges.
   const weekOpen = midnight(monday).getTime();
   const weekClose = weekOpen + 7 * DAY_MS;
   const moments = events

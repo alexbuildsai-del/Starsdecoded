@@ -2,15 +2,17 @@
  * The computed cards under one of Ask's answers (ADR-172, 213): the same
  * pieces Timeline draws, never a second look. A day or a person's day is its
  * contact cards, a window its day cells, a cycle Life's card, and a quote the
- * report's evidence, word for word as the server put it in.
+ * report's evidence, word for word as the server put it in. The tone words'
+ * legend follows the day cards, as it follows Timeline's.
  */
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { AskCard } from "@workspace/api-client-react";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { CycleCard } from "@/components/timeline/CycleCard";
 import { DayCells } from "@/components/timeline/DayCells";
+import { ToneLegend } from "@/components/timeline/ToneLegend";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { WINDOW_SHOWN, cardView, type AskCardView, type EventView } from "@/lib/ask-view";
+import { WINDOW_SHOWN, cardView, legendAfter, type AskCardView, type EventView } from "@/lib/ask-view";
 import { useShownZone } from "@/lib/reader-zone";
 import { dayIn } from "@/lib/timeline-view";
 
@@ -103,10 +105,15 @@ export function AskCards({ cards }: { cards: readonly AskCard[] }) {
   const zone = useShownZone(true);
   if (!zone) return null;
   const today = dayIn(new Date(), zone);
+  const views = cards.map((card) => cardView(card, today, zone, order));
+  const legend = legendAfter(views);
   return (
     <div className="grid min-w-0 gap-3">
-      {cards.map((card, i) => (
-        <CardOf key={`${card.kind}.${i}`} view={cardView(card, today, zone, order)} />
+      {views.map((view, i) => (
+        <Fragment key={`${view.kind}.${i}`}>
+          <CardOf view={view} />
+          {i === legend ? <ToneLegend /> : null}
+        </Fragment>
       ))}
     </div>
   );

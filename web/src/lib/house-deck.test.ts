@@ -4,11 +4,12 @@
  * lines expected are what that chart gives.
  */
 import { describe, expect, it } from "vitest";
+import { chartPatterns } from "@workspace/engine";
 import { houseSign } from "@/components/chart/wheel-geometry";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import {
-  HOUSE_NUMBERS, chartGoesBackwards, goesBackwards, houseLine, houseName, keyStep, nearestCard, oppositeLine, quietLine,
-  signRuler, splitReading, stepHouse, tickState,
+  HOUSE_NUMBERS, balanceHouse, chartGoesBackwards, goesBackwards, houseLine, houseName, keyStep, nearestCard, noticedParts,
+  quietLine, retrogradeHeading, signRuler, splitReading, stelliumBodies, stelliumHeading, stepHouse, tickState,
 } from "./house-deck";
 import { houseOccupants } from "./house-occupants";
 
@@ -137,22 +138,34 @@ describe("first sentence", () => {
   });
 });
 
-describe("opposite house", () => {
-  it("names the house across, its word and the pair from this house's side", () => {
-    expect(oppositeLine(1)).toBe("Opposite: 7th, Partnership. Me · the other person.");
-    expect(oppositeLine(7)).toBe("Opposite: 1st, Self. The other person · me.");
-    expect(oppositeLine(3)).toBe("Opposite: 9th, Belief. Everyday · big picture.");
-    expect(oppositeLine(9)).toBe("Opposite: 3rd, Mind. Big picture · everyday.");
-    expect(oppositeLine(12)).toBe("Opposite: 6th, Work. Resting · doing.");
+describe("a house's blocks, on Audrey Hepburn's chart", () => {
+  const chart = sampleChart();
+  const patterns = chartPatterns(chart.planets, chart.angles);
+
+  it("finds her one stellium, in the 4th, and no other house has one", () => {
+    expect(stelliumBodies(patterns, 4)?.slice().sort()).toEqual(["chiron", "jupiter", "north_node", "sun"]);
+    expect(HOUSE_NUMBERS.filter((h) => stelliumBodies(patterns, h) !== null)).toEqual([4]);
   });
 
-  it("gives every house a line that ends in a full stop and names the house six on", () => {
-    for (const h of HOUSE_NUMBERS) {
-      const line = oppositeLine(h);
-      expect(line.startsWith("Opposite: ")).toBe(true);
-      expect(line.endsWith(".")).toBe(true);
-      expect(oppositeLine(h <= 6 ? h + 6 : h - 6)).not.toBe(line);
-    }
+  it("spells the stellium's count and names the house across with its word", () => {
+    expect(stelliumHeading(3)).toBe("A stellium: three in one house");
+    expect(stelliumHeading(4)).toBe("A stellium: four in one house");
+    expect(balanceHouse(9)).toBe("your 3rd house (mind)");
+    expect(balanceHouse(4)).toBe("your 10th house (career)");
+    expect(balanceHouse(12)).toBe("your 6th house (work)");
+  });
+
+  it("names the body going backwards by its chart key", () => {
+    expect(retrogradeHeading("saturn")).toBe("Saturn is retrograde here");
+    expect(retrogradeHeading("venus")).toBe("Venus is retrograde here");
+  });
+
+  it("closes the idea and its reason with one full stop each, whether or not the stored text has one", () => {
+    expect(noticedParts({ idea: "People tell you things", why: "the 8th keeps what is hidden" })).toEqual({
+      idea: "People tell you things.",
+      why: "the 8th keeps what is hidden.",
+    });
+    expect(noticedParts({ idea: "Already closed.", why: "so is this one." })).toEqual({ idea: "Already closed.", why: "so is this one." });
   });
 });
 

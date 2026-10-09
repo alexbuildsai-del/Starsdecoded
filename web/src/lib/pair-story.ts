@@ -368,6 +368,8 @@ interface Person {
   date: string;
   day: Day | null;
   time: string | null;
+  /** The time came with a window; without a time, the story calls it rough instead of missing (MB-235). */
+  rough: boolean;
   lat: number;
   lon: number;
   chart: ChartData;
@@ -434,6 +436,7 @@ function personOf(input: StoryInput, name: string): Person {
     date: input.birth.date,
     day: dayOf(input.birth.date),
     time: input.birth.time,
+    rough: input.birth.rough === true,
     lat: input.birth.lat,
     lon: input.birth.lon,
     chart: input.chart,
@@ -525,20 +528,28 @@ function stepWords(step: number, pair: Pair, progress: Progress): { title: strin
       if (A.asc !== null && B.asc !== null) {
         return { title, subtitle: "Each chart turns to its rising sign. One horizon runs through both." };
       }
-      if (A.asc === null && B.asc === null) return { title, subtitle: "No birth times, so no horizon." };
+      // MB-235 provisional: a rough time is named as rough; a time nobody gave reads as today.
+      const skip = (p: Person) => (p.rough ? `${p.name}'s birth time is rough, so we skip the rising sign.` : `${p.name} has no birth time, so no horizon.`);
+      if (A.asc === null && B.asc === null) {
+        return { title, subtitle: A.rough || B.rough ? `${skip(A)} ${skip(B)}` : "No birth times, so no horizon." };
+      }
       const [seen, unseen] = A.asc !== null ? [A, B] : [B, A];
-      return { title, subtitle: `${seen.name}'s chart turns to its rising sign. ${unseen.name} has no birth time, so no horizon.` };
+      return { title, subtitle: `${seen.name}'s chart turns to its rising sign. ${skip(unseen)}` };
     }
     case 4: {
       if (!pair.blind) return { title: "Reading your houses, side by side", subtitle: "One house at a time, on both charts." };
-      const why = A.asc === null && B.asc === null ? "No birth times" : `${(A.asc === null ? A : B).name} has no birth time`;
+      const lack = (p: Person) => (p.rough ? `${p.name}'s birth time is rough` : `${p.name} has no birth time`);
+      const why = A.asc === null && B.asc === null
+        ? (A.rough || B.rough ? `${lack(A)} and ${lack(B)}` : "No birth times")
+        : lack(A.asc === null ? A : B);
       return {
         title: "Reading your signs, side by side",
         subtitle: `One sign at a time, on both charts. ${why}, so we read signs, not houses.`,
       };
     }
     default:
-      if (progress.complete) return { title: "Your report is ready", subtitle: "Opening it now." };
+      // The screen never opens the report by itself (ADR-393), so its last caption says who does.
+      if (progress.complete) return { title: "Your report is ready", subtitle: "Tap Start reading to open it." };
       // A failed report is not writing, so the held frame stops saying it is; the overlay puts the failure under it.
       if (progress.failed) return { title: "Your two charts, side by side", subtitle: null };
       return {

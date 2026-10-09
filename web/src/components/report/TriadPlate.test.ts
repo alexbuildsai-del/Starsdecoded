@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { pointAt, theta } from "@/components/chart/wheel-geometry";
+import { pointAt } from "@/components/chart/wheel-geometry";
 import { chartOf } from "@/site/lib/chart";
-import { CONJUNCTION_DEGREES, separation } from "./hero-layout";
+import { CONJUNCTION_DEGREES, heroTheta, separation } from "./hero-layout";
 import { MOON_SIZE, moonDayArc, triadBodies } from "./TriadPlate";
 
 const PLATE = { cx: 110, cy: 110, ring: 72, side: 220 };
@@ -27,7 +27,7 @@ describe("a Sun within 12° of the Moon on the triad plate (MB-171)", () => {
       const s = placed.find((b) => b.key === "sun")!;
       const m = placed.find((b) => b.key === "moon")!;
       const reach = Math.hypot(s.x - PLATE.cx, s.y - PLATE.cy);
-      const spoke = pointAt(PLATE.cx, PLATE.cy, reach, theta(sun.absoluteDegree, frame));
+      const spoke = pointAt(PLATE.cx, PLATE.cy, reach, heroTheta(sun.absoluteDegree, frame, "degree"));
       expect(s.outside).toBe(true);
       expect(reach).toBeGreaterThan(PLATE.ring);
       expect(s.x).toBeCloseTo(spoke.x, 6);
@@ -46,7 +46,7 @@ describe("the Moon's day arc on the triad plate", () => {
   it("clears the Moon's picture even for a band of a few degrees, which on the ring the picture would cover whole", () => {
     for (const span of [3, 6.5, 13]) {
       const band = { fromDegree: moonAt - span / 2, toDegree: moonAt + span / 2 };
-      const moon = pointAt(PLATE.cx, PLATE.cy, PLATE.ring, theta(moonAt, frame));
+      const moon = pointAt(PLATE.cx, PLATE.cy, PLATE.ring, heroTheta(moonAt, frame, "degree"));
       const arc = moonDayArc(PLATE.cx, PLATE.cy, PLATE.ring, frame, band);
       const points = [...arc.d.matchAll(/[ML]([\d.-]+) ([\d.-]+)/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
       for (const p of points) expect(Math.hypot(p.x - moon.x, p.y - moon.y)).toBeGreaterThan(MOON_SIZE / 2);
@@ -56,7 +56,7 @@ describe("the Moon's day arc on the triad plate", () => {
   it("ends on the Moon's longitudes at the band's two edges and stays inside the plate", () => {
     const band = { fromDegree: 200, toDegree: 229 };
     const arc = moonDayArc(PLATE.cx, PLATE.cy, PLATE.ring, frame, band);
-    const start = pointAt(PLATE.cx, PLATE.cy, Math.hypot(arc.from.x - PLATE.cx, arc.from.y - PLATE.cy), theta(band.fromDegree, frame));
+    const start = pointAt(PLATE.cx, PLATE.cy, Math.hypot(arc.from.x - PLATE.cx, arc.from.y - PLATE.cy), heroTheta(band.fromDegree, frame, "degree"));
     expect(arc.from.x).toBeCloseTo(start.x, 6);
     expect(arc.from.y).toBeCloseTo(start.y, 6);
     expect(arc.span).toBeCloseTo(29, 6);

@@ -149,6 +149,8 @@ Asking back. Ask only when the answer would change with the choice. A question a
 
 Dates are YYYY-MM-DD. Count "today", "last Friday" and "next month" from TODAY with the CALENDAR. A tapped choice answers your last question: plan the answer with it.
 
+When you plan an answer about someone in PEOPLE, named in the message or tapped as a choice, the Compatibility report about the two of them comes first. Make the first tool a quote from the report PEOPLE lists them through, from the section whose title fits the question best. Then add what else the answer needs, like their day.
+
 Someone the reader names who isn't in PEOPLE can't be looked at. Plan the answer from the reader's own chart.
 
 When the message was sent from a report, "this" and "this chapter" mean that report.`;
@@ -279,7 +281,7 @@ function cycleLines(): string[] {
   return ["LIFE CYCLES (ids for the cycle tool)", ...CYCLE_IDS.map((id) => `- ${id}: ${CYCLE_WORDS[id].name}, ${CYCLE_WORDS[id].word.toLowerCase()}`)];
 }
 
-const PLAN_CHECK = "Before you answer: dates as YYYY-MM-DD, ids only from the lists above, and the question empty unless you ask back.";
+const PLAN_CHECK = "Before you answer: dates as YYYY-MM-DD, ids only from the lists above, a quote from the Compatibility report first in an answer about someone in PEOPLE, and the question empty unless you ask back.";
 
 /** The plan's user turn: its instructions, the static lists, the reader, the day, then the conversation and the message. */
 export function planUser(input: AskPlanInput, instructions: string): string {

@@ -3,7 +3,8 @@
  * approved mock draws it: who it is, a tap anywhere that opens the report, the
  * actions that stay in view, and "⋯" for the rest. "⋯" opens its items in
  * place, beside the row's own actions, rather than as a floating menu, so a
- * confirmation an item opens stays mounted with it. The keyboard reaches "⋯",
+ * confirmation an item opens stays mounted with it. A row's state is one chip,
+ * never a button (sharing-and-circle §7). The keyboard reaches "⋯",
  * lands on the first item, and Escape goes back to "⋯".
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -21,6 +22,23 @@ export const ROW_ACTION = cn(
 export const ROW_DONE =
   "inline-flex min-h-8 items-center rounded-[10px] border border-[#2C5A50] px-3 font-label text-[13px] font-medium leading-none text-[#9FDCCB]";
 export const ROW_STATUS = "font-label text-xs leading-snug text-[#9AA3B5]";
+
+const DOT: Record<"quiet" | "reading" | "waiting", string> = {
+  quiet: "bg-[#7F8899]",
+  reading: "bg-[#4DB6AC]",
+  waiting: "bg-[#9FA8DA]",
+};
+
+/** A row's one state, in a neutral frame: the dot says which kind, the words say the rest. */
+export function RowChip({ tone, children }: { tone: keyof typeof DOT; children: ReactNode }) {
+  return (
+    <span className="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-[#242C3B] bg-[#0B0F15] px-2.5 font-label text-xs leading-none text-[#AEB6C6]">
+      <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[tone])} />
+      {children}
+    </span>
+  );
+}
+
 export const MENU_ITEM = cn(
   "relative z-10 inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-[#242C3B] bg-[#0B0F15] px-2.5 font-label text-xs font-medium text-[#AEB6C6] transition-colors hover:text-[#E8EBF2]",
   FOCUS,

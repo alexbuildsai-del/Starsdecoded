@@ -7,10 +7,9 @@
  *
  * The plates are drawn here from the triad plate's parts (the brass ring, the
  * renders, the angle marker, the Moon's band as an arc) rather than as two
- * `TriadPlate`s, which frame the whole-sign 1st house at east: that tilts each
- * horizon by its Ascendant's degree in its sign, so two could never share one
- * line. Names and readouts are text under the drawing, so they stay legible
- * on a phone and a crawler reads the placements.
+ * `TriadPlate`s: each of those is its own drawing with its own short horizon,
+ * and here one line runs through both. Names and readouts are text under the
+ * drawing, so they stay legible on a phone and a crawler reads the placements.
  */
 import { useId, useLayoutEffect, useRef } from "react";
 import { animate } from "framer-motion";

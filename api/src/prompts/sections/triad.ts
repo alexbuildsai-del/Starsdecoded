@@ -28,9 +28,9 @@ export const triad: SectionSpec<typeof TriadSchema> = {
   ],
   instructions: `Write the Core Triad: Sun, Moon, and rising sign, 80 to 100 words each.
 
-Sun: how they build identity and what they organise their life around, weighted by sect. Moon: what steadies them, what they reach for under stress, and their daily rhythm. Rising: how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it.
+Sun: how they build identity and what they organise their life around, weighted by sect. Moon: what steadies them, what they reach for under stress, and their daily rhythm. Rising: how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it. When the RETROGRADE AT BIRTH lines hold the chart ruler, let its line in the vocabulary shape the rising part.
 
-Each part carries exactly one behavioural example the reader can check against themselves. The label field names the placement. The text field never does. The three parts must not repeat each other or the Overview.
+The label field names the placement. Each part's text opens on the reader's life, then says plainly what that placement means, and carries exactly one behavioural example the reader can check against themselves. It may name one more placement it rests on, such as the chart ruler in the rising part, inside a sentence with its reason. Anything ahead is a possibility: could, might, you may notice, never will. The three parts must not repeat each other or the Overview.
 
 Sect. The sect light leads the triad. In a day chart the Sun part carries the most weight and the Moon part answers to it. In a night chart, the reverse. Do not treat the three as co-equal.`,
 };

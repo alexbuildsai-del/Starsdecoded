@@ -2,7 +2,9 @@
  * People (ADR-182): the reader and everyone whose Personal report they can
  * read, the same people as the circle, one row each that opens the report on
  * a tap and keeps its actions (review-01-10, scope 3): This is me ✓ or Share
- * with {name} in view; Not me, Stop sharing and Delete report behind "⋯".
+ * with {name} in view, which opens the one Share window; Not me, Stop sharing
+ * and Delete report behind "⋯". Its second line is the date of the report and
+ * the three signs (review-05-10 §7).
  * A report that could not be written keeps its row, which says why in its
  * coded line (ADR-84), opens nothing, and offers Try again where the reader may
  * run it again, free (ADR-313); one the API finally could not write has no Try again and
@@ -30,16 +32,16 @@ import {
 } from "@workspace/api-client-react";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
-import { SendDialog, type SendTarget } from "@/components/SendDialog";
 import { StatusDots } from "@/components/StatusDots";
 import { HandBackDialog, type HandBackTarget } from "@/components/dashboard/HandBackDialog";
 import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from "@/components/dashboard/RowMenu";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
+import { ShareWindow, type ShareTarget } from "@/components/share/ShareWindow";
 import { useToast } from "@/hooks/use-toast";
 import { useHome } from "@/hooks/useHome";
 import { TRY_AGAIN, birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
-import { HANDED_BACK, SEND_AGAIN, pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
+import { HANDED_BACK, SEND_AGAIN, pairedWithReader, personRowView, reportFromText, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
 import { refusalLine } from "@/lib/refusals";
 import { shareWith } from "@/lib/share-card";
 
@@ -51,7 +53,7 @@ interface PersonRowProps {
   violet: boolean;
   /** This row's Try again is under way. */
   retrying: boolean;
-  onShare: (target: SendTarget) => void;
+  onShare: (target: ShareTarget) => void;
   onMark: (person: HomePerson, mine: boolean) => void;
   onHandBack: (target: HandBackTarget) => void;
   onRetry: (reportId: string) => void;
@@ -77,9 +79,12 @@ function PersonRow(props: PersonRowProps) {
     canRegenerate: person.canRegenerate,
     name: person.name,
   });
-  const date = birthDateText(person.birthDate);
+  const written = reportFromText(person.createdAt);
+  const line = written ?? birthDateText(person.birthDate);
   const signs = signsLine(person.triad);
   const spoken = signsSpoken(person.triad);
+
+  const shareTarget: ShareTarget = { kind: "person", profileId: person.profileId, name: view.share?.name ?? person.name };
 
   const actions = [
     view.busy && (
@@ -110,22 +115,17 @@ function PersonRow(props: PersonRowProps) {
     ),
     view.handedBack && <span key="back" className={ROW_STATUS}>{HANDED_BACK}</span>,
     view.share?.kind === "offer" && send && (
-      <button key="share" type="button" onClick={() => onShare({ kind: "person", send, reportId: person.reportId })} className={ROW_ACTION}>
+      <button key="share" type="button" onClick={() => onShare(shareTarget)} className={ROW_ACTION}>
         {view.handedBack ? SEND_AGAIN : shareWith(view.share.name)}
       </button>
     ),
     view.share?.kind === "waiting" && <span key="waiting" className={ROW_STATUS}>{sharedWaiting(view.share.name)}</span>,
     view.changeAddress && send && (
-      <button
-        key="address"
-        type="button"
-        onClick={() => onShare({ kind: "person", send, reportId: person.reportId, change: true })}
-        className={ROW_ACTION}
-      >
+      <button key="address" type="button" onClick={() => onShare(shareTarget)} className={ROW_ACTION}>
         Change address
       </button>
     ),
-    view.share?.kind === "joined" && <span key="joined" className={ROW_DONE}>Joined ✓</span>,
+    view.share?.kind === "joined" && <span key="joined" className={ROW_STATUS}>Joined ✓</span>,
     view.addBirthTime && profile && (
       <button key="time" type="button" onClick={() => onBirthTime(profile)} className={ROW_ACTION}>
         Add birth time
@@ -161,8 +161,8 @@ function PersonRow(props: PersonRowProps) {
       href={view.opens ? `/report/${person.reportId}` : undefined}
       sub={
         <>
-          <span aria-hidden="true">{signs ? `${date} · ${signs}` : date}</span>
-          <span className="sr-only">{`Born ${date}.${spoken ? ` ${spoken}.` : ""}`}</span>
+          <span aria-hidden="true">{signs ? `${line} · ${signs}` : line}</span>
+          <span className="sr-only">{`${written ?? `Born ${line}`}.${spoken ? ` ${spoken}.` : ""}`}</span>
         </>
       }
       moreLabel={`More for ${person.name}`}
@@ -178,7 +178,8 @@ export function PeopleRows() {
   const home = useHome().data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
   const profiles = useListProfiles({ query: { queryKey: getListProfilesQueryKey() } }).data;
-  const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
+  // The target stays after a close so the window can finish leaving with its own words.
+  const [sharing, setSharing] = useState<{ target: ShareTarget; open: boolean } | null>(null);
   const [stopTarget, setStopTarget] = useState<StopTarget | null>(null);
   const [handBackTarget, setHandBackTarget] = useState<HandBackTarget | null>(null);
   const [timeTarget, setTimeTarget] = useState<ProfileSummary | null>(null);
@@ -238,7 +239,7 @@ export function PeopleRows() {
                 unmarked={unmarked}
                 violet={violet.has(person.profileId)}
                 retrying={regenerate.isPending && regenerate.variables?.id === person.reportId}
-                onShare={setSendTarget}
+                onShare={(target) => setSharing({ target, open: true })}
                 onMark={mark}
                 onHandBack={setHandBackTarget}
                 onRetry={(id) => regenerate.mutate({ id })}
@@ -249,7 +250,7 @@ export function PeopleRows() {
           </ul>
         </div>
       )}
-      <SendDialog open={!!sendTarget} onClose={() => setSendTarget(null)} target={sendTarget} />
+      {sharing && <ShareWindow open={sharing.open} onClose={() => setSharing({ ...sharing, open: false })} target={sharing.target} />}
       <StopSharingDialog target={stopTarget} onClose={() => setStopTarget(null)} />
       <HandBackDialog target={handBackTarget} onClose={() => setHandBackTarget(null)} />
       {timeTarget && (

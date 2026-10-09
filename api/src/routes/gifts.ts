@@ -164,6 +164,8 @@ router.post("/gifts", async (req, res) => {
   }
   const email = parsed.data.email.toLowerCase();
   const note = parsed.data.note?.trim() || null;
+  // Kept on the gift, it becomes a grant of the giver's own Personal report at the claim (ADR-331, reading 16).
+  const giverShares = parsed.data.shareOwn === true;
 
   try {
     const giverFirstName = await firstNameOf(userId);
@@ -181,6 +183,7 @@ router.post("/gifts", async (req, res) => {
       profileId: null,
       recipientName,
       note,
+      giverShares,
       createdByUserId: userId,
       createdBySessionId: req.sessionId,
       expiresAt: new Date(sentAt.getTime() + GIFT_TTL_MS),

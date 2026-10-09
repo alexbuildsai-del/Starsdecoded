@@ -42,8 +42,9 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    the Owner must decide → a Mailbox row (Owner Alex, ten open at most). Open rows
    over 14 days old (Created time, ADR-186) go at the top of the plan, oldest first.
 
-Rules: never plan on top of an open Mailbox topic without marking the card
-`provisional MB-NN`. Never plan a change to report content without a fixture
-run in the done-when. Never re-litigate a Decisions row with Status locked.
-Ask the Owner at most three questions per session, highest stakes first, each
-with a recommendation (MASTERFILE §12).
+Rules: plan this round only (Owner, 2026-10-08). Every locked spec not yet built
+is in it; work left out is a `docs/backlog.md` line, never given a later round
+number. Mark a card on an open Mailbox topic `provisional MB-NN`. A report-content
+change has a fixture run in its done-when. Never re-litigate a locked Decisions row.
+At most three questions per session, highest stakes first, each with a
+recommendation (MASTERFILE §12).

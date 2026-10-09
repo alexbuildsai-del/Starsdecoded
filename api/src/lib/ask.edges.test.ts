@@ -197,6 +197,62 @@ test("a session with no account reads the reports its session made until an acco
   assert.deepEqual(lib.reports.map((r) => r.names), [["Gus Lobo"]]);
 });
 
+// --- the pair offer: whom it may name, and once (Review 05/10 §8) --------------------------------------------------
+
+const circleFrom = (rows: NatalRow[], pairs: PairRow[], shared: ReadonlySet<string> = NONE) =>
+  A.circleOf(ME, rows, pairs, shared, OWN.id, A.libraryOf(ME, rows, pairs, shared, OWN.id));
+const offerable = (circle: ReturnType<typeof circleFrom>) =>
+  Object.fromEntries(circle.map((m) => [m.name, m.offerable])) as Record<string, boolean>;
+
+test("the offer's circle: a readable report and no pair offers; a pair with the reader, written or being written, or one Ask reads them through, does not", () => {
+  const natalRows = [natal(OWN), natal(TOMAS), natal(UMA)];
+  assert.deepEqual(offerable(circleFrom(natalRows, [])), { "Tomás Reyes": true, "Uma Vaz": true }, "the reader is never in it");
+  for (const status of ["complete", "interpreting", "pending"]) {
+    assert.deepEqual(offerable(circleFrom(natalRows, [pairOf("rel-t", [part(OWN), part(TOMAS)], { status })])), { "Tomás Reyes": false, "Uma Vaz": true }, status);
+  }
+  assert.deepEqual(offerable(circleFrom(natalRows, [pairOf("rel-t", [part(OWN), part(TOMAS)], { status: "failed" })])), { "Tomás Reyes": true, "Uma Vaz": true }, "a failed pair can be asked for again");
+  // A pair of two other people Ask can read is the one R19-17's plan quotes, so neither of them is offered one.
+  assert.deepEqual(offerable(circleFrom(natalRows, [pairOf("rel-tu", [part(TOMAS), part(UMA)])])), { "Tomás Reyes": false, "Uma Vaz": false });
+  assert.deepEqual(offerable(circleFrom([natal(OWN), natal(TOMAS, { status: "revising" })], [])), { "Tomás Reyes": false }, "a pair waits for a complete report");
+  assert.deepEqual(offerable(circleFrom([natal(OWN), natal(SHARED)], [], new Set([SHARED.id]))), { "Cleo Dias": true }, "a chart shared with the reader");
+  assert.deepEqual(circleFrom([natal(OWN), natal(SHARED)], []), [], "and without the grant, no one");
+});
+
+const member = (profileId: string, name: string, open = true) => ({ profileId, name, offerable: open });
+const CIRCLE = [member("p-tomas", "Tomás Reyes"), member("p-uma", "Uma Vaz"), member("p-george", "George Windsor", false)];
+const named = (asked: string[], circle = CIRCLE, offered: ReadonlySet<string> = NONE, reader = "Ana Lima") =>
+  A.offerTarget(asked, circle, offered, reader)?.profileId ?? null;
+
+test("the offer names whom the reader's words name: a first or full name, in any case or accent, as a whole word", () => {
+  assert.equal(named(["Tomás and I keep arguing about the flat. Why?"]), "p-tomas");
+  assert.equal(named(["why does tomas go quiet on me"]), "p-tomas", "case and accents fold");
+  assert.equal(named(["Is it Tomás's fault or mine?"]), "p-tomas");
+  assert.equal(named(["Is it Tomas’s fault?"]), "p-tomas", "a curly apostrophe too");
+  assert.equal(named(["uma vaz and Tomás"]), "p-uma", "the first one named");
+  assert.equal(named(["Tomásito called me"]), null, "never inside another word");
+  assert.equal(named(["How is George doing?"]), null, "someone Ask reads through a pair is never offered");
+  assert.equal(named(["What does my week look like?"]), null);
+});
+
+test("the offer comes once a person: someone offered in the thread is passed over for the next one named, then no one", () => {
+  assert.equal(named(["Tomás and Uma"], CIRCLE, new Set(["p-tomas"])), "p-uma");
+  assert.equal(named(["Tomás and Uma"], CIRCLE, new Set(["p-tomas", "p-uma"])), null);
+});
+
+test("a name two people could carry offers neither: a first name the reader or another shares counts only in full", () => {
+  const circle = [member("p-ana", "Ana Souza"), member("p-sam", "Sam Hill"), member("p-sam2", "Sam Ruiz")];
+  assert.equal(named(["Ana and I argued"], circle), null, "Ana is the reader's own first name too");
+  assert.equal(named(["Ana Souza and I argued"], circle), "p-ana");
+  assert.equal(named(["Sam is upset"], circle), null);
+  assert.equal(named(["sam  ruiz is upset"], circle), "p-sam2");
+  assert.equal(named(["Lena Park"], [member("p-1", "Lena Park"), member("p-2", "Lena Park")]), null, "two profiles of one name");
+});
+
+test("the newest words come first: the message, then the question back it answers", () => {
+  assert.equal(named(["Fri 16 Oct", "Tomás and I argued on Friday. Why?"]), "p-tomas");
+  assert.equal(named(["And Uma?", "Tomás and I argued on Friday. Why?"]), "p-uma");
+});
+
 // --- the tools, with the plan naming what the reader cannot read -------------------------------------------------
 
 const birthOf = (path: string) => JSON.parse(readFileSync(join(ROOT, path), "utf8")) as {
@@ -412,9 +468,11 @@ async function fresh(): Promise<void> {
 
 after(async () => {
   if (!SCRATCH || !seeded) return;
-  const { db, pool, askMessagesTable, profileSharesTable, profilesTable, relationshipsTable } = await dbm();
+  const { db, pool, askMessagesTable, profileSharesTable, profilesTable, relationshipsTable, usersTable } = await dbm();
   const { inArray } = await import("drizzle-orm");
   await db.delete(askMessagesTable).where(inArray(askMessagesTable.userId, [READER.userId as string, BYSTANDER.userId as string]));
+  // The reader's account row holds the offer test's credits, which go with it.
+  await db.delete(usersTable).where(inArray(usersTable.id, [READER.userId as string]));
   await db.delete(profileSharesTable).where(inArray(profileSharesTable.profileId, Object.values(P)));
   await db.delete(relationshipsTable).where(inArray(relationshipsTable.id, Object.values(REL)));
   await db.delete(profilesTable).where(inArray(profilesTable.id, Object.values(P)));
@@ -821,4 +879,52 @@ test("db, a person's name the reader typed or Ask echoed reaches no log line, fa
   const rows = failureRows.slice(failuresBefore);
   assert.ok(rows.length > 0);
   assert.ok(!rows.some((r) => JSON.stringify(r).includes(marker)), "no failure row does");
+});
+
+test("db, the pair offer: after an answer only, once a person in a thread, with the reader's credits as the thread is read, gone with the report", { skip: NO_DB }, async () => {
+  const { revokeShare } = await import("./shares.js");
+  const { grantBundle } = await import("./credits.js");
+  await fresh();
+  const { db, usersTable, bundlesTable } = await dbm();
+  const { eq } = await import("drizzle-orm");
+  await db.insert(usersTable).values({ id: READER.userId as string }).onConflictDoNothing();
+  await db.delete(bundlesTable).where(eq(bundlesTable.userId, READER.userId as string));
+  const ANSWER = { text: "Your report says you take your time before you decide.", cards: [] };
+  // Oprah's chart is shared with the reader and has no pair with her; George is in a pair Ask reads.
+  const turns = [
+    { text: "Oprah keeps shouting at me.", plan: planOf({ intent: "harm" }) },
+    { text: "What does my week look like?", plan: planOf({ intent: "answer" }) },
+    { text: "Oprah and I argued on Friday. Why?", plan: planOf({ intent: "ask_back", question: "Which Friday?", choices: [{ kind: "date", date: "2026-10-16" }] }) },
+    { tap: true, plan: planOf({ intent: "answer" }) },
+    { text: "What else would Oprah's chart say about it?", plan: planOf({ intent: "answer" }) },
+    { text: "And George, how is he?", plan: planOf({ intent: "answer" }) },
+  ];
+  let turn = 0;
+  const fake = installFakeModel({ ask_plan: () => turns[turn].plan, ask_answer: ANSWER });
+  const offers: unknown[] = [];
+  let thread: Awaited<ReturnType<typeof A.askThread>> | null = null;
+  try {
+    for (turn = 0; turn < turns.length; turn++) {
+      const t = turns[turn];
+      const body = t.tap ? { choiceId: thread!.messages.at(-1)!.choices[0].id } : { text: t.text };
+      const result = await A.sendAsk(READER, body, { now: at(turn * MIN) });
+      assert.ok(result.kind === "thread", `turn ${turn}`);
+      thread = result.thread;
+      offers.push(thread.messages.at(-1)!.offer ?? null);
+    }
+  } finally {
+    fake.restore();
+  }
+  const oprah = { profileId: P.shared, name: "Oprah", credits: 0 };
+  // No offer on a fixed line or a question back, nor for a name a fixed line already closed; the tap's answer offers
+  // one, since the question it answers named her, and at no credits it carries 0, which the card reads as Get a credit.
+  assert.deepEqual(offers, [null, null, null, oprah, null, null]);
+  const offered = (t: typeof thread) => t!.messages.filter((m) => m.offer).map((m) => m.offer);
+  assert.deepEqual(offered(thread), [oprah], "the first offer stays under its answer; a second answer about her offers nothing");
+  assert.ok(thread!.messages.filter((m) => m.role === "reader").every((m) => m.offer === null));
+
+  await grantBundle(READER.userId as string, "family", { test: true });
+  assert.deepEqual(offered(await A.askThread(READER, { now: at(10 * MIN) })), [{ ...oprah, credits: 5 }], "the credits are the reader's as the thread is read");
+  assert.equal(await revokeShare(grant.shared, SHARER.userId as string), true);
+  assert.deepEqual(offered(await A.askThread(READER, { now: at(11 * MIN) })), [], "once her report closes to the reader, so does the offer");
 });

@@ -1,10 +1,11 @@
 /**
  * Setting up Timeline (Review 05/10 §5, report-loading-story §2; readings 8 and 9; ADR-302, 320, 351, 362): back from
  * Stripe the buyer lands here while the readings payment started are written. One screen on the loading grid: the
- * Timeline dial drawn in by the setup's script, the six ticks as their readings land, "Almost there" with a way in once
- * the week is written and a minute has passed, and Open Timeline, focused, once every reading has landed. The next six
- * months, once written ahead, play the same drawing from its third step, once. Reduced motion shows the finished dial
- * and the ticks. The Did you know card sits under the screen.
+ * Timeline dial drawn in by the setup's script, the six ticks as their readings land, one progress bar moved by the
+ * readings landed alone (ADR-394), "Almost there" with a way in once the week is written and a minute has passed, and
+ * Open Timeline, focused, once every reading has landed. The next six months, once written ahead, play the same drawing
+ * from its third step, once, with no bar. Reduced motion shows the finished dial and the ticks. The Did you know card
+ * sits under the screen.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ import {
 } from "@workspace/api-client-react";
 import { DidYouKnow } from "@/components/loading/DidYouKnow";
 import { LoadingFrame } from "@/components/loading/LoadingFrame";
+import { ProgressBar } from "@/components/loading/ProgressBar";
 import { Dial } from "@/components/timeline/Dial";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
@@ -33,11 +35,13 @@ import {
   STUCK_MS,
   TICKS_END,
   dateLineAt,
+  holdProgress,
   natalOfChart,
   replayLine,
   runOf,
   screenOf,
   setupParams,
+  setupProgress,
   spanOf,
   stageAt,
   ticksAt,
@@ -292,6 +296,10 @@ function SetupFrame({ setup, screen, natal, run, span, ids, onIn, onSeen, onMovi
     replay: screen === "replay" && span ? replayLine(span, order) : null,
   });
   const line = run ? dateLineAt(t, run, order, transits, still) : null;
+  // A read that shows less than the screen already showed leaves the bar where it was, so it never moves back.
+  const held = useRef<{ pct: number; line: string } | null>(null);
+  const bar = screen === "setup" ? holdProgress(held.current, setupProgress(setup)) : null;
+  held.current = bar;
 
   useEffect(() => {
     if (moving) onMoving();
@@ -343,6 +351,7 @@ function SetupFrame({ setup, screen, natal, run, span, ids, onIn, onSeen, onMovi
             </div>
           }
           detail={<Ticks ticks={ticks} labelledBy={screen === "setup" ? ids.counter : ids.title} />}
+          pct={bar ? <ProgressBar {...bar} /> : undefined}
           door={
             words.door ? (
               <button ref={door} type="button" onClick={onIn} className={DOOR}>

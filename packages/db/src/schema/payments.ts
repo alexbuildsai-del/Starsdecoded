@@ -132,12 +132,14 @@ export const campaignsTable = pgTable(
 export type CampaignRow = typeof campaignsTable.$inferSelect;
 export type InsertCampaignRow = typeof campaignsTable.$inferInsert;
 
-export const QA_ACCOUNTS = ["mira", "idris"] as const;
+export const QA_ACCOUNTS = ["mira", "idris", "qa-agent"] as const;
 export type QaAccount = (typeof QA_ACCOUNTS)[number];
 
 /**
  * An account the admin marked a tester: its credits come by grant and never
- * count as revenue (ADR-276). qa marks the staging walk's two accounts (ADR-314).
+ * count as revenue (ADR-276). qa marks the staging walk's two accounts (ADR-314)
+ * and /qa's own account, whose address is kept in this row and nowhere else
+ * (ADR-387).
  */
 export const testersTable = pgTable("testers", {
   userId: text("user_id").primaryKey(),

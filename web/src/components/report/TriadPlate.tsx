@@ -6,8 +6,8 @@
  * home's and Learn's birth-time plates draw it too.
  */
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
-import { pointAt, theta } from "@/components/chart/wheel-geometry";
-import { layoutHero, moonArc, type PlacedBody } from "@/components/report/hero-layout";
+import { pointAt } from "@/components/chart/wheel-geometry";
+import { heroTheta, layoutHero, moonArc, type PlacedBody } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import type { ChartData } from "@/types/chart";
 
@@ -26,7 +26,11 @@ const ARC_GAP = 5;
  */
 const SUN_STEP = W / 2 - R - SUN_SIZE / 2;
 
-/** The degree drawn at east: the Ascendant, or 0° Aries on a chart drawn without one. */
+/**
+ * The degree drawn at east: the Ascendant, or 0° Aries on a chart drawn without one. Every call frames on that degree
+ * itself, as the report hero does (ADR-395); on the wheel's frame, the start of its sign, the dotted horizon leans by
+ * the Ascendant's degree in its sign.
+ */
 function frameOf(chart: ChartData): number {
   return chart.angles?.ascendant?.absoluteDegree ?? 0;
 }
@@ -36,7 +40,7 @@ export function triadBodies(chart: ChartData): PlacedBody[] {
   const sun = chart.planets.sun;
   const moon = chart.planets.moon;
   return layoutHero({
-    cx: W / 2, cy: W / 2, ringRadius: R, frameDegree: frameOf(chart), outsideStep: SUN_STEP,
+    cx: W / 2, cy: W / 2, ringRadius: R, frameDegree: frameOf(chart), frameOn: "degree", outsideStep: SUN_STEP,
     bodies: [
       sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: SUN_SIZE },
       moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: MOON_SIZE },
@@ -51,7 +55,7 @@ export function triadBodies(chart: ChartData): PlacedBody[] {
  * covers all of it and the plate shows nothing (MB-126 provisional).
  */
 export function moonDayArc(cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }) {
-  return moonArc(cx, cy, ringRadius + MOON_SIZE / 2 + ARC_GAP, frameDegree, band);
+  return moonArc(cx, cy, ringRadius + MOON_SIZE / 2 + ARC_GAP, frameDegree, band, "degree");
 }
 
 export interface TriadPlateProps {
@@ -66,7 +70,7 @@ export function TriadPlate({ chart, name, className }: TriadPlateProps) {
   const cx = W / 2;
   const cy = W / 2;
   const frame = frameOf(chart);
-  const ascTheta = theta(frame, frame);
+  const ascTheta = heroTheta(frame, frame, "degree");
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const arc = moon?.band ? moonDayArc(cx, cy, R, frame, moon.band) : null;
   const bodies = triadBodies(chart);
@@ -82,7 +86,7 @@ export function TriadPlate({ chart, name, className }: TriadPlateProps) {
       {!blind && (
         <line
           x1={pointAt(cx, cy, R + 14, ascTheta).x.toFixed(1)} y1={pointAt(cx, cy, R + 14, ascTheta).y.toFixed(1)}
-          x2={pointAt(cx, cy, R + 14, theta(frame + 180, frame)).x.toFixed(1)} y2={pointAt(cx, cy, R + 14, theta(frame + 180, frame)).y.toFixed(1)}
+          x2={pointAt(cx, cy, R + 14, heroTheta(frame + 180, frame, "degree")).x.toFixed(1)} y2={pointAt(cx, cy, R + 14, heroTheta(frame + 180, frame, "degree")).y.toFixed(1)}
           stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
         />
       )}

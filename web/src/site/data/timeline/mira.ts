@@ -108,7 +108,7 @@ export interface Mira {
   next: MiraChange[];
   /** The week's seven days, each with the tone of everything in orb on it. */
   days: DayView[];
-  /** "Two things ease and nothing new starts this week". */
+  /** "7 transits this week. 5 last all week. …", counted Monday to Sunday. */
   sentence: string;
   /** Her four known ages' cycles, birth to 90, oldest first, each counted from the Monday. */
   cycles: CycleView[];
@@ -239,8 +239,8 @@ function sampleOf(week: MiraWeekFile, order: DateOrder): MiraSample {
   if (behind < 1 || behind >= count || count >= COUNTS.length) {
     rewrite(week, `her reading counts passes behind her and ahead, and this week ${behind} of ${count} are behind`);
   }
-  if (!/ this week$/.test(week.sentence)) rewrite(week, `a quiet week sends no Monday email ("${week.sentence}")`);
-  const said = week.sentence.replace(/ this week$/, "");
+  if (!/^[1-9]\d* transits? this week\./.test(week.sentence)) rewrite(week, `a quiet week sends no Monday email ("${week.sentence}")`);
+  const said = week.sentence.slice(0, week.sentence.indexOf(" this week."));
   const houses = CHAPTERS.find((c) => c.section === "houses")?.title ?? rewrite(week, "the report has no House by House chapter");
   return {
     tag: SAMPLE_WORDS,

@@ -2,7 +2,8 @@
  * Ask's panel as words and data (ADR-213, 263; readings 13 to 16), pure so a
  * node test pins them: what a message may send, the line under the box, an
  * answer's paragraphs, a thread as a send answers it, a refusal as one line,
- * and each computed card as Timeline's own pieces draw it (ADR-172). Every date
+ * each computed card as Timeline's own pieces draw it (ADR-172), and the pair
+ * offer under an answer (Review 05/10 §8). Every date
  * and degree on a card is one the API sent; its days are the reader's, in the
  * zone the API read them in (reading 4), printed in their language's order
  * with no clock time.
@@ -12,15 +13,17 @@ import type {
   AskCard,
   AskChoice,
   AskMessage,
+  AskMessageOffer,
   AskThread,
   AskUsage,
   LifeCycleView,
   SendAskBody,
   TimelineEvent,
 } from "@workspace/api-client-react";
+import { creditCount } from "@/lib/credits-view";
 import type { DateOrder } from "@/lib/date-entry";
 import type { CycleView } from "@/lib/life-view";
-import { PERSONAL_REPORT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { refusalLine } from "@/lib/refusals";
 import {
   dayIn,
@@ -194,10 +197,13 @@ function spanOn(spans: readonly DaySpan[], day: string): ContactSpan {
 
 const EASES_TODAY = "Eases today";
 
-/** A card in the thread is read again on later days, so where Timeline's own card says "today" it says the date. */
+/**
+ * Timeline's own card's words, "to 19 Oct 2026". A card in the thread is read again on later days, so where that card
+ * says "Eases today" this one says the date.
+ */
 function lastsOn(span: ContactSpan, day: string, order: DateOrder): string {
   const line = lastsLine(span, day, order);
-  return line.startsWith(EASES_TODAY) ? `Until ${nearDate(span.end, day, order)}${line.slice(EASES_TODAY.length)}` : line;
+  return line === EASES_TODAY ? `to ${nearDate(span.end, day, order)}` : line;
 }
 
 /** The facts line: a contact's as Timeline prints it; a retrograde its two stations and an eclipse its day, never "never exact". */
@@ -213,6 +219,13 @@ function factsOn(event: TimelineEvent, exact: readonly string[], day: string, zo
   return parts.join(" · ");
 }
 
+/** How long it lasts as Timeline's card says it: a retrograde from station to station, a contact to its stretch's end. */
+function lastsOf(event: TimelineEvent, day: string, zone: string, order: DateOrder): string {
+  if (event.kind === "eclipse") return ONE_DAY;
+  if (event.kind === "retrograde") return rangeWords(dayIn(event.start, zone), dayIn(event.end, zone), order);
+  return lastsOn(spanOn(spansIn(event, zone), day), day, order);
+}
+
 /** One event as its card shows it on `day`, the day the card is about. */
 export function eventView(event: TimelineEvent, day: string, zone: string, order: DateOrder): EventView {
   const exact = event.exact.map((at) => dayIn(at, zone));
@@ -221,7 +234,7 @@ export function eventView(event: TimelineEvent, day: string, zone: string, order
     tone: event.tone,
     headline: event.headline,
     line: event.line,
-    lasts: event.kind === "eclipse" ? ONE_DAY : lastsOn(spanOn(spansIn(event, zone), day), day, order),
+    lasts: lastsOf(event, day, zone, order),
     facts: factsOn(event, exact, day, zone, order),
   };
 }
@@ -300,4 +313,42 @@ export function cardView(card: AskCard, today: string, zone: string, order: Date
     case "quote":
       return { kind: "quote", text: card.text, source: card.section ? `${card.reportName} · ${card.section}` : card.reportName };
   }
+}
+
+/**
+ * Where Heavy, Mixed and Light are explained (Review 05/10 §2): under the last day card that shows a tone word, once
+ * an answer; -1 when none does. A window's day cells carry their own key.
+ */
+export function legendAfter(views: readonly AskCardView[]): number {
+  for (let i = views.length - 1; i >= 0; i--) {
+    const view = views[i];
+    if ((view.kind === "day" || view.kind === "person") && view.events.some((event) => event.tone !== null)) return i;
+  }
+  return -1;
+}
+
+/** The pair offer's one reason (Review 05/10 §8), the same whoever it names. */
+export const OFFER_REASON = `A ${COMPATIBILITY_REPORT} shows how you two argue, make up and plan. Then Ask can answer from both charts.`;
+
+export interface OfferView {
+  title: string;
+  reason: string;
+  credits: string;
+  action: string;
+  /** The picker with the reader and this person picked; with no credit, its own Get credits keeps the pair for the trip. */
+  href: string;
+}
+
+/** Ask's pair offer as its card reads (Review 05/10 §8): who, one reason, the reader's credits and one way on, no price. */
+export function offerView(offer: AskMessageOffer | undefined): OfferView | null {
+  if (!offer) return null;
+  const name = offer.name.trim();
+  const credits = Number.isFinite(offer.credits) ? Math.max(0, Math.floor(offer.credits)) : 0;
+  return {
+    title: name ? `See ${name}'s side too` : "See their side too",
+    reason: OFFER_REASON,
+    credits: credits > 0 ? `You have ${creditCount(credits)}. This uses 1.` : "You have no credits left. One credit writes it.",
+    action: credits > 0 ? "Write it" : "Get a credit",
+    href: `/dashboard?pair=${encodeURIComponent(offer.profileId)}`,
+  };
 }

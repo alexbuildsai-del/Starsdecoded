@@ -21,7 +21,7 @@ import {
   type AnimationEvent as ReactAnimationEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent,
 } from "react";
 import { CENTRE_ID, pointAngles, ringGaps, type OrbitPoint, type RingGap } from "@/lib/orbit";
-import { PERSONAL_REPORT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import "./orbit.css";
 
@@ -45,7 +45,7 @@ export interface OrbitLabels {
   orbit: string;
   /** The centre, whose chart is drawn. */
   centre: string;
-  /** Said after a person's name when they share a Compatibility report with the centre. */
+  /** Said after a person's name when they are in a Compatibility report the reader can open (ADR-339). */
   sharedPair: string;
 }
 
@@ -223,7 +223,7 @@ function phaseOf(id: string): number {
   return ((h >>> 0) % 6283) / 1000;
 }
 
-function pointName(p: OrbitPoint, sharedPair = "you share a Compatibility report"): string {
+function pointName(p: OrbitPoint, sharedPair = "in a Compatibility report you can open"): string {
   if (p.kind === "add") return p.name;
   if (p.kind === "gift") return `${p.name}, gift waiting`;
   const shared = p.shared ? `shared their ${PERSONAL_REPORT} with you` : "";
@@ -258,6 +258,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
   // The centre never moves, so only a point holds the drift still under its quick look.
   const held = active !== null && active !== CENTRE_ID;
   const lit = new Set(active === null ? [] : partners);
+  const marks = { pair: points.some((p) => p.sharedPair), shared: points.some((p) => p.kind === "person" && p.shared) };
 
   const live = useRef({ points, still, held, reduced });
   live.current = { points, still, held, reduced };
@@ -417,51 +418,60 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
   };
 
   return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
-      role="group"
-      aria-label={labels?.orbit ?? "Your circle"}
-      className="orbit mx-auto block aspect-square h-auto w-full max-w-[440px] select-none overflow-visible"
-      onClick={onClick}
-      onKeyDown={onKeyDown}
-    >
-      <defs>
-        <radialGradient id={`${uid}-haze`} cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor={INDIGO} stopOpacity={0.22} />
-          <stop offset="0.6" stopColor={VIOLET} stopOpacity={0.06} />
-          <stop offset="1" stopColor={GROUND} stopOpacity={0} />
-        </radialGradient>
-        <linearGradient id={`${uid}-plate`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={INDIGO} />
-          <stop offset="1" stopColor={GRADIENT_END} />
-        </linearGradient>
-      </defs>
-      <circle cx={MID} cy={MID} r={MID} fill={`url(#${uid}-haze)`} />
-      <path ref={ringRef} fill="none" stroke={PAPER} strokeOpacity={0.26} strokeWidth={1} strokeDasharray="1 5" />
-      <Centre
-        centre={centre}
-        selected={active === CENTRE_ID}
-        reduced={reduced}
-        plate={`url(#${uid}-plate)`}
-        label={labels?.centre}
-      />
-      {points.map((p) => p.kind === "ghost" ? (
-        <GhostMark key={p.id} point={p} opacity={opacityOf(p.id)} delay={reduced ? undefined : arriving.get(p.id)} onArrived={arrived} />
-      ) : (
-        <PointMark
-          key={p.id}
-          point={p}
-          sharedLabel={labels?.sharedPair}
-          selected={p.id === active}
-          lit={lit.has(p.id)}
-          opacity={opacityOf(p.id)}
-          delay={reduced ? undefined : arriving.get(p.id)}
+    <>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        role="group"
+        aria-label={labels?.orbit ?? "Your circle"}
+        className="orbit mx-auto block aspect-square h-auto w-full max-w-[440px] select-none overflow-visible"
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+      >
+        <defs>
+          <radialGradient id={`${uid}-haze`} cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor={INDIGO} stopOpacity={0.22} />
+            <stop offset="0.6" stopColor={VIOLET} stopOpacity={0.06} />
+            <stop offset="1" stopColor={GROUND} stopOpacity={0} />
+          </radialGradient>
+          <linearGradient id={`${uid}-plate`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={INDIGO} />
+            <stop offset="1" stopColor={GRADIENT_END} />
+          </linearGradient>
+        </defs>
+        <circle cx={MID} cy={MID} r={MID} fill={`url(#${uid}-haze)`} />
+        <path ref={ringRef} fill="none" stroke={PAPER} strokeOpacity={0.26} strokeWidth={1} strokeDasharray="1 5" />
+        <Centre
+          centre={centre}
+          selected={active === CENTRE_ID}
           reduced={reduced}
-          onArrived={arrived}
+          plate={`url(#${uid}-plate)`}
+          label={labels?.centre}
         />
-      ))}
-    </svg>
+        {points.map((p) => p.kind === "ghost" ? (
+          <GhostMark key={p.id} point={p} opacity={opacityOf(p.id)} delay={reduced ? undefined : arriving.get(p.id)} onArrived={arrived} />
+        ) : (
+          <PointMark
+            key={p.id}
+            point={p}
+            sharedLabel={labels?.sharedPair}
+            selected={p.id === active}
+            lit={lit.has(p.id)}
+            opacity={opacityOf(p.id)}
+            delay={reduced ? undefined : arriving.get(p.id)}
+            reduced={reduced}
+            onArrived={arrived}
+          />
+        ))}
+      </svg>
+    {/* The landing's sample speaks of someone else's circle, with its own caption, so only the reader's own circle carries the legend. */}
+    {!labels && (marks.pair || marks.shared) && (
+      <ul className="orbit-legend" aria-label="What the rings mean">
+        {marks.pair && <li className="orbit-legend-pair">{`In a ${COMPATIBILITY_REPORT} you can open`}</li>}
+        {marks.shared && <li className="orbit-legend-shared">Shared their own report with you</li>}
+      </ul>
+    )}
+    </>
   );
 }
 

@@ -133,6 +133,13 @@ echo "==> 3p/7 The job queue, Timeline's setup and the walk's pictures"
 # API starts. No existing table changes, so step 1 has nothing new. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-jobs.ts
 
+echo "==> 3q/7 A gift's two answers and Copy their link"
+# invite_tokens.giver_shares, share_back and link_hash with its unique index (ADR-331, 390). The push above
+# adds them first and asks nothing, though the table holds rows: each new column has a default, and the
+# index is not a constraint. This step still runs because the push is only the safety net (step 2); the
+# script uses the schema's own names, so neither finds drift after the other. Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-gift-shares.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

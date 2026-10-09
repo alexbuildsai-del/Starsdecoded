@@ -110,7 +110,7 @@ export function PractiseBlock({ s, names }: { s: PairPractise; names: PairNames 
         <div key={l.path} className="rp-lblk">
           <span className="rp-lab">{l.who}</span>
           <p>{CitedText({ text: l.list.intro, claims: s.claims, counter: k })}</p>
-          <Checklist heading={l.heading} items={items("whatToPractise", l.path, l.list)} />
+          <Checklist heading={l.heading} items={items("whatToPractise", l.path, l.list)} pinnable />
         </div>
       ))}
       <p className="rp-pull">{CitedText({ text: s.closing, claims: s.claims, counter: k })}</p>

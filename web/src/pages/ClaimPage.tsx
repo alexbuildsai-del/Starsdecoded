@@ -6,13 +6,15 @@
  * have a chart marked as theirs, since only one can be; Not me hands it back to
  * whoever sent it (ADR-236). A gift is a credit, not a report (ADR-139): its
  * claim moves the held credit into the reader's balance and the dashboard
- * opens, with no birth form forced. A share is the sharer's own Personal report
- * to read and never a hand-over, so its claim opens the dashboard with the
- * sharer in the circle and offers Share yours back there (ADR-235).
+ * opens, with no birth form forced. Its claim carries the reader's one answer
+ * about their own report (ADR-331), so the gift asks before it is taken. A
+ * share is the sharer's own Personal report to read and never a hand-over, so
+ * its claim opens the dashboard with the sharer in the circle and offers Share
+ * yours back there (ADR-235).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@clerk/react";
+import { useAuth, useClerk, useUser } from "@clerk/react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useMutationState, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,6 +32,7 @@ import {
   getListSharesQueryKey,
   getGetCreditsQueryKey,
   getGetCreditHistoryQueryKey,
+  type ClaimInviteBody,
   type HandBackProfileMutationVariables,
   type InviteClaimResponse,
   type InvitePreview,
@@ -46,6 +49,8 @@ import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/lib/page-title";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 function getParam(name: string): string | null {
   if (typeof window === "undefined") return null;
   return new URLSearchParams(window.location.search).get(name);
@@ -53,6 +58,11 @@ function getParam(name: string): string | null {
 
 function bornLine(p: Pick<ProfileSummary, "name" | "birthDate" | "birthPlace">): string {
   return `${p.name}, born ${p.birthDate} in ${p.birthPlace}.`;
+}
+
+// The claim compares addresses trimmed and in any case, so the page does too and both call the same account wrong.
+function sameAddress(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 // A title, two sentences and a choice take longer to read than a plain toast's 5 s; the sharer's quick look keeps the
@@ -135,12 +145,16 @@ export default function ClaimPage() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const token = useMemo(() => getParam("token"), []);
   // The reader pressed Claim my report on a gift's cover before signing in; a second press on return would be one too many.
   const claimOnReturn = useMemo(() => getParam("claim") === "1", []);
 
   const [claimed, setClaimed] = useState<InviteClaimResponse | null>(null);
   const [step, setStep] = useState<"time" | "self">("time");
+  // A gift's share question shows once Claim my report is pressed, here or before signing in, and its answer claims.
+  const [asking, setAsking] = useState(claimOnReturn);
 
   const inviteQ = useGetInvite(token ?? "", {
     query: {
@@ -206,28 +220,42 @@ export default function ClaimPage() {
     else navigate(destination, { replace: true });
   }, [claimed, kind, step, claimedProfile, sendProfileId, profilesSettled, askSelf, destination, navigate]);
 
+  // The address the claim is checked against (the account's primary, else its first), which is the one it signed in with:
+  // the page names the account by it and by nothing it never gave (R15-18, R15-19's lesson). Unknown, the server decides.
+  const accountEmail = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress ?? null;
+  const invitedEmail = inviteQ.data?.email ?? null;
+  // B-51: an account the claim would refuse is told so before it claims, rather than after a 403.
+  const wrongAccount = !!isSignedIn && !!accountEmail && !!invitedEmail && !sameAddress(accountEmail, invitedEmail);
+
   // Once per page load, or a hard failure (wrong account, expired) would claim again in a loop; Try again resets it.
-  // A send or a share claims on arrival, as a send always has; a gift shows its cover first and waits for Claim my report.
+  // A send or a share claims on arrival, as a send always has; a gift claims with the answer to its share question.
   const attemptedRef = useRef(false);
-  const autoClaim = !isGift || claimOnReturn;
   useEffect(() => {
-    if (!token || !isLoaded || !isSignedIn || !autoClaim) return;
+    if (!token || !isLoaded || !isSignedIn || isGift || wrongAccount) return;
     if (!inviteQ.data || inviteQ.data.alreadyClaimed) return;
     if (attemptedRef.current) return;
     if (claim.isPending || claim.isSuccess || claim.isError) return;
     attemptedRef.current = true;
     claim.mutate({ token });
-  }, [token, isLoaded, isSignedIn, autoClaim, inviteQ.data, claim.isPending, claim.isSuccess, claim.isError, claim]);
+  }, [token, isLoaded, isSignedIn, isGift, wrongAccount, inviteQ.data, claim.isPending, claim.isSuccess, claim.isError, claim]);
 
-  const claimGift = () => {
+  // Each answer is sent as it was given, so Not now is a stated false (ADR-331).
+  const answerGift = (shareBack: boolean) => {
     if (!token || attemptedRef.current) return;
     attemptedRef.current = true;
-    claim.mutate({ token });
+    const data: ClaimInviteBody = { shareBack };
+    claim.mutate({ token, data });
   };
 
   const goSignIn = (thenClaim: boolean) => {
     const ret = `/claim?token=${encodeURIComponent(token ?? "")}${thenClaim ? "&claim=1" : ""}`;
     navigate(`/sign-in?return_to=${encodeURIComponent(ret)}`);
+  };
+
+  // Signing in again is the only way past a wrong account, so Sign out goes straight on to it and back to this link.
+  const switchAccount = () => {
+    const ret = `/claim?token=${encodeURIComponent(token ?? "")}${isGift ? "&claim=1" : ""}`;
+    void signOut({ redirectUrl: `${basePath}/sign-in?return_to=${encodeURIComponent(ret)}` });
   };
 
   if (!token) {
@@ -342,6 +370,28 @@ export default function ClaimPage() {
     );
   }
 
+  // B-50: a used link says so before any sign-in, since signing in can't open it again.
+  if (inv.alreadyClaimed) {
+    return (
+      <Centered>
+        <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+        <h1 className="font-display text-2xl mb-2">Already claimed</h1>
+        <p className="text-muted-foreground text-sm mb-5">
+          {isGift ? "This gift has already been claimed. Its link no longer works." : "This link has already been used. It no longer works."}
+        </p>
+        {isSignedIn ? (
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+            Go to dashboard
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => navigate("/")}>
+            Go home
+          </Button>
+        )}
+      </Centered>
+    );
+  }
+
   if (!isSignedIn) {
     // ADR-140: writing a report needs an account, and the claim binds to the invited email, so a gift is claimed signed in.
     // The preview needs only the public GET, so it never waits for Clerk (MB-183). Its button does: a reader who turns out
@@ -352,31 +402,28 @@ export default function ClaimPage() {
     return <SendPreview inv={inv} giver={giver} waiting={waiting} onSignIn={() => goSignIn(false)} />;
   }
 
-  if (inv.alreadyClaimed) {
+  if (wrongAccount || (claim.isError && claim.error?.data?.error === "wrong_recipient")) {
     return (
-      <Centered>
-        <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl mb-2">Already claimed</h1>
-        <p className="text-muted-foreground text-sm mb-5">
-          This invitation has already been claimed and the link is no longer
-          active.
-        </p>
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          Go to dashboard
-        </Button>
-      </Centered>
+      <WrongAccount
+        kind={kind}
+        // A 403 can still meet an account whose address reads as the invited one; then it is named by nothing.
+        account={accountEmail && !sameAddress(accountEmail, inv.email) ? accountEmail : null}
+        invited={inv.email}
+        onSignOut={switchAccount}
+        onDashboard={() => navigate("/dashboard")}
+      />
     );
   }
 
   if (claim.isError) {
     // The API's own line, never the client's "HTTP 403 Forbidden: ..." wrapper; a network or server failure has none.
     const code = claim.error?.data?.error;
+    const status = claim.error?.status;
     const told = typeof claim.error?.data?.message === "string" && claim.error.data.message ? claim.error.data.message : null;
     let title = "Could not claim invite";
     let body = told ?? "Please try again.";
     // Every 409 names its status "Conflict", so a sharer opening the link to their own report is told so by its code.
-    const ownReport = code === "own_chart";
-    if (ownReport) {
+    if (code === "own_chart") {
       title = "This is your own report";
       body = "You shared it from this account, so there's nothing to claim. It's on your dashboard.";
     } else if (code === "already_claimed") {
@@ -385,19 +432,18 @@ export default function ClaimPage() {
     } else if (code === "expired") {
       title = "Invite expired";
       body = "This invitation link has expired. Ask the sender for a new one.";
-    } else if (code === "wrong_recipient") {
-      title = "Wrong account";
-      body = `Sign in with ${inv.email} to accept this invitation.`;
     } else if (code === "wrong_person") {
       title = "Wrong account";
     }
+    // A refusal meets the same answer however often it is asked (B-51); only a failure on the way or on our side may not.
+    const retry = !status || status >= 500;
     return (
       <Centered>
         <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
         <h1 className="font-display text-2xl mb-2">{title}</h1>
         <p className="text-muted-foreground text-sm mb-5 [overflow-wrap:anywhere]">{body}</p>
         <div className="flex gap-2 justify-center">
-          {!ownReport && (
+          {retry && (
             <Button
               variant="outline"
               onClick={() => {
@@ -417,8 +463,16 @@ export default function ClaimPage() {
   }
 
   if (isGift) {
+    const sending = claim.isPending ? (claim.variables?.data?.shareBack ?? false) : null;
     return (
-      <GiftScreen inv={inv} giver={giver} busy={claim.isPending || (claimOnReturn && claim.isIdle)} onClaim={claimGift} />
+      <GiftScreen
+        inv={inv}
+        giver={giver}
+        asking={asking}
+        sending={sending}
+        onClaim={() => setAsking(true)}
+        onAnswer={answerGift}
+      />
     );
   }
 
@@ -479,15 +533,19 @@ function SharePreview({
 
 // The cover is its own card, so it stands on the page rather than inside another one.
 function GiftScreen({
-  inv, giver, claimed = false, signedOut = false, busy = false, waiting = false, onClaim, onDashboard,
+  inv, giver, claimed = false, signedOut = false, waiting = false, asking = false, sending = null, onClaim, onAnswer,
+  onDashboard,
 }: {
   inv: InvitePreview;
   giver: string | null;
   claimed?: boolean;
   signedOut?: boolean;
-  busy?: boolean;
   waiting?: boolean;
+  asking?: boolean;
+  /** The answer whose claim is on its way, else null. */
+  sending?: boolean | null;
   onClaim?: () => void;
+  onAnswer?: (shareBack: boolean) => void;
   onDashboard?: () => void;
 }) {
   // MB-6 provisional: true wherever credits are enforced (ADR-138); where the soft pass held none, nothing moved, and writing is free there.
@@ -505,6 +563,8 @@ function GiftScreen({
             {/* The Claim button this replaces had focus; without a new target it would fall to the page. */}
             <Button autoFocus aria-describedby="gift-credit" onClick={onDashboard}>Go to my dashboard</Button>
           </>
+        ) : asking && onAnswer ? (
+          <ShareQuestion giver={giver} giverShares={!!inv.giverShares} sending={sending} onAnswer={onAnswer} />
         ) : (
           <>
             {signedOut && (
@@ -512,14 +572,112 @@ function GiftScreen({
                 Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> to claim it.
               </p>
             )}
-            <Button onClick={onClaim} disabled={busy || waiting} aria-busy={busy} data-testid="button-claim-gift">
-              {busy ? <StatusDots label="Claiming" /> : "Claim my report"}
+            <Button onClick={onClaim} disabled={waiting} data-testid="button-claim-gift">
+              Claim my report
             </Button>
           </>
         )}
         <ClerkStalled className="max-w-sm" />
       </div>
     </div>
+  );
+}
+
+/**
+ * The gift's one question to its reader, about their own report only (ADR-331); when the giver shared first it is
+ * ADR-235's Share yours back. A gift's reader may have no report yet, so a Yes waits until theirs is ready. What a Yes
+ * gives is named before the tap (ADR-139), and neither answer is picked for them.
+ */
+function ShareQuestion({
+  giver, giverShares, sending, onAnswer,
+}: {
+  giver: string | null;
+  giverShares: boolean;
+  sending: boolean | null;
+  onAnswer: (shareBack: boolean) => void;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  // The question takes focus as it replaces the button pressed, so a stray Enter gives no answer (R14-12's lesson).
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+  const busy = sending !== null;
+  return (
+    <section aria-labelledby="gift-share-question" className="w-full grid gap-3">
+      {giverShares && <p className="text-sm">{giver ?? "Someone"} shared their report with you.</p>}
+      <h2
+        id="gift-share-question"
+        ref={heading}
+        tabIndex={-1}
+        className="font-display text-xl text-balance focus:outline-none [overflow-wrap:anywhere]"
+      >
+        {giverShares ? "Share yours back when it's ready?" : `Share your report with ${giver ?? "them"} when it's ready?`}
+      </h2>
+      <p className="text-muted-foreground text-sm">
+        {`${giver ?? "They"} can then read your whole ${PERSONAL_REPORT}, with your birth date, time and place. You can stop sharing any time.`}
+      </p>
+      <div className="grid gap-2.5 mt-2">
+        <Button
+          className="min-h-11 w-full"
+          disabled={busy}
+          aria-busy={sending === true}
+          onClick={() => onAnswer(true)}
+          data-testid="button-claim-share-yes"
+        >
+          {sending === true ? <StatusDots label="Claiming" /> : "Yes, share my report"}
+        </Button>
+        <Button
+          variant="outline"
+          className="min-h-11 w-full"
+          disabled={busy}
+          aria-busy={sending === false}
+          onClick={() => onAnswer(false)}
+          data-testid="button-claim-share-no"
+        >
+          {sending === false ? <StatusDots label="Claiming" /> : "Not now"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * B-51: who is signed in, by the address they signed in with, and the address the link was sent to; Sign out goes on to
+ * signing in, since no other tap here could claim it.
+ */
+function WrongAccount({
+  kind, account, invited, onSignOut, onDashboard,
+}: {
+  kind: string;
+  account: string | null;
+  invited: string;
+  onSignOut: () => void;
+  onDashboard: () => void;
+}) {
+  const what = kind === "gift" ? "This gift was sent to" : kind === "share" ? "This report was shared with" : "This report was sent to";
+  return (
+    <Centered>
+      <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+      <h1 className="font-display text-2xl mb-2">Wrong account</h1>
+      <p className="text-sm mb-1 [overflow-wrap:anywhere]" data-testid="text-claim-account">
+        {account ? (
+          <>
+            You're signed in as <span className="text-foreground">{account}</span>.
+          </>
+        ) : (
+          "You're signed in with another account."
+        )}
+      </p>
+      <p className="text-muted-foreground text-sm mb-5 [overflow-wrap:anywhere]">
+        {what} <span className="text-foreground">{invited}</span>. Sign out, then sign in with that address.
+      </p>
+      <div className="flex flex-wrap gap-2 justify-center">
+        <Button onClick={onSignOut} data-testid="button-claim-sign-out">Sign out</Button>
+        <Button variant="outline" onClick={onDashboard}>
+          Go to dashboard
+        </Button>
+      </div>
+    </Centered>
   );
 }
 

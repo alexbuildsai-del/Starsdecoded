@@ -5,13 +5,14 @@
  * in by the server, word for word, so the model reads a passage and never
  * writes one (ADR-213). The text answers to the readings' three blocks
  * (annex rows 44 to 46): a date or degree nothing computed, a life event
- * foretold, a do or a don't.
+ * foretold, a do or a don't. A dignity word or a copied scene only warns,
+ * as in every product (ADR-385).
  */
 import { z } from "zod/v4";
 import type { Tone } from "@workspace/engine";
 import { hasHorizon } from "../../lib/chartCalculation.js";
 import type { ChartBrief } from "../brief.js";
-import { fixed, type Check, type Validated } from "../checks.js";
+import { explainChecks, fixed, type Check, type Validated } from "../checks.js";
 import { DATA_CLOSE, DATA_LABELS, DATA_OPEN, dataBlock, quoteBlocks, restoreBlocks } from "../data.js";
 import { semicolonsToFullStops } from "../pair/shapes.js";
 import { blockingChecks, type AllowedFacts } from "../timeline/index.js";
@@ -98,17 +99,19 @@ export const ANSWER_MAX_TOKENS = 700;
 /** The editable instructions, the `ask:answer:user` row. Everything after them is assembled in code. */
 export const ASK_ANSWER_INSTRUCTIONS = `THE ANSWER. Answer the reader's message from the cards below, the chart brief and the conversation. Then name the cards to show under your text.
 
-- Start with the answer itself. Then say why: what touched their chart, and how astrology reads it.
+- Start with the answer itself, in the reader's own life. Then say why: what touched their chart, and how astrology reads it.
 - Use only the dates, orbs, ages, signs and houses that the cards and the brief give, as they give them. If no card holds a date, write none.
 - Name days by their dates, like "5 to 11 October", never as "tomorrow", "next week" or "this month", and never a season, a holiday or a clock time. The answer stays in the thread and is read again later.
-- Name a planet, a point or a cycle inside a sentence, with what it means in plain words next to it, like "Saturn on your Ascendant, a time when you take yourself more seriously".
+- Name a planet, a point, a house or a cycle once, inside a sentence, where it first matters. Say what it means in plain words in the next sentence, like "Saturn is crossing your Ascendant. It's a time when you take yourself more seriously." Then give a moment from an ordinary day that they could check.
 - Say how astrology reads a time, never what will happen. Never say what someone else will do, think or feel.
 - Asked to choose, or whether a time is good for something, give astrology's reading of those dates and why. Then leave the choice with the reader in one plain sentence.
+- When the question is about someone and a card quotes the Compatibility report about the two of them, start from what that card says.
 - A quote card shows a passage from a report word for word, under your text. Point to it in your own words, like "your Compatibility report says how the two of you argue". Never copy its words.
+- Each idea you offer gets one everyday example, framed as an option, in words like "for example, you could". Keep the example to one small moment from a normal day.
 - Never give an order, not even a small one like "See below" or "Think back". Point to a card in a plain statement, like "The card below shows each day."
 - The Moon's sign and phase come only from a day card.
 - If the cards show nothing touching their chart, say so plainly. A quiet time is an answer too.
-- If the reader asks about someone you can't look at, answer from the reader's own chart. Then say once that a Compatibility report with that person would let Ask look at their side too.
+- If the reader asks about someone you can't look at, answer from the reader's own chart.
 - If a question needs a birth time and BIRTH TIME reads unknown, say so in one plain sentence.
 - At most 150 words, in one to three short paragraphs split by a blank line. Fewer when the question is simple.
 - cards: the ids of the cards your text talks about, in the order it talks about them, at most four. Leave out a card your text doesn't use.`;
@@ -278,7 +281,8 @@ const inAskWords = (c: Check): Check => ({ ...c, message: c.message.replace("THE
  * The answer as the reader gets it, and every check that fired: a copied name
  * block read back as the name, a copied marker taken out (row 48), a
  * semicolon made a full stop (row 41), the cards cut to the ones offered,
- * each once, and the readings' three blocks on the text (rows 44 to 46).
+ * each once, the readings' three blocks on the text (rows 44 to 46), and the
+ * plain-words checks, which warn and never block (ADR-385).
  */
 export function checkAskAnswer(output: AskAnswer, input: AskAnswerInput): Validated<AskAnswer> {
   const checks: Check[] = [];
@@ -295,5 +299,6 @@ export function checkAskAnswer(output: AskAnswer, input: AskAnswerInput): Valida
   const offered = new Set(input.cards.map((c) => c.id));
   const cards = [...new Set(output.cards)].filter((id) => offered.has(id)).slice(0, CARDS_MAX);
   checks.push(...blockingChecks(stops.text, answerFacts(input), "text", namesIn(input)).map(inAskWords));
+  checks.push(...explainChecks({ text: stops.text }));
   return { output: { text: stops.text, cards }, checks };
 }

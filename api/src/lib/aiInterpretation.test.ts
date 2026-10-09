@@ -160,14 +160,14 @@ test("a report fails only after the claims-only repair fails too, and the repair
   }
 });
 
-test("a drawn run calls every section and keeps the rising part", async () => {
+test("a drawn run calls every section, keeps the rising part, and stores each house card with its blocks and Often noticed", async () => {
   calls.length = 0;
   const drawnTriad = { ...(REPLIES.natal_triad as object), rising: { label: "Capricorn rising", text: PARA }, claims: [
     { quote: "You investigate first and commit second.", evidence: [{ kind: "placement", body: "sun", sign: "scorpio", house: 11 }] },
     { quote: "You investigate first and commit second.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] },
     { quote: "You investigate first and commit second.", evidence: [{ kind: "sect", role: "sect_light", body: "sun" }] },
   ] };
-  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) };
+  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.", retrograde: [], stellium: null })) };
   const drawnClaims = () => [1, 2, 3].map(() => ({ quote: "You investigate first and commit second.", evidence: [{ kind: "placement", body: "sun", sign: "scorpio", house: 11 }] }));
   const saved = { ...REPLIES };
   for (const k of Object.keys(REPLIES)) {
@@ -182,6 +182,9 @@ test("a drawn run calls every section and keeps the rising part", async () => {
     assert.equal(out.meta.horizon, "known");
     assert.equal(out.meta.sect, "day");
     assert.ok(out.houses && out.houses.houses.length === 12);
+    // Often noticed is filled in code after the reply, so only the stored report shows the pipeline kept it (ADR-403).
+    assert.ok(out.houses.houses.every((h) => Array.isArray(h.retrograde) && "stellium" in h && "noticed" in h));
+    assert.ok(out.houses.houses.some((h) => h.noticed !== null && h.noticed.idea.length > 0));
     assert.equal(out.triad.rising?.label, "Capricorn rising");
     assert.ok(out.angleMeanings);
     assert.ok(calls.includes("natal_houses"));
@@ -523,7 +526,7 @@ test("a name the writer wrote back reaches the next prompt only in a data block:
 
 test("adding the hour reads the stored foundation and prose with the name in a block, and an amendment copied from them lands on the prose as stored (ADR-240)", async () => {
   const chart = drawn();
-  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) };
+  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.", retrograde: [], stellium: null })) };
   for (const name of INJECTED) {
     const where = name.slice(0, 24);
     // What a writer can write back is the name as its block showed it.
@@ -578,6 +581,6 @@ test("BUG R15-04: YOUR LAST REPLY, the model's JSON, keeps a name that opens a p
   }
 });
 
-test("the natal prompts are v11, the version every report written from this round's prompts carries (ADR-257, R16-13)", () => {
-  assert.equal(PROMPT_VERSION, "v11");
+test("the natal prompts are v12, the version every report written from this round's prompts carries (ADR-369, ADR-383, R19-14)", () => {
+  assert.equal(PROMPT_VERSION, "v12");
 });

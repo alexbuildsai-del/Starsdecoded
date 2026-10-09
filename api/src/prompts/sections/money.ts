@@ -19,11 +19,15 @@ export const money: SectionSpec<typeof MoneySchema> = {
   maxTokens: 2_500,
   schema: MoneySchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
-  instructions: `Write Money & Resources. This section is the most likely to drift into generic advice, so it must be anchored: the ruler of the 2nd and where it sits, the ruler of the 8th and where it sits, the Lot of Fortune's house, and Venus and Saturn by sect. Cite the behaviour those facts produce, never the facts.
+  instructions: `Write Money & Resources. This section is the most likely to drift into generic advice, so it must be anchored: the ruler of the 2nd and where it sits, the ruler of the 8th and where it sits, the Lot of Fortune's house, and Venus and Saturn by sect. Lead with the behaviour those facts produce, and let a fact follow as its reason.
 
 One paragraph on their relationship to earning, keeping, and valuing. One paragraph on the specific way resources come to them and the specific way they lose them, with an example. One paragraph on money that is not solely theirs: backing, debt, inheritance, shared arrangements, and where the exposure is. Then exactly three actions with a short why.
 
-If the chart is genuinely quiet here, say what that quiet looks like in practice rather than inventing drama. No planet, sign, or house names in the prose. 250 to 320 words.
+An empty 2nd or 8th is read through its planet in charge, as its EMPTY HOUSES line says: how at ease that planet is in its sign, and why, and which part of life it sits in. Never call money easy or quiet without that reason, and never invent drama.
+
+Going backwards. When the RETROGRADE AT BIRTH lines hold Venus or the planet in charge of the 2nd or 8th, it shapes how they handle money. Let its line in the vocabulary show in the behaviour you describe.
+
+Each paragraph opens on the reader's life, then gives the reason. Name at most one placement a paragraph, inside a sentence, where it first matters: its plain meaning in the next sentence, then a moment the reader can check. Anything ahead is a possibility: could, might, you may notice, never will. The chapter ends on its actions. 250 to 320 words.
 
 Sect. Read the rulers of the 2nd and 8th by sect where they are Venus, Mars, Jupiter or Saturn. The benefic of sect gives resources reliably. The benefic out of sect gives them unreliably or with a cost. The malefic out of sect is where money is lost.`,
 };

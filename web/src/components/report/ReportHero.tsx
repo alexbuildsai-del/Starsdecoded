@@ -4,11 +4,16 @@
  * marker because it is a point on the horizon and never a body (ADR-17), the
  * name at the centre of its own sky, and the birth data in the corners.
  *
- * East is on the left, as every chart is drawn. The dotted horizon is the
- * plate's only line: a label sits beside its body with nothing joining them
- * (ADR-27). The Sun's glow is painted on the sky layer rather than inside the
- * SVG, so no bar, edge or chapter can clip it. It fades out over the first 0.6
- * screens as the reading's sky fades in.
+ * East is on the left, as every chart is drawn. The horizon is the plate's
+ * only line, solid and level as the loading story draws it (ADR-395): the plate
+ * is framed on the Ascendant's own degree, not on the start of its sign as the
+ * wheel is, or the line through the Ascendant and the Descendant leans by that
+ * degree. The ring is dimmed behind it so its curve never reads as the horizon.
+ * A label sits beside its body with nothing joining them (ADR-27), and a
+ * horizon label a body would cover steps down below it (B-62). The Sun's glow
+ * is painted on the sky layer rather than inside the SVG, so no bar, edge or
+ * chapter can clip it. It fades out over the first 0.6 screens as the reading's
+ * sky fades in.
  *
  * A blind chart (ADR-33, ADR-37) has no horizon to draw: no line, no east or
  * west, no rising marker. The plate is framed on 0° Aries, the Moon is the arc
@@ -18,14 +23,20 @@
  * Three tiers (ADR-59): wide keeps the plate with the name at its centre;
  * narrow, up to 900 px, stacks the plate, the legend and the cue; the phone,
  * under 640 px, puts the ring on top at 82vw and the name under it, then the
- * legend, then the cue clear of the corner text (`phoneStack`).
+ * legend, then the cue clear of the corner text (`phoneStack`). On a plate
+ * that holds the name, a name wide enough to reach the rising marker would
+ * cover it, so it stands just above the line instead, its date just below;
+ * where that would cover a body, it takes the ladder's next rung (`placeName`).
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { TriadRow } from "@/components/TriadRow";
 import { triadRowsOf, triadText } from "@/lib/triad-row";
-import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { PHONE, ascendantValue, layoutHero, moonArc, phoneStack, writtenOnText, type Rect } from "@/components/report/hero-layout";
+import { opposite, pointAt } from "@/components/chart/wheel-geometry";
+import {
+  MARKER_RADIUS, MARKER_STROKE, PHONE, ascendantValue, heroTheta, layoutHero, moonArc, phoneStack, placeBodies, placeName, writtenOnText,
+  type NamePlace, type Rect,
+} from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { Mark } from "@/components/Mark";
@@ -37,6 +48,10 @@ import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
+const PAPER = "var(--paper)";
+/** How far the plate's diagram moves per px scrolled, in plate units, and the centred name, in px: two depths. */
+const DIAGRAM_RATE = 0.12 * 1.6;
+const NAME_RATE = 0.05 * 1.6;
 const MONTHS = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
@@ -48,9 +63,17 @@ const GLOW = "radial-gradient(circle closest-side, rgba(255,196,118,.46) 0%, rgb
 const GLOW_DIAMETERS = 3.2;
 
 /** The name's own ladder: it is page type, so it never scales with the plate. A phone gets a smaller rung of the same ladder. */
+const LADDER = { wide: [64, 48, 40], narrow: [44, 34, 28] } as const;
+
+/** A name's own rung and the rungs below it. */
+function rungsFrom(size: number, narrow: boolean): number[] {
+  const ladder: readonly number[] = narrow ? LADDER.narrow : LADDER.wide;
+  return ladder.slice(Math.max(0, ladder.indexOf(size)));
+}
+
 function nameLines(name: string, narrow: boolean): { lines: string[]; size: number } {
   const n = name.trim();
-  const [big, mid, small] = narrow ? [44, 34, 28] : [64, 48, 40];
+  const [big, mid, small] = narrow ? LADDER.narrow : LADDER.wide;
   if (n.length <= 14) return { lines: [n], size: big };
   if (n.length <= 26) return { lines: [n], size: mid };
   const words = n.split(/\s+/);
@@ -137,8 +160,16 @@ function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean
 }
 
 /** Under the name, in the legend's small grey: it fades with the plate, as the name does. */
-function WrittenOn({ text }: { text: string }) {
-  return <p className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]">{text}</p>;
+function WrittenOn({ text, textRef, style }: { text: string; textRef?: React.Ref<HTMLParagraphElement>; style?: React.CSSProperties }) {
+  return <p ref={textRef} className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]" style={style}>{text}</p>;
+}
+
+function samePlace(a: NamePlace | null, b: NamePlace | null): boolean {
+  if (a === null || b === null) return a === b;
+  const near = (x: number, y: number) => Math.abs(x - y) < 0.5;
+  return a.size === b.size && (a.clearance === null ? b.clearance === null : b.clearance !== null && near(a.clearance, b.clearance))
+    && a.obstacles.length === b.obstacles.length
+    && a.obstacles.every((r, i) => near(r.x, b.obstacles[i].x) && near(r.y, b.obstacles[i].y) && near(r.w, b.obstacles[i].w) && near(r.h, b.obstacles[i].h));
 }
 
 export interface ReportHeroProps {
@@ -177,7 +208,16 @@ export function ReportHero({
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<SVGCircleElement>(null);
+  const eyebrowRef = useRef<HTMLSpanElement>(null);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  const writtenRef = useRef<HTMLParagraphElement>(null);
   const [ring, setRing] = useState<Ring | null>(null);
+  const [place, setPlace] = useState<NamePlace | null>(null);
+  const clearance = phone ? null : place?.clearance ?? null;
+  // The name's own offset before the scroll's: a standing name puts its bottom, not its middle, on the line, and
+  // scrolls at the plate's rate, so the line and the marker never slide up under it.
+  const shift = clearance === null ? "-50%" : `-100% - ${clearance.toFixed(1)}px`;
+  const nameRate = clearance === null || !place ? NAME_RATE : DIAGRAM_RATE * place.scale;
 
   // The ring's place on screen, measured at rest and again on every resize,
   // so the ring of stars follows an address-bar collapse or a rotation.
@@ -214,10 +254,11 @@ export function ReportHero({
       if (cueRef.current) cueRef.current.style.opacity = Math.max(0, 1 - q * 2.2).toFixed(3);
       if (!reduced) {
         // The whole diagram is one group so ring, horizon and markers can never
-        // drift apart on scroll; only the name moves at a different depth. On
-        // the phone the name sits in the flow under the ring and stays put.
-        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-        if (nameRef.current && !phone) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+        // drift apart on scroll; only a centred name moves at a different depth,
+        // a standing one keeps to its line. On the phone the name sits in the
+        // flow under the ring and stays put.
+        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * DIAGRAM_RATE).toFixed(1)})`);
+        if (nameRef.current && !phone) nameRef.current.style.transform = `translateY(calc(${shift} - ${(top * nameRate).toFixed(1)}px))`;
       }
       // The glow is painted outside the SVG, so it is told where the Sun ended
       // up rather than being drawn with it.
@@ -249,7 +290,7 @@ export function ReportHero({
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [reduced, tier, name]);
+  }, [reduced, tier, name, shift, nameRate]);
 
   const asc = chartData.angles?.ascendant ?? null;
   const dsc = chartData.angles?.descendant ?? null;
@@ -269,43 +310,114 @@ export function ReportHero({
   const horizonReach = phone ? 20 : 58;
   const places = narrow ? 2 : 4;
 
-  // A drawn plate is framed on the Ascendant, east on the left; a blind one on 0° Aries.
+  // A drawn plate is framed on the Ascendant's own degree, east on the left; a blind one on 0° Aries.
   const frame = asc ? asc.absoluteDegree : 0;
-  const ascTheta = theta(frame, frame);
+  const angleOf = (degree: number) => heroTheta(degree, frame, "degree");
+  const ascTheta = angleOf(frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const east = pointAt(cx, cy, R + horizonReach, ascTheta);
-  const west = pointAt(cx, cy, R + horizonReach, theta(opposite(frame), frame));
-  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
+  const west = pointAt(cx, cy, R + horizonReach, angleOf(opposite(frame)));
+  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band, "degree") : null;
 
-  const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
+  const { lines: nameRows, size: rungSize } = nameLines(name, narrow);
+  const rungs = rungsFrom(rungSize, narrow);
+  // On the plate the name may take a rung below its own (`placeName`); the phone's sits under the ring and keeps its own.
+  const placed = phone || blind ? null : place;
+  const nameSize = placed && rungs.includes(placed.size) ? placed.size : rungSize;
+  const standing = placed?.clearance ?? null;
   // The name has already broken to its lines from its length; only the viewport's height can now cost the ring.
   const written = writtenOnText(writtenOn);
   const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize, dated: written !== null }) : null;
   const ascText = ascendantValue(asc);
 
-  // What a label may not cover: the name plate at the centre and the two
-  // horizon labels. Measured in plate units, like everything else here.
-  const obstacles: Rect[] = [
-    ...(phone ? [] : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }]),
-    ...(blind ? [] : [
+  // The Sun is placed first, so it takes the room it needs.
+  const bodies = [
+    sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
+    moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
+  ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[];
+  const discs = placeBodies({ cx, cy, ringRadius: R, frameDegree: frame, frameOn: "degree", bodies });
+  const discKey = discs.map((d) => `${d.x.toFixed(1)},${d.y.toFixed(1)},${d.size}`).join(" ");
+
+  // Where the name sits and at what size, measured before the first paint and again when its font arrives or the plate
+  // resizes. Each size is measured on a hidden copy of the name, so what is drawn never changes what is measured.
+  useLayoutEffect(() => {
+    if (phone || blind) {
+      setPlace(null);
+      return undefined;
+    }
+    function measure() {
+      const ringEl = ringRef.current;
+      const h1 = h1Ref.current;
+      const eyebrow = eyebrowRef.current;
+      const block = nameRef.current;
+      if (!ringEl || !h1 || !eyebrow || !block) return;
+      const ringBox = ringEl.getBoundingClientRect();
+      if (ringBox.width < 2) return;
+      // A row's own text, since the row is as wide as the plate.
+      const textWidth = (el: Element) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return range.getBoundingClientRect().width;
+      };
+      const drawnAt = (size: number) => {
+        const copy = h1.cloneNode(true) as HTMLElement;
+        Object.assign(copy.style, { fontSize: `${size}px`, position: "absolute", visibility: "hidden", width: "max-content", left: "0", top: "0" });
+        h1.parentElement?.appendChild(copy);
+        const box = copy.getBoundingClientRect();
+        copy.remove();
+        return { size, width: box.width, height: box.height };
+      };
+      const date = writtenRef.current;
+      const next = placeName({
+        cx, cy, ringRadius: R, scale: ringBox.width / (2 * R),
+        names: rungs.map(drawnAt),
+        eyebrow: { width: textWidth(eyebrow), height: eyebrow.getBoundingClientRect().height },
+        written: date ? { width: textWidth(date), height: date.getBoundingClientRect().height } : null,
+        gap: Number.parseFloat(getComputedStyle(block).rowGap) || 0,
+        bodies: discs,
+      });
+      setPlace((prev) => (samePlace(prev, next) ? prev : next));
+    }
+    measure();
+    const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    if (watch && h1Ref.current) watch.observe(h1Ref.current);
+    if (watch && ringRef.current?.ownerSVGElement) watch.observe(ringRef.current.ownerSVGElement);
+    window.addEventListener("resize", measure);
+    return () => {
+      watch?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+    // `discs` is read through `discKey`, which changes only when a body moves.
+  }, [phone, blind, cx, cy, R, name, written, rungs.join(" "), discKey]);
+
+  // What a label may not cover: the name plate at the centre, and the name's own rows where they sit, which on a short
+  // screen run past that plate. In plate units, like everything else here.
+  const plate: Rect = { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 };
+  const obstacles: Rect[] = phone ? [] : [...(standing !== null ? [] : [plate]), ...(placed?.obstacles ?? [])];
+  // The two horizon labels as drawn below, east then west, with room for the widest value, "Sagittarius 29.99° · 1st
+  // (self)": 31 characters of IBM Plex Mono at 0.6 em. The narrow tiers write them inward from the line's ends.
+  const horizonLabels: Rect[] = blind ? [] : narrow
+    ? [
+      { x: east.x, y: east.y + (phone ? 12 : 14), w: phone ? 280 : 300, h: phone ? 40 : 46 },
+      { x: west.x - (phone ? 160 : 180), y: west.y + (phone ? 12 : 14), w: phone ? 160 : 180, h: phone ? 22 : 26 },
+    ]
+    : [
       { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
       { x: west.x, y: west.y + 10, w: 210, h: 42 },
-    ]),
-  ];
+    ];
 
   const layout = layoutHero({
     cx, cy, ringRadius: R,
     frameDegree: frame,
-    // The Sun is placed first, so it takes the room it needs.
-    bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
-    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
+    frameOn: "degree",
+    bodies,
     // The widest value, "29.99° Sagittarius · 7th (partnership)": 38 characters at 11.5 px Plex Mono (6.9 px each), plus air.
     labelWidth: 276,
     labelHeight: 34,
     obstacles,
+    horizonLabels,
   });
+  const [eastDrop = 0, westDrop = 0] = layout.horizonDrops;
 
   const dob = new Date(`${birthDate}T00:00:00Z`);
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
@@ -341,22 +453,24 @@ export function ReportHero({
           aria-label={blind ? `${name}: Sun and Moon at their true positions; the rising sign needs a birth time` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
-            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
+            {/* The ring and its ticks step back behind the horizon, so the ring's curve is never the line that reads. */}
+            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.25} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
-              const t = theta(d, frame);
+              const t = angleOf(d);
               const p1 = pointAt(cx, cy, R, t);
               const p2 = pointAt(cx, cy, R - (d % 90 === 0 ? 13 : 7), t);
               return (
                 <line
                   key={d} x1={p1.x.toFixed(1)} y1={p1.y.toFixed(1)} x2={p2.x.toFixed(1)} y2={p2.y.toFixed(1)}
-                  stroke={SKY} strokeOpacity={d % 90 === 0 ? 0.5 : 0.26}
+                  stroke={SKY} strokeOpacity={d % 90 === 0 ? 0.3 : 0.16}
                 />
               );
             })}
             {!blind && (
+              // The loading story's horizon (BuildStory, step 4): solid paper, level through the Ascendant and the Descendant.
               <line
                 x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
-                stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
+                stroke={PAPER} strokeOpacity={0.55} strokeWidth={1.5} data-horizon
               />
             )}
             {arc && (
@@ -365,29 +479,29 @@ export function ReportHero({
             )}
             {blind ? null : narrow ? (
               <>
-                <Label x={east.x} y={east.y + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={east.x} y={east.y + eastDrop + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
                 {ascText && (
                   <text
-                    x={east.x.toFixed(1)} y={(east.y + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
+                    x={east.x.toFixed(1)} y={(east.y + eastDrop + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
                     fontFamily="IBM Plex Mono, monospace" fontSize={phone ? 15 : 16} fill="rgba(232,235,242,.62)"
                   >
                     {ascText}
                   </text>
                 )}
-                <Label x={west.x} y={west.y + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
+                <Label x={west.x} y={west.y + westDrop + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
               </>
             ) : (
               <>
-                <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={east.x - 6} y={east.y + eastDrop + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
                 <text
-                  x={(east.x - 6).toFixed(1)} y={(east.y + 44).toFixed(1)} textAnchor="end"
+                  x={(east.x - 6).toFixed(1)} y={(east.y + eastDrop + 44).toFixed(1)} textAnchor="end"
                   fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
                   {ascText}
                 </text>
-                <Label x={west.x + 6} y={west.y + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
+                <Label x={west.x + 6} y={west.y + westDrop + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
                 <text
-                  x={(west.x + 6).toFixed(1)} y={(west.y + 44).toFixed(1)} textAnchor="start"
+                  x={(west.x + 6).toFixed(1)} y={(west.y + westDrop + 44).toFixed(1)} textAnchor="start"
                   fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
                   {dsc ? `${dsc.degree.toFixed(2)}° ${dsc.sign}` : ""}
@@ -421,7 +535,7 @@ export function ReportHero({
 
             {!blind && (
               // The R03 marker: ring, centre point, a tick outward along the horizon (ADR-49).
-              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
+              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={MARKER_RADIUS} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={MARKER_STROKE} />
             )}
             {blind && !narrow && (
               <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{ADD_TIME.toUpperCase()}</Label>
@@ -439,8 +553,8 @@ export function ReportHero({
           </button>
         )}
         {!phone && (
-        <div ref={nameRef} className="rp-hname">
-          <span className="k">{PERSONAL_REPORT}</span>
+        <div ref={nameRef} className="rp-hname" style={standing !== null ? { transform: `translateY(calc(${shift}))` } : undefined}>
+          <span ref={eyebrowRef} className="k">{PERSONAL_REPORT}</span>
           <div className="relative inline-block justify-self-center">
             {/* A halo fitted to the text box, so the ring reads through around it. */}
             <div
@@ -452,13 +566,22 @@ export function ReportHero({
                   + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
               }}
             />
-            <h1 className="relative" style={{ fontSize: `${nameSize}px` }}>
+            <h1 ref={h1Ref} className="relative" style={{ fontSize: `${nameSize}px` }}>
               {nameRows.map((line, i) => (
                 <span key={i} className="block">{line}</span>
               ))}
             </h1>
           </div>
-          {written && <WrittenOn text={written} />}
+          {written && (
+            <WrittenOn
+              text={written}
+              textRef={writtenRef}
+              style={standing !== null ? {
+                position: "absolute", left: "50%", top: `calc(100% + ${(2 * standing).toFixed(1)}px)`,
+                transform: "translateX(-50%)", whiteSpace: "nowrap",
+              } : undefined}
+            />
+          )}
         </div>
         )}
         </div>

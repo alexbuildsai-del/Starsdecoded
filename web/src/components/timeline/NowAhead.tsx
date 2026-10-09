@@ -13,6 +13,7 @@ import { ContactCard } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
 import { MixBar } from "@/components/timeline/MixBar";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
+import { ToneLegend } from "@/components/timeline/ToneLegend";
 import type { ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
@@ -292,11 +293,12 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
             {shown.today ? <span className="font-label text-[10.5px] uppercase tracking-[0.14em] text-[#9FA8DA]">Today</span> : null}
           </div>
           <DayMix day={shown} />
+          {shown.cards.some((card) => card.tone !== null) ? <ToneLegend /> : null}
           {shown.cards.length ? (
             <ul role="list" className="m-0 grid list-none gap-2.5 p-0">
               {shown.cards.map((card) => {
                 const contact = contactOf(card);
-                const open = card.reads ? () => onOpen({ key: card.key, headline: card.headline, status: card.reading }) : undefined;
+                const open = card.reads ? () => onOpen({ key: card.key, headline: card.headline, status: card.reading, event: card.event }) : undefined;
                 return <li key={card.key}>{contact ? <ContactCard contact={contact} onOpen={open} /> : <PlainCard card={card} />}</li>;
               })}
             </ul>

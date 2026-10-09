@@ -1,6 +1,6 @@
 import { getAuth } from "@clerk/express";
 import type { Request, Response, NextFunction } from "express";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 import { db, usersTable, profilesTable, relationshipsTable } from "@workspace/db";
 
 declare global {
@@ -20,21 +20,43 @@ const claimedFor = new Map<string, string>();
  * What a browser session made before sign-in becomes the account's (reading 3): its charts and the pairs made from
  * them, in one transaction, so a pair never moves without its charts. Only rows no account holds move, so nothing
  * another account owns changes hands. Reports follow their chart or their pair and carry no account of their own.
+ * An account keeps the one chart it calls its own: when it has one already, the session's own arrives as a person.
  */
-export async function claimSession(sessionId: string, userId: string): Promise<{ profiles: number; relationships: number }> {
+export async function claimSession(
+  sessionId: string,
+  userId: string,
+): Promise<{ profiles: number; relationships: number; ownAsPerson: number }> {
   return db.transaction(async (tx) => {
     const now = new Date();
+    const unheld = and(eq(profilesTable.sessionId, sessionId), isNull(profilesTable.userId));
+    // MB-235 provisional: the session's own keeps the name it was given and drops only its mark. The account's own is
+    // any chart it holds with a mark, since the database allows one mark an account, or one it said This is me to.
+    const [own] = await tx
+      .select({ id: profilesTable.id })
+      .from(profilesTable)
+      .where(or(
+        and(eq(profilesTable.userId, userId), eq(profilesTable.isSelf, true)),
+        and(eq(profilesTable.claimedByUserId, userId), eq(profilesTable.claimedAsSelf, true)),
+      ))
+      .limit(1);
+    const asPerson = own
+      ? await tx
+          .update(profilesTable)
+          .set({ isSelf: false, updatedAt: now })
+          .where(and(unheld, eq(profilesTable.isSelf, true)))
+          .returning({ id: profilesTable.id })
+      : [];
     const profiles = await tx
       .update(profilesTable)
       .set({ userId, updatedAt: now })
-      .where(and(eq(profilesTable.sessionId, sessionId), isNull(profilesTable.userId)))
+      .where(unheld)
       .returning({ id: profilesTable.id });
     const relationships = await tx
       .update(relationshipsTable)
       .set({ userId, updatedAt: now })
       .where(and(eq(relationshipsTable.sessionId, sessionId), isNull(relationshipsTable.userId)))
       .returning({ id: relationshipsTable.id });
-    return { profiles: profiles.length, relationships: relationships.length };
+    return { profiles: profiles.length, relationships: relationships.length, ownAsPerson: asPerson.length };
   });
 }
 

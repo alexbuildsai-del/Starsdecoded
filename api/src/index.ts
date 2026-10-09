@@ -4,7 +4,8 @@ import { indexNowOnStart } from "./lib/indexNow";
 import { startWorker, stopWorker } from "./lib/jobs";
 import { logger } from "./lib/logger";
 import { repairStalePromptOverrides } from "./lib/promptLoader";
-import { banQaPairUnlessWalking } from "./lib/qaPair";
+import { ensureQaAccount } from "./lib/qaAccount";
+import { banQaPairAtStop, banQaPairUnlessWalking } from "./lib/qaPair";
 import { syncProductsOnStart } from "./lib/stripeSync";
 import { qaAfterDeploy } from "./routes/qa";
 
@@ -25,6 +26,11 @@ if (Number.isNaN(port) || port <= 0) {
 const DRAIN_MS = 45_000;
 /** The last net, short of the kill: a hand-back that hangs leaves its job to the lease (ADR-357), and the exit is clean. */
 const EXIT_MS = 55_000;
+/**
+ * The QA pair's bans at the stop are one call to Clerk each: the exit waits this long for them at most, even when the
+ * drain ends sooner.
+ */
+const PAIR_MS = 10_000;
 
 const CODE = /^[\w.:-]{1,64}$/;
 
@@ -68,6 +74,11 @@ const server = createServer((req, res) => {
 process.on("SIGTERM", () => {
   if (stopping) return;
   stopping = true;
+  // Ahead of the drain: a walk this process runs holds the QA pair open, and the next start bans them only once it has
+  // booted. From here no walk opens them.
+  const pair = banQaPairAtStop(PAIR_MS).catch((err: unknown) => {
+    logger.warn({ code: codeOf(err) }, "banQaPairAtStop failed");
+  });
   logger.info({ open: open.size, drainMs: DRAIN_MS }, "SIGTERM: draining");
   // An answer still to come says its connection closes after it, so the edge sends its next request to the new deploy
   // instead of racing this one's close.
@@ -82,7 +93,7 @@ process.on("SIGTERM", () => {
     server.closeAllConnections();
   }, DRAIN_MS);
   const last = new Promise<void>((done) => setTimeout(done, EXIT_MS));
-  void Promise.race([Promise.all([requests, jobs]), last]).then(() => {
+  void Promise.race([Promise.all([requests, jobs, pair]), last]).then(() => {
     clearTimeout(late);
     logger.info({ cut, refused }, "drained, exiting");
     process.exit(0);
@@ -117,6 +128,12 @@ server.listen(port, () => {
   // the error's code alone: its message can name one of the pair's accounts.
   banQaPairUnlessWalking().catch((err: unknown) => {
     logger.warn({ code: codeOf(err) }, "banQaPairUnlessWalking failed");
+  });
+
+  // /qa's own account on the same footing (ADR-387): made once on staging and topped up at each start, so a Clerk that is
+  // slow or down leaves /qa waiting for the next start, never the API. Its code alone: the message can hold the address.
+  ensureQaAccount().catch((err: unknown) => {
+    logger.warn({ code: codeOf(err) }, "ensureQaAccount failed");
   });
 
   // Staging's walk of the buyer's flow, on the same footing (ADR-315): it waits for the web to serve this commit, then

@@ -5,7 +5,8 @@
 // on a send and a gift, Not me after a hand-over, and the holder's rewrite
 // (sweep acceptance 3 to 5; ADR-235 to 239; readings 3 to 10; MB-169).
 // R15-D1 adds that a chart its subject claimed is never its writer's own to
-// mark, share or pair-send (R-3.6).
+// mark, share or pair-send (R-3.6). R19 adds Copy their link and Cancel
+// invite on the Share window's waiting links (ADR-390).
 // Every report's text is a stored row. A route that starts writing one meets
 // a local model stand-in that refuses, mail goes to a local stub and Clerk is
 // never asked, so nothing leaves the machine.
@@ -27,6 +28,7 @@ delete process.env.CLERK_SECRET_KEY;
 
 import assert from "node:assert/strict";
 import http from "node:http";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -125,13 +127,15 @@ async function shares(who: Viewer) {
   assert.equal(r.status, 200);
   return zod.ListSharesResponse.parse(r.body).map((s) => [s.id, s.email, s.readerName, s.state]);
 }
-const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [] };
+const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } };
 const day = (d: number) => `2026-10-0${d}T09:00:00.000Z`;
 const emailOf = (who: Viewer) => `${who.user!.replace(/^user_/, "")}@example.com`;
 const tokenOf = (m: Mail) => decodeURIComponent(/claim\?token=([^\s"&]+)/.exec(m.text)![1]);
 const claimPath = (token: string) => `/invites/${encodeURIComponent(token)}/claim`;
 const previewPath = (token: string) => `/invites/${encodeURIComponent(token)}`;
 const row = async (id: string) => (await q("select * from invite_tokens where id = $1", [id])).rows[0];
+const sha256 = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
+const linkToken = (claimUrl: string) => new URL(claimUrl).searchParams.get("token") ?? "";
 const creditRow = async (id: string) => (await q("select status, user_id from credits where id = $1", [id])).rows[0];
 function onOurWeb(m: Mail) {
   const urls = [...`${m.html}\n${m.text}`.matchAll(/https?:\/\/[^\s"'<>]+/g)].map((u) => u[0]);
@@ -335,7 +339,7 @@ try {
     ] as const) {
       assert.equal((await call(RECIPIENT, m, p, body)).status, 404, `${m} ${p}`);
     }
-    assert.equal((await call(RECIPIENT, "POST", "/invites", { profileId: "PS", email: "someone@example.com" })).status, 403);
+    assert.equal((await call(RECIPIENT, "POST", "/invites", { profileId: "PS", email: "someone@example.com" })).status, 404);
     assert.equal(mails.length, mailsBefore);
     assert.deepEqual(
       (await q("select r.status, p.birth_time, p.user_id from reports r join profiles p on p.id = r.profile_id where r.id = 'RS'")).rows[0],
@@ -541,6 +545,84 @@ try {
     assert.deepEqual(await creditRow(creditId), { status: "available", user_id: BEATRICE.user });
     const late = await call(GIVER, "POST", `/gifts/${gift.body.id}/change-address`, { email: "bea@example.com" });
     assert.deepEqual([late.status, late.body.error], [409, "not_waiting"]);
+  });
+
+  await step("Copy their link and Cancel invite on a waiting link, by the id GET /home lists it under: a copy opens the same invite on our web app whatever host the request names and claims it, the email's link keeps working, a second copy takes the first's place and only its hash is kept; Cancel invite stops every link of it at once; no one else's, a claimed one and a gift are 404 (ADR-390, readings 15 and 17)", async () => {
+    // A waiting share of the sharer's own report, as the Share window lists it.
+    const shared = await call(SHARER, "POST", "/shares", { email: emailOf(KIM) });
+    assert.equal(shared.status, 201, JSON.stringify(shared.body));
+    const emailed = tokenOf(mails.at(-1)!);
+    const waiting = (await readHome(SHARER)).you?.readers.filter((r) => r.state === "invited");
+    assert.deepEqual(waiting, [{ name: null, email: emailOf(KIM), state: "invited", shareId: null, inviteId: shared.body.id }]);
+    for (const who of [ANON, STRANGER, KIM]) {
+      assert.equal((await call(who, "POST", `/invites/${shared.body.id}/link`)).status, 404, `${who.session} copied the link`);
+      assert.equal((await call(who, "DELETE", `/invites/${shared.body.id}`)).status, 404, `${who.session} cancelled the invite`);
+    }
+
+    const mailsBefore = mails.length;
+    const copy = async () => {
+      const copied = await call(SHARER, "POST", `/invites/${shared.body.id}/link`, undefined, FORGED_HOST);
+      assert.equal(copied.status, 200, JSON.stringify(copied.body));
+      const { claimUrl } = zod.CopyInviteLinkResponse.parse(copied.body);
+      assert.ok(claimUrl.startsWith(`${OUR_PAGE}/claim?token=`), claimUrl);
+      return linkToken(claimUrl);
+    };
+    const first = await copy();
+    const second = await copy();
+    assert.equal(mails.length, mailsBefore, "a copied link sent an email");
+    assert.equal(new Set([emailed, first, second]).size, 3);
+    // No link is stored, only a hash: the last copy's beside the email's (MASTERFILE §3).
+    const kept = await row(shared.body.id);
+    assert.equal(kept.link_hash, sha256(second));
+    for (const token of [emailed, first, second]) assert.ok(!JSON.stringify(kept).includes(token), "a link is stored as it was sent");
+    assert.equal((await call(ANON, "GET", previewPath(first))).status, 404, "a copy still opens after a second one");
+    for (const token of [emailed, second]) {
+      const cover = await call(ANON, "GET", previewPath(token));
+      assert.deepEqual([cover.status, cover.body.kind, cover.body.inviterName, cover.body.alreadyClaimed], [200, "share", "Marie", false]);
+    }
+    // The copy claims the share as the email's link would; once claimed it is no one's to copy or cancel.
+    const claim = await call(KIM, "POST", claimPath(second));
+    assert.deepEqual([claim.status, claim.body.kind, claim.body.profileId], [200, "share", "PS"]);
+    const grants = (await q("select id, invite_id from profile_shares where profile_id = 'PS' and reader_user_id = $1 and revoked_at is null", [KIM.user])).rows;
+    assert.deepEqual(grants.map((g) => g.invite_id), [shared.body.id]);
+    assert.deepEqual((await readHome(SHARER)).you?.readers.map((r) => [r.state, r.shareId, r.inviteId]), [["can-read", grants[0].id, null]]);
+    assert.equal((await call(SHARER, "POST", `/invites/${shared.body.id}/link`)).status, 404);
+    assert.equal((await call(SHARER, "DELETE", `/invites/${shared.body.id}`)).status, 404);
+
+    // A waiting send of a report the giver wrote, as the seat of the person it is about lists it.
+    await person("PB", "beatrice", GIVER);
+    await natal("RB", "PB", GIVER.session);
+    const sent = await call(GIVER, "POST", "/invites", { profileId: "PB", email: emailOf(BEATRICE) });
+    assert.equal(sent.status, 201, JSON.stringify(sent.body));
+    const sentToken = tokenOf(mails.at(-1)!);
+    const seatOf = async () => (await readHome(GIVER)).people.find((p) => p.profileId === "PB");
+    assert.deepEqual((await seatOf())?.readers, [{ name: null, email: emailOf(BEATRICE), state: "invited", shareId: null, inviteId: sent.body.id }]);
+    const copied = await call(GIVER, "POST", `/invites/${sent.body.id}/link`);
+    assert.equal(copied.status, 200, JSON.stringify(copied.body));
+    const copiedToken = linkToken(copied.body.claimUrl);
+    for (const token of [sentToken, copiedToken]) assert.equal((await call(ANON, "GET", previewPath(token))).status, 200);
+
+    // Cancel invite: both links stop at once, and nothing waits for Beatrice any more.
+    assert.equal((await call(STRANGER, "DELETE", `/invites/${sent.body.id}`)).status, 404);
+    assert.equal((await call(GIVER, "DELETE", `/invites/${sent.body.id}`)).status, 204);
+    for (const token of [sentToken, copiedToken]) {
+      assert.equal((await call(ANON, "GET", previewPath(token))).status, 404);
+      assert.equal((await call(BEATRICE, "POST", claimPath(token))).status, 404);
+    }
+    assert.equal((await call(GIVER, "POST", `/invites/${sent.body.id}/link`)).status, 404);
+    assert.equal((await call(GIVER, "DELETE", `/invites/${sent.body.id}`)).status, 404);
+    assert.deepEqual((await seatOf())?.readers, []);
+    assert.deepEqual((await call(GIVER, "GET", "/invites?profileId=PB")).body, []);
+    assert.equal((await listReports(GIVER)).get("RB").send.state, "can_send", "a cancelled send can't be sent again");
+    assert.equal((await q("select claimed_by_user_id from profiles where id = 'PB'")).rows[0].claimed_by_user_id, null);
+
+    // A gift is taken back at DELETE /gifts/{id}, which returns its credit, never here.
+    const gift = await call(GIVER, "POST", "/gifts", { recipientName: "Noah", email: "noah@example.com", shareOwn: false });
+    assert.equal(gift.status, 201, JSON.stringify(gift.body));
+    assert.equal((await call(GIVER, "POST", `/invites/${gift.body.id}/link`)).status, 404);
+    assert.equal((await call(GIVER, "DELETE", `/invites/${gift.body.id}`)).status, 404);
+    const listed = (await call(GIVER, "GET", "/gifts")).body.find((g: { id: string }) => g.id === gift.body.id);
+    assert.deepEqual([listed.state, listed.creditHeld], ["waiting", true]);
   });
 
   let keeperSendId = "";

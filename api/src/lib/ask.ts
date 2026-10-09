@@ -9,6 +9,10 @@
  * the reports and people it was written from, so its text goes too, from the thread and from what the model is sent
  * again (B-02). Nothing the reader types reaches a log line or a failure row (ADR-201): this file logs only an error's
  * class.
+ *
+ * An answer about someone the reader has no Compatibility report with keeps one offer of it, once a person in the
+ * thread (Review 05/10 §8). It is kept as who, and shown with the reader's credits as the thread is read, only while
+ * that person is still someone to pair with.
  */
 import { randomUUID } from "node:crypto";
 import { and, asc, count, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
@@ -20,6 +24,7 @@ import { GetAskThreadResponse, type SendAskMessageBody } from "@workspace/api-zo
 import { dayTone, hasHorizon, longitudeAt, type CycleId, type NatalChartData, type Tone } from "@workspace/engine";
 import { natalReportAccess, pairReadable, viewerRelationshipIds, type PairPerson, type ProfileHolders, type Viewer } from "./access.js";
 import { callStructured, type Carry } from "./aiInterpretation.js";
+import { getCredits } from "./credits.js";
 import { recordChecks } from "./failureLog.js";
 import { pairListed } from "./home.js";
 import { logger } from "./logger.js";
@@ -43,6 +48,7 @@ import {
   type AskAnswer, type AskAnswerCard, type AskAnswerInput, type AskContext, type AskCycle, type AskEvent, type AskPerson,
   type AskPlan, type AskPlanChoice, type AskPlanTool, type AskPrompt, type AskReport, type AskTurn,
 } from "../prompts/ask/index.js";
+import { NOT_PROSE } from "../prompts/evidence.js";
 
 /** Reader messages a UTC calendar month, a tapped choice included (reading 13). The cap moves, never the price. */
 export const ASK_MONTHLY_CAP = 50;
@@ -76,6 +82,7 @@ type WindowCard = Extract<AskCard, { kind: "window" }>;
 type CycleCard = Extract<AskCard, { kind: "cycle" }>;
 type QuoteCard = Extract<AskCard, { kind: "quote" }>;
 type PersonCard = Extract<AskCard, { kind: "person" }>;
+type AskOffer = NonNullable<AskMessage["offer"]>;
 
 /** The 429 body at the month's cap (ADR-263): its one line, and the day the count starts again. */
 export interface AskCap {
@@ -218,10 +225,20 @@ interface Reach {
   profiles: ReadonlySet<string>;
 }
 
-/** The library and the reach from one read of the rows, so the two never disagree about a stop. */
+/** The library, the reach and the circle from one read of the rows, so the three never disagree about a stop. */
 interface Readable {
   library: Library;
   reach: Reach;
+  circle: CircleMember[];
+}
+
+/** Someone the reader's words may name, for the pair offer (Review 05/10 §8). */
+export interface CircleMember {
+  profileId: string;
+  /** As typed on their profile. */
+  name: string;
+  /** A report of theirs to pair from, no pair with the reader, and none Ask reads them through. */
+  offerable: boolean;
 }
 
 /** The reports and people a reply was written from, kept with it so it can hide once the reader can no longer read one. */
@@ -328,6 +345,85 @@ export function libraryOf(
     }
   }
   return { reports, people };
+}
+
+/** A pair that failed or was called off is no pair: the reader may ask for one again. */
+const NO_PAIR: ReadonlySet<string> = new Set(["failed", "cancelled"]);
+
+/**
+ * Everyone but the reader whom the pair offer weighs, from rows already fetched: the people of the Personal reports the
+ * reader can read, and the people Ask reads through a pair. A pair with the reader that is written or being written,
+ * or one Ask reads them through, means no offer, so Write it never asks for a second pair. Pure over its rows, as
+ * `libraryOf` is.
+ */
+export function circleOf(
+  viewer: Viewer,
+  natal: readonly NatalRow[],
+  pairs: readonly PairRow[],
+  shared: ReadonlySet<string>,
+  ownProfileId: string | null,
+  library: Library,
+): CircleMember[] {
+  const paired = new Set<string>();
+  for (const row of pairs) {
+    if (NO_PAIR.has(row.status) || row.parts.length !== 2 || !row.parts.some((p) => p.profileId === ownProfileId)) continue;
+    for (const part of row.parts) if (part.profileId !== ownProfileId) paired.add(part.profileId);
+  }
+  const circle = new Map<string, CircleMember>();
+  for (const row of newest(natal.filter((r) => natalReadable(viewer, r, shared)), (r) => r.profile.id)) {
+    if (row.profile.id === ownProfileId) continue;
+    // A pair is written only from two complete Personal reports (routes/compatibility.ts), so one being revised waits.
+    const offerable = row.status === "complete" && !paired.has(row.profile.id);
+    circle.set(row.profile.id, { profileId: row.profile.id, name: row.profile.name, offerable });
+  }
+  for (const person of library.people) circle.set(person.profileId, { profileId: person.profileId, name: person.name, offerable: false });
+  return [...circle.values()];
+}
+
+// Accents and curly apostrophes fold away, so "Tomas" typed on any keyboard names Tomás.
+function folded(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}+/gu, "").replace(/[‘’]/g, "'").toLowerCase();
+}
+
+/** A name's whole words, folded: its full name and its first name, once each. */
+function nameKeys(name: string): string[] {
+  const words = folded(name).split(/\s+/).filter(Boolean);
+  return [...new Set([words.join(" "), words[0] ?? ""])].filter(Boolean);
+}
+
+/** Where a folded name stands in folded text as whole words, else -1: "Oprah's" names Oprah, "Oprahs" does not. */
+function nameAt(text: string, key: string): number {
+  const words = key.split(" ").map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return text.search(new RegExp(`(?<![\\p{L}\\p{N}])${words.join("\\s+")}(?![\\p{L}\\p{N}])`, "u"));
+}
+
+/**
+ * Whom an answer offers a pair with (Review 05/10 §8): the first person the reader's words name, newest words first,
+ * whom Ask may offer one and has not offered one in this thread. A first name or a full name counts only while it is
+ * one person's in the circle, the reader's own name included, so a name that could be two people offers neither.
+ */
+export function offerTarget(
+  asked: readonly string[],
+  circle: readonly CircleMember[],
+  offered: ReadonlySet<string>,
+  reader: string,
+): CircleMember | null {
+  const carried = new Map<string, number>();
+  for (const name of [reader, ...circle.map((m) => m.name)]) {
+    for (const key of nameKeys(name)) carried.set(key, (carried.get(key) ?? 0) + 1);
+  }
+  const open = circle.filter((m) => m.offerable && !offered.has(m.profileId));
+  for (const text of asked.map(folded)) {
+    let found: { member: CircleMember; at: number } | null = null;
+    for (const member of open) {
+      for (const key of nameKeys(member.name)) {
+        const at = carried.get(key) === 1 ? nameAt(text, key) : -1;
+        if (at >= 0 && (!found || at < found.at)) found = { member, at };
+      }
+    }
+    if (found) return found.member;
+  }
+  return null;
 }
 
 /** The reach over the rows the library is drawn from: the same access checks, without its rules on state and version. */
@@ -444,7 +540,12 @@ async function pairRowsFor(viewer: Viewer): Promise<PairRow[]> {
 async function readableNow(viewer: Viewer, ownProfileId: string | null): Promise<Readable> {
   const shared = await sharedProfileIds(viewer.userId);
   const [natal, pairs] = await Promise.all([natalRowsFor(viewer, shared), pairRowsFor(viewer)]);
-  return { library: libraryOf(viewer, natal, pairs, shared, ownProfileId), reach: reachOf(viewer, natal, pairs, shared) };
+  const library = libraryOf(viewer, natal, pairs, shared, ownProfileId);
+  return {
+    library,
+    reach: reachOf(viewer, natal, pairs, shared),
+    circle: circleOf(viewer, natal, pairs, shared, ownProfileId, library),
+  };
 }
 
 /** The library alone, as the plan and the tools are shown it. */
@@ -535,7 +636,7 @@ export function passageFrom(text: string, maxWords = PASSAGE_WORDS, maxChars = Q
 const PREFERRED = ["pattern", "opening"];
 
 function proseStrings(value: unknown, key?: string): string[] {
-  if (key === "claims") return [];
+  if (key !== undefined && NOT_PROSE.has(key)) return [];
   if (typeof value === "string") return value.trim() ? [value] : [];
   if (Array.isArray(value)) return value.flatMap((item) => proseStrings(item));
   if (value && typeof value === "object") return Object.entries(value).flatMap(([k, v]) => proseStrings(v, k));
@@ -970,8 +1071,11 @@ const ReaderBodySchema = z.object({ text: z.string(), choice: StoredChoiceSchema
 const SAID = ["answer", "ask_back", "harm", "off_topic", "fallback"] as const;
 type Said = (typeof SAID)[number];
 const SourcesSchema = z.object({ reports: z.array(z.string()), profiles: z.array(z.string()) });
+/** The pair offer as a reply keeps it: who, and nothing that changes, since the name and the credits are read when shown. */
+const StoredOfferSchema = z.object({ profileId: z.string() });
 const AskBodySchema = z.object({
   said: z.enum(SAID), text: z.string(), cards: z.array(z.unknown()), choices: z.array(z.unknown()), sources: SourcesSchema.optional(),
+  offer: StoredOfferSchema.optional(),
 });
 const QuoteRefSchema = z.object({ kind: z.literal("quote"), reportId: z.string(), section: z.string() });
 const PersonRefSchema = z.object({ kind: z.literal("person"), profileId: z.string(), date: Day, zone: z.string() });
@@ -984,12 +1088,14 @@ const CardSchema = GetAskThreadResponse.shape.messages.element.shape.cards.eleme
 
 type ReaderBody = z.infer<typeof ReaderBodySchema>;
 type KeptAskBody = z.infer<typeof AskBodySchema>;
+type StoredOffer = z.infer<typeof StoredOfferSchema>;
 interface AskBody {
   said: Said;
   text: string;
   cards: StoredCard[];
   choices: StoredChoice[];
   sources: Sources;
+  offer?: StoredOffer;
 }
 
 /** What a kept reply rests on: its own list, or for one kept before replies had a list, the quotes and people it shows. */
@@ -1014,23 +1120,51 @@ interface ReadScope {
   viewer: Viewer;
   library: Library;
   reach: Reach;
+  circle: ReadonlyMap<string, CircleMember>;
   thisYear: number;
   interpretation: (reportId: string) => Promise<unknown>;
+  /** Read once a thread, and only when an offer shows. */
+  credits: () => Promise<number | null>;
 }
 
-function readScope(viewer: Viewer, { library, reach }: Readable, now: Date): ReadScope {
+/** The reader's credits for an offer's line; a balance that cannot be read shows no offer rather than a wrong count. */
+async function creditsOf(userId: string | null): Promise<number | null> {
+  if (!userId) return null;
+  try {
+    return (await getCredits(userId)).available;
+  } catch (err) {
+    logger.warn({ failure: (err as Error)?.name ?? "Error" }, "ask: the reader's credits could not be read; the pair offer is left out");
+    return null;
+  }
+}
+
+function readScope(viewer: Viewer, { library, reach, circle }: Readable, now: Date): ReadScope {
   const texts = new Map<string, Promise<unknown>>();
+  let credits: Promise<number | null> | null = null;
   return {
     viewer,
     library,
     reach,
+    circle: new Map(circle.map((member) => [member.profileId, member])),
     thisYear: now.getUTCFullYear(),
     interpretation: (reportId) => {
       let text = texts.get(reportId);
       if (!text) texts.set(reportId, (text = interpretationOf(reportId)));
       return text;
     },
+    credits: () => (credits ??= creditsOf(viewer.userId)),
   };
+}
+
+/**
+ * A kept offer as the card shows it: their first name and the reader's credits now, while the reader can still read
+ * their report and has no pair with them. Once they do, or once a stop closes the report, the offer is gone (R-3.6).
+ */
+async function offerShown(stored: StoredOffer | undefined, read: ReadScope): Promise<AskOffer | null> {
+  const member = stored ? read.circle.get(stored.profileId) : undefined;
+  if (!member?.offerable) return null;
+  const credits = await read.credits();
+  return credits === null ? null : { profileId: member.profileId, name: firstWord(member.name), credits };
 }
 
 async function quoteCardOf(ref: z.infer<typeof QuoteRefSchema>, read: ReadScope): Promise<QuoteCard | null> {
@@ -1072,12 +1206,12 @@ async function shownCard(stored: unknown, read: ReadScope): Promise<AskCard | nu
 async function messageOf(row: Pick<AskMessageRow, "id" | "role" | "body" | "createdAt">, read: ReadScope): Promise<AskMessage | null> {
   if (row.role === "reader") {
     const body = ReaderBodySchema.safeParse(row.body);
-    return body.success ? { id: row.id, role: "reader", text: body.data.text, cards: [], choices: [], createdAt: row.createdAt } : null;
+    return body.success ? { id: row.id, role: "reader", text: body.data.text, cards: [], choices: [], offer: null, createdAt: row.createdAt } : null;
   }
   const body = AskBodySchema.safeParse(row.body);
   if (!body.success) return null;
   if (!readsAll(sourcesOf(body.data), read.reach)) {
-    return { id: row.id, role: "ask", text: ASK_HIDDEN_LINE, cards: [], choices: [], createdAt: row.createdAt };
+    return { id: row.id, role: "ask", text: ASK_HIDDEN_LINE, cards: [], choices: [], offer: null, createdAt: row.createdAt };
   }
   const cards = (await Promise.all(body.data.cards.map((card) => shownCard(card, read)))).filter((c): c is AskCard => c !== null);
   const choices = body.data.choices.flatMap((choice) => {
@@ -1085,7 +1219,8 @@ async function messageOf(row: Pick<AskMessageRow, "id" | "role" | "body" | "crea
     const shown = parsed.success ? choiceOf(parsed.data, read.library, read.thisYear) : null;
     return shown ? [shown] : [];
   });
-  return { id: row.id, role: "ask", text: body.data.text, cards, choices, createdAt: row.createdAt };
+  const offer = await offerShown(body.data.offer, read);
+  return { id: row.id, role: "ask", text: body.data.text, cards, choices, offer, createdAt: row.createdAt };
 }
 
 async function rowsOf(userId: string) {
@@ -1137,10 +1272,11 @@ async function lastChoices(userId: string): Promise<StoredChoice[]> {
   });
 }
 
-/** A kept message as the model reads it again, with what a reply was written from. */
+/** A kept message as the model reads it again, with what a reply was written from and, for Ask's, what it was. */
 interface Turn {
   turn: AskTurn;
   sources: Sources;
+  said?: Said;
 }
 
 /** A row the thread cannot read goes back to the model no more than it shows. */
@@ -1150,7 +1286,30 @@ function turnOf(row: { role: string; body: unknown }): Turn | null {
     return body.success ? { turn: { role: "reader", text: body.data.text }, sources: NO_SOURCES } : null;
   }
   const body = row.role === "ask" ? AskBodySchema.safeParse(row.body) : null;
-  return body?.success ? { turn: { role: "ask", text: body.data.text }, sources: sourcesOf(body.data) } : null;
+  return body?.success ? { turn: { role: "ask", text: body.data.text }, sources: sourcesOf(body.data), said: body.data.said } : null;
+}
+
+/**
+ * The reader's words before this message since Ask last replied with anything but a question back, newest first: a
+ * tap or a reply that answers a question back still asks the question it answers.
+ */
+function askedBefore(turns: readonly Turn[]): string[] {
+  const asked: string[] = [];
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const { turn, said } = turns[i];
+    if (turn.role === "ask" && said !== "ask_back") break;
+    if (turn.role === "reader") asked.push(turn.text);
+  }
+  return asked;
+}
+
+/** Everyone the thread's 31 days have offered a pair with: once a person (Review 05/10 §8). */
+async function offeredIn(userId: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ profileId: sql<string | null>`${askMessagesTable.body}->'offer'->>'profileId'` })
+    .from(askMessagesTable)
+    .where(and(eq(askMessagesTable.userId, userId), eq(askMessagesTable.role, "ask"), sql`${askMessagesTable.body}->'offer'->>'profileId' is not null`));
+  return new Set(rows.flatMap((row) => (row.profileId ? [row.profileId] : [])));
 }
 
 /** The conversation before this message, oldest first, only as much of it as the plan reads. */
@@ -1212,13 +1371,24 @@ interface Reply {
   cards: StoredCard[];
   choices: StoredChoice[];
   sources: Sources;
+  offer: StoredOffer | null;
 }
 
-const fixedReply = (said: Said, text: string): Reply => ({ said, text, cards: [], choices: [], sources: NO_SOURCES });
+const fixedReply = (said: Said, text: string): Reply => ({ said, text, cards: [], choices: [], sources: NO_SOURCES, offer: null });
 
-/** Ask's reply to one message: the plan, then a fixed line, the question back, or the tools and the answer. */
+/** What the pair offer weighs: the reader's words for this answer, newest first, and who the thread has been offered. */
+interface Asking {
+  asked: string[];
+  offered: ReadonlySet<string>;
+}
+
+/**
+ * Ask's reply to one message: the plan, then a fixed line, the question back, or the tools and the answer, which alone
+ * may carry the pair offer, never a fixed line or a question.
+ */
 async function replyTo(
   viewer: Viewer, reader: ReaderChart, context: AskContext, library: Library, turns: readonly Turn[], zone: string, now: Date,
+  asking: Asking,
 ): Promise<Reply> {
   const frame: CallFrame = { writeId: randomUUID(), name: context.name, names: namesIn(context) };
   const plan = await askCall(askPlanPrompt(context, await resolveSection(ASK_KEYS.plan)), frame, planChecks);
@@ -1234,7 +1404,7 @@ async function replyTo(
         const stored = storedChoiceOf(choice, library, reader);
         if (stored && !choices.some((c) => sameChoice(c, stored))) choices.push(stored);
       }
-      return plan.question ? { said: "ask_back", text: plan.question, cards: [], choices, sources: NO_SOURCES } : fixedReply("fallback", FALLBACK_LINE);
+      return plan.question ? { said: "ask_back", text: plan.question, cards: [], choices, sources: NO_SOURCES, offer: null } : fixedReply("fallback", FALLBACK_LINE);
     }
     case "answer": {
       // Read again as the tools run: Stop sharing during the plan call closes what it closed (R-3.6).
@@ -1244,7 +1414,11 @@ async function replyTo(
       const answer = await askCall<AskAnswer>(askAnswerPrompt(input, await resolveSection(ASK_KEYS.answer)), { ...frame, names: namesIn(input) }, (o) => checkAskAnswer(o, input));
       if (!answer?.text.trim()) return fixedReply("fallback", FALLBACK_LINE);
       const cards = answer.cards.flatMap((id) => computed.filter((c) => c.prompt.id === id).map((c) => c.stored));
-      return { said: "answer", text: answer.text, cards, choices: [], sources: sourcesFrom(computed, fresh.library) };
+      const offer = offerTarget(asking.asked, fresh.circle, asking.offered, context.name);
+      return {
+        said: "answer", text: answer.text, cards, choices: [], sources: sourcesFrom(computed, fresh.library),
+        offer: offer ? { profileId: offer.profileId } : null,
+      };
     }
   }
 }
@@ -1271,7 +1445,7 @@ export async function sendAsk(viewer: Viewer, body: SendAskBody, options: AskOpt
   const reader = await readerChart(viewer);
   if (!reader) return { kind: "no_personal_report" };
   await forgetOld(userId, now);
-  const [turns, readable] = await Promise.all([recentTurns(userId), readableNow(viewer, reader.profileId)]);
+  const [turns, readable, offered] = await Promise.all([recentTurns(userId), readableNow(viewer, reader.profileId), offeredIn(userId)]);
   const { library } = readable;
   const zone = validZone(options.tz) ?? reader.zone;
   const today = dayIn(now, zone);
@@ -1301,16 +1475,20 @@ export async function sendAsk(viewer: Viewer, body: SendAskBody, options: AskOpt
     people: library.people.map(askPersonOf),
     fromReport: library.reports.find((r) => r.reportId === body.reportId)?.id ?? null,
   };
+  const asking: Asking = { asked: [readerBody.text, ...askedBefore(turns)], offered };
   let reply: Reply;
   try {
-    reply = await replyTo(viewer, reader, context, library, turns, zone, now);
+    reply = await replyTo(viewer, reader, context, library, turns, zone, now, asking);
   } catch (err) {
     logger.warn({ failure: (err as Error)?.name ?? "Error" }, "ask: a reply could not be made; the reader gets the fallback line");
     reply = fixedReply("fallback", FALLBACK_LINE);
   }
   // When the reply was made, and never before the reader's message, so the thread's order never rests on a tie.
   const at = new Date(Math.max(options.now ? 0 : Date.now(), now.getTime() + 1));
-  const stored: AskBody = { said: reply.said, text: reply.text, cards: reply.cards, choices: reply.choices, sources: reply.sources };
+  const stored: AskBody = {
+    said: reply.said, text: reply.text, cards: reply.cards, choices: reply.choices, sources: reply.sources,
+    ...(reply.offer ? { offer: reply.offer } : {}),
+  };
   await db.insert(askMessagesTable).values({ id: randomUUID(), userId, role: "ask", body: stored, createdAt: at });
   return { kind: "thread", thread: await askThread(viewer, { now: at }) };
 }

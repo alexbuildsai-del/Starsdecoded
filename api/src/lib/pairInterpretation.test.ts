@@ -45,7 +45,7 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.deepEqual(frames.slice(0, 2), ["meta", "meta"], "the meta frame, then the foundation with the scenes");
   assert.deepEqual(frames.slice(2).sort(), [...ids].sort());
   assert.equal(frames[frames.length - 1], "whatToPractise");
-  assert.equal(out.meta.promptVersion, "p6");
+  assert.equal(out.meta.promptVersion, "p7");
   assert.equal(out.meta.reportType, "compatibility");
   assert.equal(out.meta.lens, "partners");
   assert.equal(out.meta.band, null);
@@ -93,6 +93,8 @@ test("a cross claim outside the chapter's allocation is dropped, not retried; un
   assert.ok(rows.every((r) => !/decide late|weekend/.test(r.message)), "no report text in the log");
 });
 
+// An orb is evidence a reader can't read, so it still blocks (ADR-385); a named aspect no longer does.
+const ORB = "You both decide late and then all at once, and the tight orb makes the weekend plan twice.";
 const TRINE = "You both decide late and then all at once, and the trine makes the weekend plan twice.";
 
 test("a chapter stubbed to fail three times then pass: the report completes, the others are called once, and the rows are written (acceptance 3)", async () => {
@@ -100,7 +102,7 @@ test("a chapter stubbed to fail three times then pass: the report completes, the
   const replies = pairReplies(brief);
   const good = replies.pair_partners04 as { pattern: string };
   let n = 0;
-  fake.replies = { ...replies, pair_partners04: () => (n++ < 3 ? { ...good, pattern: TRINE } : good) };
+  fake.replies = { ...replies, pair_partners04: () => (n++ < 3 ? { ...good, pattern: ORB } : good) };
   fake.calls = [];
   failureRows.length = 0;
   const frames: string[] = [];
@@ -111,9 +113,27 @@ test("a chapter stubbed to fail three times then pass: the report completes, the
   assert.ok(lensChapterOf(out, "partners04"));
   assert.equal(frames.filter((f) => f === "partners04").length, 1, "the failed attempts were never stored");
   const rows = failureRows.filter((r) => r.section === "pair:partners04");
-  assert.equal(rows.filter((r) => r.ruleId === "chk-21a" && r.class === "block").length, 3);
+  assert.equal(rows.filter((r) => r.ruleId === "chk-22" && r.class === "block").length, 3);
   assert.equal(rows.filter((r) => r.ruleId === "pass").length, 1);
   assert.equal(new Set(rows.map((r) => r.writeId)).size, 2, "the three attempts share a write id; the round alone has its own");
+});
+
+test("an aspect named in the pattern and a body on a card line are logged, never retried: the chapter stands as written (ADR-385)", async () => {
+  const brief = buildPairBrief(input());
+  const replies = pairReplies(brief);
+  const good = replies.pair_partners04 as { pattern: string; card: { a: string[]; b: string[]; pair: string } };
+  const named = { ...good, pattern: TRINE, card: { ...good.card, pair: "Marie's Moon wants the plan made once." } };
+  fake.replies = { ...replies, pair_partners04: named };
+  fake.calls = [];
+  failureRows.length = 0;
+  const out = await generatePairInterpretation(input());
+  assert.equal(fake.calls.filter((k) => k === "pair_partners04").length, 1, "one call: a name the rule lets in costs no retry");
+  const stored = lensChapterOf(out, "partners04")!;
+  assert.equal(stored.pattern, TRINE);
+  assert.equal(stored.card.pair, named.card.pair);
+  const rows = failureRows.filter((r) => r.section === "pair:partners04").map((r) => `${r.ruleId}:${r.class}`);
+  assert.ok(rows.includes("chk-21a:warn") && rows.includes("chk-24:warn"), rows.join(" "));
+  assert.ok(!rows.some((r) => r.endsWith(":block")), rows.join(" "));
 });
 
 test("the round alone carries every earlier error and the previous reply (acceptance 5)", async () => {
@@ -122,13 +142,13 @@ test("the round alone carries every earlier error and the previous reply (accept
   const good = replies.pair_partners04 as { pattern: string };
   const seen: string[] = [];
   let n = 0;
-  fake.replies = { ...replies, pair_partners04: (req: FakeRequest) => { seen.push(req.messages[1].content); return n++ < 3 ? { ...good, pattern: `${TRINE} Attempt ${n}.` } : good; } };
+  fake.replies = { ...replies, pair_partners04: (req: FakeRequest) => { seen.push(req.messages[1].content); return n++ < 3 ? { ...good, pattern: `${ORB} Attempt ${n}.` } : good; } };
   fake.calls = [];
   await generatePairInterpretation(input());
   assert.equal(seen.length, 4);
   assert.ok(!/EVERY ERROR SO FAR/.test(seen[0]));
-  assert.match(seen[1], /EVERY ERROR SO FAR:\n1\. .*trine/);
-  assert.match(seen[2], /1\. .*trine[\s\S]*2\. .*trine/);
+  assert.match(seen[1], /EVERY ERROR SO FAR:\n1\. .*orb/);
+  assert.match(seen[2], /1\. .*orb[\s\S]*2\. .*orb/);
   assert.match(seen[3], /1\. [\s\S]*2\. [\s\S]*3\. /, "the round alone starts from all three errors");
   assert.match(seen[3], /YOUR LAST REPLY:\n\{[\s\S]*Attempt 3/, "and the reply they were found in");
   assert.match(seen[3], /Fix these and keep the rest\./);
@@ -138,7 +158,7 @@ test("stubbed to fail every time: the report fails with code quality and the sec
   const brief = buildPairBrief(input());
   const replies = pairReplies(brief);
   const good = replies.pair_partners05 as { pattern: string };
-  fake.replies = { ...replies, pair_partners05: { ...good, pattern: TRINE } };
+  fake.replies = { ...replies, pair_partners05: { ...good, pattern: ORB } };
   fake.delays = { pair_partners06: 400 };
   fake.calls = [];
   const frames: string[] = [];
@@ -369,7 +389,7 @@ test("a name the writer wrote back reaches the next prompt as A or B: the founda
       pair_partners03: heard("pair_partners03", () => partners03),
       // A writer copies its quote from the prose as the prompt showed it.
       pair_partners03_claims: heard("pair_partners03_claims", () => ({ claims: [{ quote: "A comes in late and says nothing.", evidence: [source("A", "overview")] }, ...partners03.claims.slice(1)] })),
-      pair_partners04: heard("pair_partners04", () => (attempts04++ === 0 ? { ...partners04, pattern: TRINE } : partners04)),
+      pair_partners04: heard("pair_partners04", () => (attempts04++ === 0 ? { ...partners04, pattern: ORB } : partners04)),
     };
     fake.calls = [];
     const out = await generatePairInterpretation(pair);

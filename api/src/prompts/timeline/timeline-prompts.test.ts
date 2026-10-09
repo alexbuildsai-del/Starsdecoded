@@ -37,7 +37,7 @@ const saturnSquare = reading(curie).find((e): e is ContactEvent => e.kind === "c
 const PASSAGE = { source: "Your 1st house card", text: "You arrive fast and decide faster. People see you as confident before you feel it." };
 
 function input(extra: Partial<ReadingInput> = {}): ReadingInput {
-  return { event: saturnSquare, brief: buildBrief(curie, "Marie Curie"), excerpts: [PASSAGE], name: "Marie Curie", blind: false, ...extra };
+  return { event: saturnSquare, brief: buildBrief(curie, "Marie Curie"), excerpts: [PASSAGE], name: "Marie Curie", blind: false, spans: [], age: 0, passed: false, ...extra };
 }
 
 /** Written to the rules for Marie Curie's own Saturn square, its dates the engine's. */
@@ -142,7 +142,7 @@ test("a stored row replaces its part, and the data rules ride on a stored system
 
 test("a blind chart: the blind rules close the instructions, and no house, Ascendant or Midheaven reaches the facts", () => {
   const event = reading(blindCurie).find((e) => e.kind === "contact")!;
-  const { user } = readingPrompt({ event, brief: buildBrief(blindCurie, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: true });
+  const { user } = readingPrompt({ event, brief: buildBrief(blindCurie, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: true, spans: [], age: 0, passed: false });
   assert.match(user, /HORIZON UNKNOWN\. These rules replace any rule above they contradict:\n- The chart has no house, no Ascendant and no Midheaven\./);
   const facts = user.split("THE EVENT (")[1].split("CHART BRIEF")[0];
   assert.doesNotMatch(facts, /house|Ascendant|Midheaven/i);
@@ -287,7 +287,7 @@ test("a hostile name stays inside its block: in the brief, in a passage that rep
     for (const [tag, chart] of [["drawn", curie], ["blind", blindCurie]] as const) {
       const event = reading(chart).find((e) => e.kind === "contact")!;
       const excerpts = [{ source: `${name}'s 1st house card`, text: `${name} keeps a list for everything. You wait, ${name}, then you act.` }];
-      const { system, user } = readingPrompt({ event, brief: buildBrief(chart, name), excerpts, name, blind: tag === "blind" });
+      const { system, user } = readingPrompt({ event, brief: buildBrief(chart, name), excerpts, name, blind: tag === "blind", spans: [], age: 0, passed: false });
       const where = `${tag} ${name.slice(0, 20)}`;
       assert.ok(user.includes(`NAME:\n${dataBlock("name", name)}`), `${where}: the brief's block`);
       for (const text of [system, user]) {

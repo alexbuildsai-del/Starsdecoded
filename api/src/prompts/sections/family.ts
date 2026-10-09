@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 export const FamilySchema = z.object({
   whatYouCarry: z.string().describe("one paragraph: inherited patterns and the atmosphere of origin"),
@@ -8,6 +9,7 @@ export const FamilySchema = z.object({
   theInheritedEdge: z.string().describe("one paragraph: the family pattern that is theirs to change"),
   actions: z.array(z.object({ action: z.string(), why: z.string() })).min(2).max(3),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const family: SectionSpec<typeof FamilySchema> = {
@@ -19,11 +21,16 @@ export const family: SectionSpec<typeof FamilySchema> = {
   maxTokens: 2_500,
   schema: FamilySchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("family", brief),
   instructions: `Write Family & Roots. Primary evidence: the ruler of the 4th and where it sits, the Moon by sect and dignity, Saturn by sect, and anything in the 4th.
 
 One paragraph on what they carry from where they came from: the atmosphere, the inherited habits, the roles they were handed. One paragraph on what actually roots them now and what they need in a home, as behaviour. One paragraph on the inherited pattern that is theirs to change rather than repeat. Then two or three actions with a short why.
 
-Do not speculate about specific family events. Describe patterns the reader can confirm or reject. No planet, sign, or house names in the prose. 250 to 320 words.
+Do not speculate about specific family events. Describe patterns the reader can confirm or reject.
+
+Going backwards. When the RETROGRADE AT BIRTH lines hold Saturn, the planet in charge of the 4th or a planet in the 4th, it shapes this chapter. Let its line in the vocabulary show in the behaviour you describe.
+
+Each paragraph opens on the reader's life, then gives the reason. Name at most one placement a paragraph, inside a sentence, where it first matters: its plain meaning in the next sentence, then a moment the reader can check. Anything ahead is a possibility: could, might, you may notice, never will. The chapter ends on its actions. 250 to 320 words.
 
 Sect. Read the Moon and Saturn by sect. Night chart: the Moon leads and Saturn is the harsh inheritance. Day chart: the Sun leads and Saturn is the steadying inheritance.`,
 };

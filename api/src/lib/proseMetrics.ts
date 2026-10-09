@@ -28,7 +28,7 @@ export const METRIC_KEYS = [
 ] as const satisfies ReadonlyArray<keyof ProseMetrics>;
 
 /** Keys that hold no reader-facing prose: the claims with their evidence, identifiers, and the foundation's copied enums. */
-const NOT_PROSE = new Set(["claims", "evidence", "id", "ids", "kind", "sect", "sectLight"]);
+const NOT_PROSE = new Set(["claims", "didYouKnow", "noticed", "evidence", "id", "ids", "kind", "sect", "sectLight"]);
 /** Headings: a two-to-five-word title read as a sentence would drag every sentence measure down. */
 const HEADINGS = new Set(["title", "label"]);
 

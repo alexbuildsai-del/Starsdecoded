@@ -62,8 +62,8 @@ test("Sun altitude: Marie Curie at noon in November in Warsaw is about 20 degree
   const c = chartFromFixture("marie-curie");
   assert.ok(hasHorizon(c));
   assert.ok(c.sunAltitude > 15 && c.sunAltitude < 25, `altitude ${c.sunAltitude}`);
-  assert.equal(c.chartVersion, 4);
-  assert.equal(CHART_VERSION, 4);
+  assert.equal(c.chartVersion, 5);
+  assert.equal(CHART_VERSION, 5);
 });
 
 // ADR-221: outside the Horizons table's 1800 to 2150 the chart has no Chiron, and nothing downstream may need one.

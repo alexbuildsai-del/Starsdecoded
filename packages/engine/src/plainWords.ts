@@ -3,17 +3,22 @@
  * API read one table and never word the same sky two ways (reading 9,
  * ADR-256, 257). A headline says what a stretch feels like and names no
  * aspect: the tone printed beside it carries the aspect's feel, so a planet
- * on a point has one line. Retrogrades and eclipses touch no point, so their
- * lines come from the house they fall in. No line holds a date, a forecast
- * or something to do (R-5.2); the astronomy waits in the facts line.
+ * on a point has one line, except where a Light pairing's shared line names
+ * only a strain, which a Light card's tone would contradict (Review 05/10 §2).
+ * Retrogrades and eclipses touch no point, so their lines come from the house
+ * they fall in. No line holds a date, a forecast or something to do (R-5.2);
+ * the astronomy waits in the facts line. "Transit" is the only name a line
+ * gives the sky, never "thing" (reading 23).
  */
 import type { CycleId } from "./cycles.js";
-import type { Aspect, ContactEvent, EclipseEvent, NatalTarget, RetrogradeEvent } from "./doctrine.js";
+import { inEffect, type Aspect, type ContactEvent, type EclipseEvent, type NatalTarget, type RetrogradeEvent, type SkyEvent } from "./doctrine.js";
+import type { Tone } from "./tone.js";
 
 type Mover = ContactEvent["body"];
 type House = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 interface HouseLines { none: string; in: Record<House, string> }
 
+// MB-215 provisional: Saturn on Mercury's line loses "things" by hand until the Owner settles Timeline's fixed lines.
 const HEADLINES: Record<Mover, Record<NatalTarget, string>> = {
   mars: {
     sun: "Feeling bolder",
@@ -40,7 +45,7 @@ const HEADLINES: Record<Mover, Record<NatalTarget, string>> = {
   saturn: {
     sun: "More responsibility",
     moon: "A more serious mood",
-    mercury: "Thinking things through",
+    mercury: "Thinking more carefully",
     venus: "A serious look at love and money",
     mars: "Slow, steady effort",
     jupiter: "Getting realistic about your hopes",
@@ -89,6 +94,23 @@ const ONE_ASPECT: Partial<Record<`${Mover}.${Aspect}.${NatalTarget}`, string>> =
   "saturn.square.midheaven": "Work feels heavier",
 };
 
+// MB-215 provisional: Light pairings' own lines, rewritten by hand (Review 05/10 §2) until the Owner settles Timeline's fixed lines.
+/**
+ * A Light card's tone says the time goes the reader's way, so where the pair's shared line names only a strain the
+ * Light pairing says how it helps instead; Heavy and Mixed pairings keep the shared line. Light pairings only.
+ */
+const LIGHT: Partial<Record<`${Mover}.${Aspect}.${NatalTarget}`, string>> = {
+  "saturn.trine.sun": "Feeling steady and capable",
+  "saturn.trine.moon": "A calm, settled mood",
+  "uranus.trine.moon": "Feeling freer and lighter",
+  "uranus.trine.mars": "Energy for something new",
+  "neptune.trine.moon": "Softer, more open feelings",
+  "neptune.trine.mars": "Energy for what you care about",
+  "pluto.trine.moon": "Feeling stronger inside",
+  "pluto.trine.venus": "Love feels deeper",
+  "pluto.trine.midheaven": "A clear look at your direction",
+};
+
 /** A retrograde crossing two houses is named by the first in its list, the house it turns back in. */
 const RETROGRADE_LINES: Record<RetrogradeEvent["body"], HouseLines> = {
   mercury: {
@@ -126,7 +148,8 @@ const RETROGRADE_LINES: Record<RetrogradeEvent["body"], HouseLines> = {
     },
   },
   mars: {
-    none: "Taking things slower",
+    // MB-215 provisional: "things" out by hand, as the house lines below already say it.
+    none: "Taking it slower",
     in: {
       1: "Your energy runs lower",
       2: "Taking it slower with money",
@@ -241,7 +264,8 @@ export function headlineOf(event: ContactWords | RetrogradeWords | EclipseWords)
 }
 
 function contactHeadline({ body, aspect, target }: ContactWords): string {
-  return ONE_ASPECT[`${body}.${aspect}.${target}`] ?? HEADLINES[body][target];
+  const pairing = `${body}.${aspect}.${target}` as const;
+  return ONE_ASPECT[pairing] ?? LIGHT[pairing] ?? HEADLINES[body][target];
 }
 
 function isHouse(house: number | null | undefined): house is House {
@@ -287,56 +311,41 @@ function ordinal(n: number): string {
   return `${n}${suffix}`;
 }
 
-type WeekEvent =
-  | Pick<ContactEvent, "kind" | "window">
-  | Pick<RetrogradeEvent, "kind" | "start" | "end">
-  | Pick<EclipseEvent, "kind" | "eclipse">;
-
-const WEEK_MS = 7 * 86_400_000;
-const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const DAY_MS = 86_400_000;
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+const TONE_ORDER: Readonly<Record<Tone, number>> = { intense: 0, mixed: 1, easy: 2 };
 
 /**
- * The week's sentence, counted from the seven days that open at `from`: what
- * eases, what peaks and what starts ("Two things ease and nothing new starts
- * this week"). An eclipse is one moment, so it only peaks; a retrograde turns
- * back and forward but never peaks. A week nothing reaches says so.
+ * The week's sentence over the seven days from `weekStart`, the reader's Monday midnight (Review 05/10 §3, reading
+ * 23): "5 transits this week. 4 last all week. Short-fuse days ends on Tuesday.", each part only where it applies.
+ * Every event on a day of the week is a transit, one row of the week's picture, a retrograde and an eclipse included.
+ * One lasts all week when it is on every day of it and on the days either side, so it neither starts nor ends in
+ * it. The one named is the first to end, a stronger tone first on the same day; an eclipse is a moment, so it never
+ * ends a stretch. Days are counted in whole days from `weekStart`, since the signature carries no zone: a clock
+ * change moves a day's edge by an hour at most.
  */
-export function weekSentence(events: readonly WeekEvent[], from: Date): string {
-  const open = from.getTime();
-  const close = open + WEEK_MS;
-  const inWeek = (at: Date) => at.getTime() >= open && at.getTime() < close;
-  let reached = 0;
-  let starts = 0;
-  let peaks = 0;
-  let eases = 0;
+export function weekSentence(events: readonly SkyEvent[], weekStart: Date): string {
+  const open = weekStart.getTime();
+  const on = (event: SkyEvent, day: number): boolean => inEffect([event], new Date(open + day * DAY_MS)).length > 0;
+  const days = [0, 1, 2, 3, 4, 5, 6];
+  let transits = 0;
+  let allWeek = 0;
+  let ending: { day: number; tone: number; headline: string } | null = null;
   for (const event of events) {
-    if (event.kind === "eclipse") {
-      if (inWeek(event.eclipse.at)) {
-        reached++;
-        peaks++;
-      }
-      continue;
-    }
-    const [start, end, exact]: [Date, Date, readonly Date[]] =
-      event.kind === "contact" ? [event.window.start, event.window.end, event.window.exact] : [event.start, event.end, []];
-    if (end.getTime() < open || start.getTime() >= close) continue;
-    reached++;
-    if (inWeek(start)) starts++;
-    if (exact.some(inWeek)) peaks++;
-    if (inWeek(end)) eases++;
+    const held = days.map((day) => on(event, day));
+    if (!held.includes(true)) continue;
+    transits++;
+    if (event.kind === "eclipse") continue;
+    const after = on(event, 7);
+    if (held.every(Boolean) && after && on(event, -1)) allWeek++;
+    const last = days.find((day) => held[day] && !(day === 6 ? after : held[day + 1]));
+    if (last === undefined) continue;
+    const tone = TONE_ORDER[event.tone];
+    if (!ending || last < ending.day || (last === ending.day && tone < ending.tone)) ending = { day: last, tone, headline: headlineOf(event) };
   }
-  if (!reached) return "A quiet week for your chart";
-  const parts: string[] = [];
-  if (eases) parts.push(`${countWord(eases)} ${eases === 1 ? "thing eases" : "things ease"}`);
-  if (peaks) {
-    const noun = parts.length ? "" : peaks === 1 ? "thing " : "things ";
-    parts.push(`${countWord(peaks)} ${noun}${peaks === 1 ? "peaks" : "peak"}`);
-  }
-  parts.push(starts ? `${countWord(starts)} new ${starts === 1 ? "thing starts" : "things start"}` : "nothing new starts");
-  const said = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0];
-  return `${said.charAt(0).toUpperCase()}${said.slice(1)} this week`;
-}
-
-function countWord(n: number): string {
-  return COUNT_WORDS[n] ?? String(n);
+  if (!transits) return "No transits this week.";
+  const parts = [`${transits} ${transits === 1 ? "transit" : "transits"} this week.`];
+  if (allWeek) parts.push(`${allWeek} ${allWeek === 1 ? "lasts" : "last"} all week.`);
+  if (ending) parts.push(`${ending.headline} ends on ${WEEKDAYS[ending.day]}.`);
+  return parts.join(" ");
 }

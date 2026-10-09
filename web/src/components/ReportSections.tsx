@@ -8,9 +8,10 @@
  * exposes a rail, and a card chapter keeps its checklist inside the card, open.
  */
 import type {
-  ActionItem, CareerSection, Claim, DiscoveriesSection, FamilySection, MindSection, MoneySection,
+  ActionItem, CareerSection, Claim, DidYouKnow, DiscoveriesSection, FamilySection, MindSection, MoneySection,
   OverviewSection, RelationshipsSection, SuperpowerItem, SuperpowersSection,
 } from "@/types/chart";
+import { FactCard } from "@/components/FactCard";
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
 import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
 import { ProseRail } from "@/components/report/ProseRail";
@@ -30,6 +31,11 @@ function LabelledBlock({ label, children, claims, counter }: { label: string; ch
   );
 }
 
+/** A chapter's Did you know, after its prose; nothing when the report has none (reports before v12, or a chapter with no fit). */
+export function ChapterFact({ fact }: { fact?: DidYouKnow | null }) {
+  return fact ? <FactCard title={fact.title} body={fact.body} className="mt-6" /> : null;
+}
+
 function checklistItems(section: string, path: string, actions: ActionItem[]): ChecklistItem[] {
   return actions.map((a, i) => ({ key: itemKey(section, path, i), action: a.action, why: a.why }));
 }
@@ -46,6 +52,7 @@ export function OverviewBlock({ s }: { s: OverviewSection }) {
         <Para claims={s.claims} counter={k}>{s.distinctive}</Para>
       </div>
       <p className="rp-pull">{s.bridge}</p>
+      <ChapterFact fact={s.didYouKnow} />
     </>
   );
 }
@@ -64,11 +71,14 @@ export function DeepdiveBlock({ s }: { s: OverviewSection }) {
 export function MindBlock({ s }: { s: MindSection }) {
   const k = newCitationCounter();
   return (
-    <div className="rp-prose">
-      <LabelledBlock label="How you think" claims={s.claims} counter={k}>{s.howYouThink}</LabelledBlock>
-      <LabelledBlock label="How you decide" claims={s.claims} counter={k}>{s.howYouDecide}</LabelledBlock>
-      <LabelledBlock label="How people see you" claims={s.claims} counter={k}>{s.howYouAreUnderstood}</LabelledBlock>
-    </div>
+    <>
+      <div className="rp-prose">
+        <LabelledBlock label="How you think" claims={s.claims} counter={k}>{s.howYouThink}</LabelledBlock>
+        <LabelledBlock label="How you decide" claims={s.claims} counter={k}>{s.howYouDecide}</LabelledBlock>
+        <LabelledBlock label="How people see you" claims={s.claims} counter={k}>{s.howYouAreUnderstood}</LabelledBlock>
+      </div>
+      <ChapterFact fact={s.didYouKnow} />
+    </>
   );
 }
 
@@ -85,11 +95,14 @@ export function MindRail({ s }: { s: MindSection }) {
 export function CareerBlock({ s }: { s: CareerSection }) {
   const k = newCitationCounter();
   return (
-    <div className="rp-prose">
-      <LabelledBlock label="Work that suits you" claims={s.claims} counter={k}>{s.vocationalPull}</LabelledBlock>
-      <LabelledBlock label="How you come across at work" claims={s.claims} counter={k}>{s.howYouShowUp}</LabelledBlock>
-      <LabelledBlock label="How work helps you grow" claims={s.claims} counter={k}>{s.growthThroughWork}</LabelledBlock>
-    </div>
+    <>
+      <div className="rp-prose">
+        <LabelledBlock label="Work that suits you" claims={s.claims} counter={k}>{s.vocationalPull}</LabelledBlock>
+        <LabelledBlock label="How you come across at work" claims={s.claims} counter={k}>{s.howYouShowUp}</LabelledBlock>
+        <LabelledBlock label="How work helps you grow" claims={s.claims} counter={k}>{s.growthThroughWork}</LabelledBlock>
+      </div>
+      <ChapterFact fact={s.didYouKnow} />
+    </>
   );
 }
 
@@ -142,11 +155,14 @@ export function RelationshipsRail({ s }: { s: RelationshipsSection }) {
 export function FamilyBlock({ s }: { s: FamilySection }) {
   const k = newCitationCounter();
   return (
-    <div className="rp-prose">
-      <LabelledBlock label="What you got from your family" claims={s.claims} counter={k}>{s.whatYouCarry}</LabelledBlock>
-      <LabelledBlock label="What keeps you steady" claims={s.claims} counter={k}>{s.whatRootsYou}</LabelledBlock>
-      <LabelledBlock label="What you'd do differently" claims={s.claims} counter={k}>{s.theInheritedEdge}</LabelledBlock>
-    </div>
+    <>
+      <div className="rp-prose">
+        <LabelledBlock label="What you got from your family" claims={s.claims} counter={k}>{s.whatYouCarry}</LabelledBlock>
+        <LabelledBlock label="What keeps you steady" claims={s.claims} counter={k}>{s.whatRootsYou}</LabelledBlock>
+        <LabelledBlock label="What you'd do differently" claims={s.claims} counter={k}>{s.theInheritedEdge}</LabelledBlock>
+      </div>
+      <ChapterFact fact={s.didYouKnow} />
+    </>
   );
 }
 
@@ -163,7 +179,7 @@ function SuperpowerCard({ kicker, item, path, heading, claims, counter }: {
       <span className="rp-lab">{kicker}</span>
       <h3>{item.title}</h3>
       <p className="tn">{CitedText({ text: item.text, claims, counter })}</p>
-      <Checklist heading={heading} items={checklistItems("superpowers", path, item.actions)} />
+      <Checklist heading={heading} items={checklistItems("superpowers", path, item.actions)} pinnable />
     </div>
   );
 }
@@ -175,6 +191,7 @@ export function SuperpowersBlock({ s }: { s: SuperpowersSection }) {
       <SuperpowerCard kicker="Your superpower" item={s.superpower} path="superpower.actions" heading="How to use it" claims={s.claims} counter={k} />
       <SuperpowerCard kicker="A habit you'll always have to manage" item={s.chronicPattern} path="chronicPattern.actions" heading="How to manage it" claims={s.claims} counter={k} />
       <SuperpowerCard kicker="Where you can grow" item={s.growingEdge} path="growingEdge.actions" heading="Practice this week" claims={s.claims} counter={k} />
+      <ChapterFact fact={s.didYouKnow} />
     </div>
   );
 }
@@ -196,6 +213,7 @@ export function DiscoveriesBlock({ s }: { s: DiscoveriesSection }) {
           </div>
         </div>
       ))}
+      <ChapterFact fact={s.didYouKnow} />
     </div>
   );
 }

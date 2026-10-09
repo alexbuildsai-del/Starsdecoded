@@ -33,17 +33,17 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 11 | PEV:79 | cross ref outside the chapter's allocation | FIX: drop the ref (the link is real; the cost is overlap only) |
 | 12 | S/foundation.ts:40 | sect copied from the brief | FIX: overwrite from `brief.sect`, log |
 | 13 | S/foundation.ts:14 | supportingEvidence 3–6 | FIX: cut extras; under 3 WARN |
-| 14 | S/houses.ts:11, 47 | 12 houses in order | FIX: sort, dedupe; BLOCK only when a house is missing |
+| 14 | S/houses.ts:11, 47 | 12 houses in order, and the blocks under each (R19-12) | FIX: sort, dedupe; drop a block the chart doesn't hold, the reading kept: a going-backwards block for a node or for a body not going backwards in that house, a stellium block on a house without one (review-08-10 §5, §7); BLOCK only when a house is missing |
 | 15 | S/houses.ts:56 | a house reading names a body not in or ruling it | **BLOCK**: implies a false placement |
 | 16 | S/* list counts, SH:50-87, PF:16-28 | actions, strengths, items, checklists | FIX: cut to the maximum before the parse; under the minimum WARN |
 | 17 | AI:601-607, 826-834 | amendment caps and refs | FIX: cut, drop the bad amendment or claim |
 | 18 | SH:131-133 | a percentage, a mark, a "compatibility score" | **BLOCK**: ADR-41, no score |
 | 19 | SH:134 | the words score, rated, rating | WARN (ordinary English); BLOCK only next to a digit or the pair |
-| 20 | SH:146 | a body name in brackets | FIX: strip, re-run the quote match |
-| 21 | SH:147-148 | aspect words | **BLOCK** trine, sextile; WARN square, opposition, conjunction unless next to a body name |
+| 20 | SH:146 | a body name in brackets, an evidence tag left in the prose ("(Venus)") | FIX: strip, re-run the quote match. Brackets only: since R19 a name may sit inside a sentence with its plain meaning (rule 1, ADR-369, 385), so a name in a sentence is never stripped |
+| 21 | SH:147-148 | aspect words: 21a trine, sextile; 21b square, opposition, conjunction, alone or beside a body name | WARN since R19 (ADR-385): all five aspect names may be named, each explained the first time (rule 1), so a name is not wrong for the reader (ADR-81); logged so the Failures tab shows how often a lens names one. Until R19, 21a blocked and so did 21b beside a body |
 | 22 | SH:149 | "orb" in prose | **BLOCK**: jargon |
 | 23 | SH:179 | card line ≤ 12 words | BUFFER: 15 |
-| 24 | SH:180 | card line names a body | **BLOCK** capitalised only ("the sun on the balcony" passes) |
+| 24 | SH:180 | card line names a body, capitalised only ("the sun on the balcony" is not one) | WARN since R19 (ADR-385): rule 3 lets a name sit inside a sentence, and a card line is one, so it is not wrong for the reader (ADR-81); logged, since twelve words leave no room for the name's plain meaning |
 | 25 | SH:182 | a third capitalised name | **BLOCK** invented person names only; widen the allow-list; else WARN |
 | 26 | SH:184 | digit in a card line | FIX: spell out small numbers; scores stay caught by 18 |
 | 27 | SH:192 | the scene names both people | WARN. **Bug**: `\b` never matches Zoë, José, Élodie; fix with Unicode lookarounds |
@@ -68,10 +68,14 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 46 | TL (`adviceChecks`, R16-21) | a do or a don't (ADR-206): "you should", "you must", "be sure to", "it's best to", "I suggest", "you might want to", or a sentence, the clause after ", so" or a colon, or the main clause after an opening clause, a name or a softener ("If you can, rest", "Marie, take your time", "Maybe wait"), that opens on a command ("Take your time", "Don't rush"); "you'd be wise to" and "you'd better" too | **BLOCK**: Timeline acceptance 4. A question passes, and so do a feeling ("you feel you should"), a need ("you need to feel heard") the page's own "a good time to look at your plans again", and a choice left to the reader ("Rest or push on, you choose") |
 | 47 | TL (`lengthChecks`, R16-21) | a reading's everyday line at most 20 words, its body 90 to 140 | BUFFER: the line to 24, the body 72 to 168; **BLOCK** beyond, as rows 23 and 32 |
 | 48 | TL (`checkReading`, R16-21) | a data block's marker copied into a reading (`<<quote>>`, `<<end>>`) | FIX: the marker goes with the space around it and the words stay. A copied name block reads back as the name first (`restoreBlocks`), as on every call that holds names |
+| 49 | `explainChecks` (R19-10), on every reader-facing call: natal and pair sections, Timeline readings, Ask's answers | a dignity or sect word (`DIGNITY_WORDS`: domicile, exaltation, exalted, detriment, fall, peregrine, sect, cadent, succedent, angular) in the prose or the Did you know card; whole words, so never inside "section" or "insect"; "fall" only as "in fall" or "its fall", "angular" only before "house" or "planet" | WARN (ADR-385; explain-like-a-friend §3, acceptance 2): the reader should get the idea in plain words ("at home in", "least at ease"), but the word is jargon, not a wrong fact (ADR-81). One row for the prose and one for the card, the words and their counts, never the sentence; claims, quotes and a house's Often noticed (filled from `observations.ts`, never by the writer) are not read; a foundation is never passed, since its keys are the writer's own reasoning (reading 3). The lab counts the same list (R19-19) |
+| 50 | `explainChecks` (R19-10) | six words in a row from a scene (`scenes.ts`) or a model passage (`examples.ts`) inside one sentence of what the reader reads, the card included; lower case, the apostrophe straight, other punctuation ignored | WARN (ADR-381, 385; explain-like-a-friend §10): a copied scene reads the same in every report, but no reader is misled. One row naming each scene's or passage's id and how many sentences carried it, never the text. Why six: in the stored r06 runs, 7 of 2,298 sentences share a run of five words with a scene or a passage by chance, none a run of six |
+| 51 | `explainChecks` (R19-10) | a Did you know card (`didYouKnow`) worded as fact: its title and body hold none of reading 7's tradition phrases ("is often read as", "old astrology tends to", "many people find", "some astrologers say") or their near forms (often read or said, astrologers or astrology, tradition, "read that way") | WARN (ADR-377, 385): the card is a tradition we don't read the chart by, so a card without the framing reads too sure, but its idea is the tradition's own, not a wrong fact (ADR-81). One row a call, with the count of cards |
+| 52 | S/houses.ts (R19-12) | a block the chart calls for and the reply left out: a body going backwards at birth (a planet or Chiron, never a node) with no block on its house's card, or a stellium's house with no stellium block | WARN (ADR-385; explain-like-a-friend acceptance 3, review-08-10 §5, §7): the card is still right without the block, it only says less, so it is logged and never retried (ADR-81). A block the chart doesn't hold is row 14's FIX |
 
-Still blocking after R08: rows 15, 18, 21 (trine, sextile, aspect beside a body), 22, 24
-(capitalised), 25 (person names), 30 (numerals), 36; plus rows 9 and 14 in their fallback,
-since R12-28 rows 40 and 42 for a label or a word count left in a sentence, and since R16-21 rows 44 to 46
-on a Timeline reading and row 47 beyond its buffer.
+Still blocking after R08: rows 15, 18, 22, 25 (person names), 30 (numerals), 36; plus rows 9 and 14
+in their fallback, since R12-28 rows 40 and 42 for a label or a word count left in a sentence, and since R16-21
+rows 44 to 46 on a Timeline reading and row 47 beyond its buffer. Rows 21 and 24 blocked until R19, when rule 1
+let a name or an aspect sit inside a sentence (ADR-385); rows 49 to 52 only ever warn.
 Everything else is fixed in code, logged, or buffered. Every FIX and WARN writes a row to
 `generation_failures`, so a rule that keeps firing still reaches the next round's plan.

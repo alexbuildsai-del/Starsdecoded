@@ -11,6 +11,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import {
   getGetAskThreadQueryKey,
   getGetTimelineAccessQueryKey,
@@ -32,6 +33,7 @@ import {
   askText,
   choiceBody,
   mergeThread,
+  offerView,
   openChoices,
   paragraphs,
   roomLine,
@@ -40,6 +42,7 @@ import {
   usageLine,
   usageOf,
   type CapNote,
+  type OfferView,
 } from "@/lib/ask-view";
 import { sentZone } from "@/lib/reader-zone";
 import { cn } from "@/lib/utils";
@@ -50,6 +53,8 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const NOTE = "m-0 text-[13.5px] leading-normal text-[#AEB6C6]";
 const LINK_BUTTON =
   "justify-self-start rounded text-[13.5px] text-[#9FA8DA] hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA]";
+const QUIET_BUTTON =
+  "mt-0.5 inline-flex min-h-9 items-center rounded-[10px] border border-[#3A4560] px-3.5 text-[13.5px] font-medium text-[#E8EBF2] transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:border-[#5C6BC0] hover:bg-[rgba(92,107,192,.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA]";
 
 export interface AskPanelProps {
   open: boolean;
@@ -80,17 +85,47 @@ function ReaderBubble({ text, bubble }: { text: string; bubble?: RefObject<HTMLP
   );
 }
 
+/**
+ * The pair offer under an answer (Review 05/10 §8): not a bubble, in the pair's violet, once a person in the thread.
+ * Its button closes Ask on the way out, so the picker it opens is the one window on the page.
+ */
+function PairOffer({ offer, onLeave }: { offer: OfferView; onLeave: () => void }) {
+  const titleId = useId();
+  return (
+    <div
+      role="group"
+      aria-labelledby={titleId}
+      className="grid justify-items-start gap-1.5 rounded-[10px] border border-dashed border-[#9575CD]/60 px-3 py-2.5 text-[13.5px] leading-snug"
+    >
+      <p id={titleId} className="m-0 font-medium text-[#E8EBF2]">
+        {offer.title}
+      </p>
+      <p className="m-0 text-[#AEB6C6]">{offer.reason}</p>
+      <p className="m-0 text-[13px] text-[#E8EBF2]">{offer.credits}</p>
+      {/* Close's own type="button" would land on the link, which a link never carries. */}
+      <Dialog.Close asChild type={undefined}>
+        <Link href={offer.href} onClick={onLeave} aria-describedby={titleId} className={QUIET_BUTTON}>
+          {offer.action}
+        </Link>
+      </Dialog.Close>
+    </div>
+  );
+}
+
 function Answer({
   message,
   choices,
   onChoose,
+  onLeave,
   busy,
 }: {
   message: AskMessage;
   choices: readonly AskChoice[];
   onChoose: (choice: AskChoice) => void;
+  onLeave: () => void;
   busy: boolean;
 }) {
+  const offer = offerView(message.offer);
   return (
     <div className="grid min-w-0 gap-3">
       {paragraphs(message.text).map((text, i) => (
@@ -104,6 +139,7 @@ function Answer({
           <AskCards cards={message.cards} />
         </div>
       ) : null}
+      {offer ? <PairOffer offer={offer} onLeave={onLeave} /> : null}
       {choices.length ? (
         <div className="flex flex-wrap gap-1.5">
           {choices.map((choice) => (
@@ -143,6 +179,8 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
   const scroller = useRef<HTMLDivElement>(null);
   const lastAsked = useRef<HTMLParagraphElement>(null);
   const jump = useRef<"end" | "question" | null>(null);
+  // Leaving by the pair offer hands focus to the picker it opens, never back to the launcher behind it.
+  const leaving = useRef(false);
 
   // Ask's days are the reader's, as Timeline's are (reading 4); with no zone the server reads the birth place's.
   const zone = sentZone();
@@ -265,7 +303,8 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              launcher.current?.focus();
+              if (leaving.current) leaving.current = false;
+              else launcher.current?.focus();
             }}
             onInteractOutside={(event) => {
               // A desktop's panel stays open while the reader scrolls or taps the page beside it.
@@ -323,6 +362,9 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
                           message={message}
                           choices={i === messages.length - 1 ? choices : []}
                           onChoose={choose}
+                          onLeave={() => {
+                            leaving.current = true;
+                          }}
                           busy={busy || capped}
                         />
                       ),

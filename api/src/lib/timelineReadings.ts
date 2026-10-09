@@ -26,7 +26,9 @@ import { logger } from "./logger.js";
 import { MODELS } from "./models.js";
 import { resolveSection } from "./promptLoader.js";
 import { dailyCapUsd, spentTodayUsd, utcDay } from "./spendCap.js";
-import { eventByKey, type KeyedEvent, type ReaderChart, type ReadingState, type ReadingStatuses } from "./timeline.js";
+import {
+  dayIn, eventByKey, readingTimes, validZone, type KeyedEvent, type ReaderChart, type ReadingState, type ReadingStatuses, type ReadingTimes,
+} from "./timeline.js";
 import { buildBrief } from "../prompts/brief.js";
 import { EvidenceRefSchema, softenQuote } from "../prompts/evidence.js";
 import { ordinal } from "../prompts/vocabulary.js";
@@ -243,15 +245,22 @@ export function passagesFor(event: ReadingEvent, chart: NatalChartData, interpre
 const eventOf = (keyed: KeyedEvent): ReadingEvent => (keyed.kind === "sky" ? keyed.event : keyed.cycle);
 
 /**
- * One reading through the report's call path, with no database: the event's facts, the reader's brief and their
- * report's passages in, the reading out. Three attempts, each told every error so far, then one round alone that
- * starts from them all (ADR-84); a reading that loses that too rejects with its `SectionError`. Every call counts as
- * the reader's on the spend ledger, and every attempt's checks go to the failure log under the reader's report.
+ * One reading through the report's call path, with no database: the event's facts, its stretches, the reader's age at
+ * it and whether a cycle is behind them (`times`, today's unless given), the reader's brief and their report's
+ * passages in, the reading out. Three attempts, each told every error so far, then one round alone that starts from
+ * them all (ADR-84); a reading that loses that too rejects with its `SectionError`. Every call counts as the reader's
+ * on the spend ledger, and every attempt's checks go to the failure log under the reader's report.
  */
-export async function writeReading(reader: ReaderChart, key: string, event: ReadingEvent, report: ReaderReport): Promise<TimelineReading> {
+export async function writeReading(
+  reader: ReaderChart,
+  key: string,
+  event: ReadingEvent,
+  report: ReaderReport,
+  times: ReadingTimes = readingTimes(reader, event, new Date()),
+): Promise<TimelineReading> {
   const { excerpts, buildsOn } = passagesFor(event, reader.chart, report.interpretation);
   const names = { name: report.name };
-  const input: ReadingInput = { event, brief: buildBrief(reader.chart, report.name), excerpts, name: report.name, blind: reader.blind };
+  const input: ReadingInput = { event, brief: buildBrief(reader.chart, report.name), excerpts, name: report.name, blind: reader.blind, ...times };
   const prompt = readingPrompt(input, await resolveSection(READING_KEY));
   const model = MODELS.timelineReading;
   const run = (carry?: Carry): Promise<SectionResult<ReadingOutput>> => {
@@ -298,16 +307,21 @@ function canonical<T>(value: T): T {
 
 /**
  * What a reading is written from, as one digest (reading 10): the prompt family's version, THE EVENT's facts, the
- * chart brief and the report passages it builds on, as `writeReading` hands them over. The brief counts by its words,
- * its degrees and orbs aside: a reading may name no degree THE EVENT does not list (checks.ts), so a birth time that
- * moves the chart a little touches only the readings whose own facts it moves.
+ * chart brief, the report passages it builds on and its `times`, as `writeReading` hands them over. The brief counts by
+ * its words, its degrees and orbs aside: a reading may name no degree THE EVENT does not list (checks.ts), so a birth
+ * time that moves the chart a little touches only the readings whose own facts it moves. Its stretches count by the
+ * days the facts print them on, in the chart's own zone, for the same reason; a cycle that passes moves it.
  */
-function inputsOf(reader: ReaderChart, event: ReadingEvent, report: ReaderReport): string {
+function inputsOf(reader: ReaderChart, event: ReadingEvent, report: ReaderReport, times: ReadingTimes): string {
   const chart = canonical(reader.chart);
   const brief = buildBrief(chart, report.name);
   const blind = reader.blind || brief.horizon === "unknown";
   const { excerpts } = passagesFor(event, chart, report.interpretation);
-  const inputs = [TIMELINE_PROMPT_VERSION, blind, eventFacts(event, brief.chart, blind).lines, brief.text.replace(DECIMALS, "#"), excerpts];
+  const zone = validZone(chart.timezone) ?? "UTC";
+  const spans = times.spans.map((span) => [dayIn(span.start, zone), dayIn(span.end, zone)]);
+  const inputs = [
+    TIMELINE_PROMPT_VERSION, blind, eventFacts(event, brief.chart, blind).lines, brief.text.replace(DECIMALS, "#"), excerpts, spans, times.age, times.passed,
+  ];
   return createHash("sha256").update(JSON.stringify(inputs)).digest("hex").slice(0, 32);
 }
 
@@ -319,8 +333,9 @@ const BuildsOnSchema = z.union([
 
 /**
  * A reading as its row keeps it; the key is the row's. `of` is what it was written from (`inputsOf`), absent on one
- * kept before readings carried it. `tried` is the basis a refresh failed to write it on and the UTC day it failed, so
- * a setup screen read every few seconds does not pay for the same failure again that day.
+ * kept before readings carried it. `passed` is whether it was written for a cycle already behind the reader, absent
+ * before readings carried it and read as not. `tried` is the basis a refresh failed to write it on and the UTC day it
+ * failed, so a setup screen read every few seconds does not pay for the same failure again that day.
  */
 const KeptSchema = z.object({
   line: z.string(),
@@ -328,11 +343,20 @@ const KeptSchema = z.object({
   buildsOn: BuildsOnSchema,
   writtenAt: z.string(),
   of: z.string().optional(),
+  passed: z.boolean().optional(),
   tried: z.object({ basis: z.string(), on: z.string() }).optional(),
 });
 
-function keptOf(reading: TimelineReading, of: string): z.infer<typeof KeptSchema> {
-  return { line: reading.line, body: reading.body, buildsOn: reading.buildsOn, writtenAt: reading.writtenAt.toISOString(), of };
+function keptOf(reading: TimelineReading, of: string, passed: boolean): z.infer<typeof KeptSchema> {
+  return { line: reading.line, body: reading.body, buildsOn: reading.buildsOn, writtenAt: reading.writtenAt.toISOString(), of, passed };
+}
+
+/**
+ * Whether a cycle has passed since its reading was kept (Review 05/10 §4): the reading of a cycle ahead is written again
+ * once, short, when the cycle goes behind the reader, on the basis it stands on. A sky event is never behind.
+ */
+function passedSince(kept: { passed?: boolean }, passed: boolean): boolean {
+  return (kept.passed ?? false) !== passed;
 }
 
 const FailedSchema = z.object({ line: z.string() });
@@ -491,7 +515,7 @@ async function reportVersionOf(reader: ReaderChart): Promise<VersionedReport | n
  * the sheet's line on its row. Nothing the reader's report or the model wrote reaches the log, only the failure's code
  * (R-3.5).
  */
-async function writeClaimed(reader: ReaderChart, key: string, keyed: KeyedEvent, claimed: Claim): Promise<OpenedReading> {
+async function writeClaimed(reader: ReaderChart, key: string, keyed: KeyedEvent, claimed: Claim, now: Date): Promise<OpenedReading> {
   let outcome: OpenedReading;
   let stored: object;
   let basis: string | undefined;
@@ -499,9 +523,10 @@ async function writeClaimed(reader: ReaderChart, key: string, keyed: KeyedEvent,
     const report = await reportOf(reader);
     if (!report) throw new Error("the reader's Personal report is gone");
     const event = eventOf(keyed);
-    const reading = await writeReading(reader, key, event, report);
+    const times = readingTimes(reader, event, now);
+    const reading = await writeReading(reader, key, event, report, times);
     outcome = { status: "ready", reading, line: null };
-    stored = keptOf(reading, inputsOf(reader, event, report));
+    stored = keptOf(reading, inputsOf(reader, event, report, times), times.passed);
     basis = keptBasis(reader, report);
   } catch (err) {
     const code: FailureCode = failureCodeOf(err);
@@ -601,7 +626,7 @@ export async function openReading(reader: ReaderChart, key: string, options: { w
     if (settled) return settled;
     return taken?.status === "failed" && onBasis(taken, reader.basis) ? failed(failedLine(taken)) : writing();
   }
-  const write = writeClaimed(reader, key, keyed, claimed);
+  const write = writeClaimed(reader, key, keyed, claimed, now);
   return (await within(write, options.waitMs ?? OPEN_WAIT_MS)) ?? writing();
 }
 
@@ -723,7 +748,8 @@ export async function writeQueuedReading(reader: ReaderChart, key: string): Prom
     const [taken] = await rowsOf(reader.profileId, [key]);
     return taken && taken.status === "writing" ? heldUntil(taken) : { status: "kept" };
   }
-  await writeClaimed(reader, key, keyed, claimed);
+  // Whether a cycle is behind the reader is today's question, never the key's day the event was found on.
+  await writeClaimed(reader, key, keyed, claimed, new Date());
   return { status: "written" };
 }
 
@@ -732,10 +758,18 @@ export function refreshJobKey(profileId: string, key: string): string {
   return `timeline.refresh:${profileId}:${key}`;
 }
 
+/** Whether a key names a cycle behind the reader at `now`, as its reading would be written then; a sky event never is. */
+function behind(reader: ReaderChart, key: string, now: Date): boolean {
+  if (!key.startsWith("cycle.")) return false;
+  const keyed = eventByKey(reader, key, now);
+  return keyed ? readingTimes(reader, eventOf(keyed), now).passed : false;
+}
+
 /**
  * Of the keys, in their order, those whose kept reading has gone stale (reading 10): kept on a basis other than the
- * reader's with their report's version now, and not one a refresh failed to write on that basis the same UTC day as
- * `now`. None while the report is being amended, its text still moving; the next open after that finds them.
+ * reader's with their report's version now, or for a cycle that has passed since (`passedSince`), and not one a refresh
+ * failed to write on that basis the same UTC day as `now`. None while the report is being amended, its text still
+ * moving; the next open after that finds them.
  */
 export async function staleReadings(reader: ReaderChart, keys: readonly string[], now: Date = new Date()): Promise<string[]> {
   const report = await reportVersionOf(reader);
@@ -745,8 +779,9 @@ export async function staleReadings(reader: ReaderChart, keys: readonly string[]
   const unique = [...new Set(keys)];
   const stale = new Set<string>();
   for (const row of await rowsOf(reader.profileId, unique)) {
-    const kept = row.status === "ready" && row.basis !== basis ? KeptSchema.safeParse(row.reading) : null;
-    if (kept?.success && !(kept.data.tried?.basis === basis && kept.data.tried.on === day)) stale.add(row.eventKey);
+    const kept = row.status === "ready" ? KeptSchema.safeParse(row.reading) : null;
+    if (!kept?.success || (kept.data.tried?.basis === basis && kept.data.tried.on === day)) continue;
+    if (row.basis !== basis || passedSince(kept.data, behind(reader, row.eventKey, now))) stale.add(row.eventKey);
   }
   return unique.filter((key) => stale.has(key));
 }
@@ -770,10 +805,11 @@ async function rekeep(row: ReadingRow, basis: string, reading: object, model?: s
  * until the new one lands, and only if what it is written from moved (`inputsOf`); one whose facts, chart words and
  * passages are as they were moves onto the new basis with no call. One kept before readings carried that digest moves
  * over when its chart and prompt are the reader's and their report has not been written since it was, since then it
- * was written from the report as it stands. Anything else is left as it is: a reading on the reader's basis, a row
- * with no kept text, which the reader's own open writes, and one whose report is being amended, which their next open
- * queues again. Behind the spend gate's rule; a write that fails keeps the kept text, marked so no open queues it
- * again before the next UTC day (`staleReadings`).
+ * was written from the report as it stands. A cycle that has passed since its reading was kept is always written
+ * again, once, short (`passedSince`), on whatever basis. Anything else is left as it is: a reading on the reader's
+ * basis, a row with no kept text, which the reader's own open writes, and one whose report is being amended, which
+ * their next open queues again. Behind the spend gate's rule; a write that fails keeps the kept text, marked so no
+ * open queues it again before the next UTC day (`staleReadings`).
  */
 export async function refreshReading(reader: ReaderChart, key: string): Promise<Refreshed> {
   const left: Refreshed = { status: "left" };
@@ -785,26 +821,29 @@ export async function refreshReading(reader: ReaderChart, key: string): Promise<
   const report = await reportOf(reader);
   if (!report || report.status !== "complete") return left;
   const basis = keptBasis(reader, report);
-  if (row.basis === basis) return left;
   const event = eventOf(keyed);
-  const of = inputsOf(reader, event, report);
-  const unmoved = kept.data.of === undefined
+  // Whether a cycle is behind the reader is today's question, never the key's day the event was found on.
+  const times = readingTimes(reader, event, new Date());
+  const passed = passedSince(kept.data, times.passed);
+  if (row.basis === basis && !passed) return left;
+  const of = inputsOf(reader, event, report, times);
+  const unmoved = !passed && (kept.data.of === undefined
     ? onBasis(row, reader.basis) && report.updatedAt.getTime() <= Date.parse(kept.data.writtenAt)
-    : kept.data.of === of;
+    : kept.data.of === of);
   if (unmoved) {
-    await rekeep(row, basis, { ...kept.data, of, tried: undefined });
+    await rekeep(row, basis, { ...kept.data, of, passed: times.passed, tried: undefined });
     return { status: "rebased" };
   }
   if (!(await spendAllows())) return { status: "paused" };
   let reading: TimelineReading;
   try {
-    reading = await writeReading(reader, key, event, report);
+    reading = await writeReading(reader, key, event, report, times);
   } catch (err) {
     logger.warn({ key, code: failureCodeOf(err) }, "a stale Timeline reading could not be written again; its kept text stays");
     await rekeep(row, row.basis, { ...kept.data, tried: { basis, on: utcDay(new Date()) } });
     return left;
   }
-  if (!(await rekeep(row, basis, keptOf(reading, of), MODELS.timelineReading))) {
+  if (!(await rekeep(row, basis, keptOf(reading, of, times.passed), MODELS.timelineReading))) {
     logger.info({ key }, "a stale Timeline reading changed while it was written again; its row is left as it is");
   }
   return { status: "rewritten" };

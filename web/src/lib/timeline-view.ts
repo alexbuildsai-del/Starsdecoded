@@ -17,10 +17,14 @@ export interface ContactView {
   headline: string;
   /** The everyday line: a reading's own once one is written, none before (reading 9). */
   line: string | null;
-  /** How long it lasts: "Until 19 Oct, back in February". */
+  /** How long it lasts, with its year: "to 19 Oct 2026"; a retrograde's is its two stations, "24 Oct to 13 Nov 2026". */
   lasts: string;
-  /** The astronomy, small and grey under the words: "Saturn on your Ascendant · 1st house · exact 23 Sep". */
+  /** The astronomy, which the card face no longer prints: Read more opens it. "Saturn on your Ascendant · 1st house · exact 23 Sep 2026". */
   facts: string;
+  /** "Pluto going back", while the planet is going backwards today (ADR-392); a card from before it has none. */
+  chip?: string | null;
+  /** A retrograde card's own line: "Mercury retrograde · about 3 weeks" (Review 05/10 §10). */
+  retro?: string | null;
 }
 
 /** A day with the tone of each thing touching the chart on it; a day with none is quiet. */
@@ -30,10 +34,18 @@ export interface DayView {
   tones: Tone[];
 }
 
-/** Intense first, the order every Timeline surface lists tones in. */
+/** Heavy first (the id is `intense`), the order every Timeline surface lists tones in. */
 export const TONE_ORDER: readonly Tone[] = ["intense", "mixed", "easy"];
 
-export const TONE_WORDS: Readonly<Record<Tone, string>> = { intense: "Intense", mixed: "Mixed", easy: "Easy" };
+// `tone.ts` keeps its ids (MB-188); only the words a reader sees changed (Review 05/10 §2, reading 23).
+export const TONE_WORDS: Readonly<Record<Tone, string>> = { intense: "Heavy", mixed: "Mixed", easy: "Light" };
+
+/** What each tone word means, the legend's three lines, Heavy first. */
+export const TONE_MEANINGS: Readonly<Record<Tone, string>> = {
+  intense: "asks more of you",
+  mixed: "has its ups and downs",
+  easy: "goes your way",
+};
 
 /** index.css's class, which sets only `--sd-tone`, so the dot, bar or edge that reads it takes the colour and the words don't. */
 export function toneClass(tone: Tone): string {
@@ -41,7 +53,7 @@ export function toneClass(tone: Tone): string {
 }
 
 /** What a tap on a contact or a cycle opens: its reading. The letter's link says the same (Timeline's weekly letter). */
-export const READ_LINE = "Read what this means for you";
+export const READ_LINE = "Read more";
 
 /** The open button's name, which starts with its card's headline, so a list of them can be told apart. */
 export function readLabel(headline: string): string {
@@ -72,8 +84,6 @@ function partsOf(day: string): Parts | null {
   return m >= 1 && m <= 12 && d >= 1 && d <= 31 ? { y: Number(match[1]), m, d } : null;
 }
 
-const monthsFrom = (from: Parts, to: Parts) => (to.y - from.y) * 12 + (to.m - from.m);
-
 /** "a", "a and b", "a, b and c". */
 export function listOf(items: readonly string[]): string {
   if (items.length < 2) return items.join("");
@@ -103,33 +113,17 @@ export function monthYear(day: string, order: DateOrder): string {
   return order === "ymd" ? `${p.y}${NB}${MONTH_NAMES[p.m - 1]}` : `${MONTH_NAMES[p.m - 1]}${NB}${p.y}`;
 }
 
-/** Whether a day can go without its year and not be misread, as `nearDate` says; null when either isn't a day. */
-function yearless(day: string, today: string): boolean | null {
-  const p = partsOf(day);
-  const t = partsOf(today);
-  if (!p || !t) return null;
-  return p.y === t.y || (day > today && monthsFrom(t, p) < 6);
-}
-
 /**
- * A date without its year when the reader can't mistake it: in this calendar
- * year, or less than six months ahead. Further off, or last year, it keeps it.
+ * A date with its year, always (Review 05/10 §2): a card that hid it read as the wrong year. The name stays so every
+ * caller prints the year; `today` only has to be a day, and anything but a day is handed back as it came.
  */
 export function nearDate(day: string, today: string, order: DateOrder): string {
-  const near = yearless(day, today);
-  if (near === null) return day;
-  return near ? dayMonth(day, order) : fullDate(day, order);
+  return partsOf(day) && partsOf(today) ? fullDate(day, order) : day;
 }
 
-/**
- * Several days: "30 May, 23 Sep and 20 Feb" while every one can drop its year,
- * else every one with its own. A year on some dates and not others leaves the
- * rest to guess: Mira's Neptune card read "27 May, 18 Aug, 21 Mar, 25 Nov 2027
- * and 4 Jan 2028", its 21 Mar in 2027.
- */
+/** Several days, each with its year: "30 May 2026, 23 Sep 2026 and 20 Feb 2027". */
 export function dateList(days: readonly string[], today: string, order: DateOrder): string {
-  const withYears = days.some((day) => yearless(day, today) === false);
-  return listOf(days.map((day) => (withYears ? fullDate(day, order) : nearDate(day, today, order))));
+  return listOf(days.map((day) => nearDate(day, today, order)));
 }
 
 /** "Monday 5 October", or "Monday, October 5" where the month comes first: a screen reader's day. */
@@ -171,25 +165,16 @@ export function dayIn(at: Date | string, zone: string): string {
   }
 }
 
-/** When a contact leaves its orb next, and when it comes back into it after that, if it does. */
+/** When a contact leaves its orb. */
 export interface ContactSpan {
   end: string;
+  /** Not printed any more: the card says when it ends, and Read more lists the passes after it (Review 05/10 §2). */
   back?: string | null;
 }
 
-// A month alone says when it's back only while it can't be read as this month or a year on.
-function backMonth(back: string, today: string, order: DateOrder): string {
-  const p = partsOf(back);
-  const t = partsOf(today);
-  if (!p || !t) return back;
-  const ahead = monthsFrom(t, p);
-  return ahead > 0 && ahead < 11 ? MONTH_NAMES[p.m - 1] : monthYear(back, order);
-}
-
-/** How long it lasts: "Until 19 Oct", "Until 19 Oct, back in February", or "Eases today" on its last day. */
+/** How long it lasts: "to 19 Oct 2026", or "Eases today" on its last day. */
 export function lastsLine(span: ContactSpan, today: string, order: DateOrder): string {
-  const until = span.end <= today ? "Eases today" : `Until ${nearDate(span.end, today, order)}`;
-  return span.back ? `${until}, back in ${backMonth(span.back, today, order)}` : until;
+  return span.end <= today ? "Eases today" : `to ${nearDate(span.end, today, order)}`;
 }
 
 /** The engine's `factsOf`: "Saturn on your Ascendant" and "1st house", the house null without a birth time. */

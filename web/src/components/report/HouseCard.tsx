@@ -1,42 +1,22 @@
 /**
  * One house as chapter 02's deck shows it (ADR-179): the house and its sign,
- * who stands there, the house's full title (ADR-98), then the report's own
- * reading, closed by its Behaviour check. On a phone the card leads with the
+ * the house's full title (ADR-98), then the report's own
+ * reading, then its blocks (Often noticed, the stellium, each body going backwards, ADR-396 to 404), closed by its
+ * Behaviour check. On a phone the card leads with the
  * first sentence and keeps the rest behind Read the rest; on a desktop and on
  * paper it shows the whole text. The card writes no astrological prose of its
  * own. A blind chart has no house to show, so the deck gives it the blind card.
  */
 import { useId, useState } from "react";
-import { PLANET_GLYPHS } from "@/types/chart";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { hintFor } from "@/lib/birth-record-hints";
 import { HOUSE_NAMES, ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
-import { goesBackwards, oppositeLine, splitReading } from "@/lib/house-deck";
-import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
-import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
+import { splitReading } from "@/lib/house-deck";
+import { OftenNoticed, RetrogradeBlock, StelliumBlock, StelliumChip } from "@/components/report/HouseBlocks";
 import type { Occupant } from "@/lib/house-occupants";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 const EASE = "ease-[cubic-bezier(.16,1,.3,1)]";
-
-function OccupantMark({ o }: { o: Occupant }) {
-  const src = o.kind === "planet" ? PLANET_RENDERS[o.key] : undefined;
-  if (src) return <img src={src} alt={o.label} title={o.label} width={16} height={16} className="h-4 w-4" loading="lazy" />;
-  // The R03 marker (ADR-49): an angle is a point on the horizon, never a body.
-  if (o.kind === "angle") {
-    return (
-      <span role="img" aria-label={o.label} title={o.label} className="inline-flex">
-        <AngleGlyph angle={o.key as AngleKey} size={16} />
-      </span>
-    );
-  }
-  return (
-    <span role="img" aria-label={o.label} title={o.label} className="font-mono text-[11px] font-medium leading-none text-[color:var(--paper-dim)]">
-      {PLANET_GLYPHS[o.key] ?? "·"}
-    </span>
-  );
-}
 
 /** The planet that goes with the rising sign, and where the chart puts it. Null for a blind chart, which has no 1st house. */
 export interface ChartRuler {
@@ -53,17 +33,28 @@ export function chartRuler(chart: ChartData): ChartRuler | null {
   return { label: PLANET_LABELS[key] ?? key, sign: planet.sign, house: planet.house };
 }
 
+export interface HouseBlocksData {
+  noticed?: { idea: string; why: string } | null;
+  stellium?: { text: string; balance: string } | null;
+  retrograde?: { planet: string; text: string }[];
+}
+
 export interface HouseCardProps {
   house: number;
   /** The whole-sign sign on this house. */
   sign: string;
-  occupants: Occupant[];
+  /** Kept for the deck's callers; the header draws no planet row (R19-48, the design drops it). */
+  occupants?: Occupant[];
   /** The chart ruler, on the 1st house's card only; the triad rows no longer print it. */
   ruler?: ChartRuler | null;
   /** A house with no one in it: the small line that says whose it is (`quietLine`). */
   quiet?: string | null;
   /** The house's reading as the report stored it; absent while the section is still being written. */
   reading?: string;
+  /** The bodies the engine finds in a stellium here (ADR-397): the chip, and the count the stellium block prints. */
+  stellium?: string[] | null;
+  /** The blocks the report stored with the reading. A report before v12 stores none, and its card keeps the reading alone. */
+  blocks?: HouseBlocksData;
   /** The whole text at once, for the desktop card: no Read the rest. */
   whole?: boolean;
   /** The card the deck is on. The others stand back, except with reduced motion and on paper. */
@@ -71,12 +62,12 @@ export interface HouseCardProps {
   className?: string;
 }
 
-export function HouseCard({ house, sign, occupants, ruler, quiet, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
+export function HouseCard({ house, sign, ruler, quiet, reading, stellium, blocks, whole = false, lit = true, className = "" }: HouseCardProps) {
   const [open, setOpen] = useState(false);
   const restId = useId();
   const parts = reading ? splitReading(reading) : null;
   const i = house - 1;
-  const backwards = occupants.some((o) => goesBackwards(o.key, o.retrograde));
+  const stelliumBlock = stellium && blocks?.stellium ? blocks.stellium : null;
 
   return (
     <article
@@ -85,20 +76,17 @@ export function HouseCard({ house, sign, occupants, ruler, quiet, reading, whole
         lit ? "border-brass/35" : "scale-[.97] border-[color:var(--line)] opacity-55 motion-reduce:scale-100 motion-reduce:opacity-100 print:scale-100 print:opacity-100"
       } ${className}`}
     >
-      <div className="flex min-h-4 items-center justify-between gap-1.5">
-        <p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-brass">
-          {ORDINALS[i]} house · {sign}
-        </p>
-        {occupants.length > 0 && (
-          <span className="flex shrink-0 items-center gap-1">
-            {occupants.map((o) => <OccupantMark key={o.key} o={o} />)}
-          </span>
-        )}
+      <div className="flex min-h-4 flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-brass">
+            {ORDINALS[i]} house · {sign}
+          </p>
+          {stellium && <StelliumChip />}
+        </div>
       </div>
       <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
         {HOUSE_NAMES[i]}
       </h3>
-      <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">{oppositeLine(house)}</p>
       {quiet && (
         <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">{quiet}</p>
       )}
@@ -107,7 +95,6 @@ export function HouseCard({ house, sign, occupants, ruler, quiet, reading, whole
           {`${ruler.label} is your chart ruler, the planet that goes with your rising sign. It stands in ${ruler.sign}, in the ${ORDINALS[ruler.house - 1]} house (${houseWord(ruler.house)}).`}
         </p>
       )}
-      {backwards && <RetrogradeLine />}
       {parts ? (
         <>
           <p className={`font-display leading-[1.45] text-[color:var(--paper)] print:text-black ${whole ? "text-[20px]" : "text-[17px]"}`}>
@@ -134,6 +121,11 @@ export function HouseCard({ house, sign, occupants, ruler, quiet, reading, whole
               {open ? "Show less" : "Read the rest"}
             </button>
           )}
+          {blocks?.noticed && <OftenNoticed idea={blocks.noticed.idea} why={blocks.noticed.why} whole={whole} />}
+          {stelliumBlock && stellium && (
+            <StelliumBlock count={stellium.length} house={house} text={stelliumBlock.text} balance={stelliumBlock.balance} whole={whole} />
+          )}
+          {blocks?.retrograde?.map((r) => <RetrogradeBlock key={r.planet} planet={r.planet} text={r.text} whole={whole} />)}
           {parts.check && (
             <div className="grid gap-1 border-t border-[color:var(--line-soft)] pt-2.5 print:border-neutral-300">
               <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Does this sound like you?</p>

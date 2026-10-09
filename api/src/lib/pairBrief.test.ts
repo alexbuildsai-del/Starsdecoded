@@ -8,9 +8,9 @@ import type { ReportInterpretation } from "./aiInterpretation.js";
 import type { StoredClaim } from "../prompts/index.js";
 
 const { generateInterpretation } = await import("./aiInterpretation.js");
-const { buildPairBrief, chapterBrief, CROSS_ORB, LENSES } = await import("./pairBrief.js");
+const { backwardsByChapter, backwardsRead, buildPairBrief, chapterBrief, CROSS_ORB, LENSES } = await import("./pairBrief.js");
 const { previewPairSectionPrompt } = await import("./pairInterpretation.js");
-const { PAIR_FOUNDATION, PAIR_SYSTEM, cardLineChecks, lensContext, pairSectionById, pairSpecsFor, sceneChecks, validatePairSection } = await import("../prompts/pair/index.js");
+const { PAIR_FOUNDATION, PAIR_SYSTEM, allocationOf, cardLineChecks, lensContext, pairChapterId, pairSectionById, pairSpecsFor, sceneChecks, validatePairSection } = await import("../prompts/pair/index.js");
 const { promptNames } = await import("../prompts/pair/shapes.js");
 const { DATA_CLOSE, DATA_OPEN, DATA_RULE, dataBlock, dataValue, lettersNote, outsideDataBlocks } = await import("../prompts/data.js");
 const { SECTION_IDS } = await import("../prompts/index.js");
@@ -97,6 +97,48 @@ test("a blind chart on either side: the overlays and every house-based line are 
   assert.doesNotMatch(b.text, /Sun 14\.\d Scorpio, \d+/);
   const tail = chapterBrief(b, { owned: [b.links[0].key] });
   assert.doesNotMatch(tail, /\d+(st|nd|rd|th) house/);
+});
+
+test("the brief marks each person's planets going backwards, and a lens chapter whose links read one says it once, one a chapter (review-05-10 §10)", async () => {
+  const b = buildPairBrief(input());
+  const charts = { A: chartFromFixture("marie-curie"), B: chartFromFixture("oprah-winfrey") };
+  const planets = ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
+  const marks = b.text.split("\n").filter((l) => l.startsWith("  going backwards at birth: "));
+  assert.equal(marks.length, 2, "one line a side");
+  for (const [i, side] of (["A", "B"] as const).entries()) {
+    const computed = planets.filter((p) => charts[side].planets[p]?.retrograde === true);
+    assert.ok(computed.length > 0, `${side}: the fixture has a planet going backwards, computed now`);
+    assert.deepEqual(b[side === "A" ? "a" : "b"].backwards, computed);
+    assert.equal(marks[i], `  going backwards at birth: ${computed.map((p) => p[0].toUpperCase() + p.slice(1)).join(", ")}`);
+  }
+  assert.match(PAIR_SYSTEM, /Only a chapter given a GOING BACKWARDS line writes it, once, in one sentence/);
+
+  const foundation = pairReplies(b).pair_foundation as never;
+  b.allocation = allocationOf(foundation, b, (n) => pairChapterId(b.lens, n));
+  const lensIds = pairSpecsFor(b.lens).filter((s) => s.lens).map((s) => s.key.split(":")[1]);
+  const owned = lensIds.map((id) => b.allocation![id] ?? []);
+  const said = backwardsByChapter(b, owned);
+  const key = (r: { side: string; body: string }) => `${r.side}:${r.body}`;
+  const taken = said.filter((r) => r !== null).map(key);
+  assert.ok(taken.length > 0, "the canned allocation gives a lens chapter a planet going backwards");
+  assert.equal(new Set(taken).size, taken.length, "each planet once in the report");
+  said.forEach((r, i) => {
+    const read = backwardsRead(b, owned[i]);
+    if (r === null) {
+      assert.ok(read.every((m) => said.slice(0, i).some((p) => p !== null && key(p) === key(m))), `${lensIds[i]}: says none only when earlier chapters said all its links read`);
+      return;
+    }
+    assert.equal(charts[r.side].planets[r.body]?.retrograde, true, `${lensIds[i]}: ${key(r)} goes backwards in the computed chart`);
+    assert.ok(r.links.length > 0 && r.links.every((n) => owned[i].includes(b.links[n - 1].key)), `${lensIds[i]}: the links it names are its own`);
+  });
+  for (const spec of pairSpecsFor(b.lens)) {
+    const id = spec.key.split(":")[1];
+    const lines = (await previewPairSectionPrompt(spec.key, input(), foundation)).user.match(/^GOING BACKWARDS: .*$/gm) ?? [];
+    const r = said[lensIds.indexOf(id)] ?? null;
+    if (!r) { assert.equal(lines.length, 0, `${id}: no line`); continue; }
+    assert.equal(lines.length, 1, `${id}: one line`);
+    assert.ok(lines[0].startsWith(`GOING BACKWARDS: ${r.side}'s ${r.body[0].toUpperCase()}${r.body.slice(1)} was going backwards when ${r.side} was born`), lines[0]);
+  }
 });
 
 test("the parent brief prints the child's age on the day and the now-and-later rule; over 18 the past-tense line (ADR-83)", async () => {

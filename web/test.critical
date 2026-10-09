@@ -11,3 +11,6 @@ src/lib/return-to.test.ts
 src/lib/build-story.test.ts
 src/lib/pair-story.test.ts
 src/lib/timeline-setup.test.ts
+src/lib/first-visit.test.ts
+src/lib/ask-offer.test.ts
+src/components/report/OpeningOverlay.test.ts

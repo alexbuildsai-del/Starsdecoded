@@ -3,9 +3,11 @@
  * seven-chapter document that opens on the two charts. The hero is one
  * centred group, each name once over its rows; chapter 01 draws each person's
  * chart alone, side by side, then the ledger of what comes naturally and what
- * is a challenge beside the links they rest on, the share card and Where your
- * charts meet; chapters 02 to 06 are the lens's workbook chapters, one scene
- * each, 02 introducing them; 07 is the practice. Streams behind the same door
+ * is a challenge beside the links they rest on and Where your charts meet;
+ * chapters 02 to 06 are the lens's workbook chapters, one scene each, 02
+ * introducing them; 07 is the practice, and the share card closes the report
+ * (ADR-338), its Share opening the Share window for the other person (MB-82).
+ * Streams behind the same door
  * as the natal page, n = 8, while the opening screen plays the pair's story
  * from the two stored charts (ADR-347 to 351). No number, rating, percentage
  * or bar describes the pair, on screen or in the PDF. No dawn, no gather.
@@ -18,8 +20,8 @@ import { getGetReportQueryKey, getListReportsQueryKey, useStopSharingCompatibili
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import LoadingState from "@/components/LoadingState";
-import { SendDialog } from "@/components/SendDialog";
 import { NatalWheel } from "@/components/chart/NatalWheel";
+import { ShareWindow } from "@/components/share/ShareWindow";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
@@ -194,7 +196,7 @@ export default function CompatibilityReportPage() {
       <ChapterRail chapters={rail} active={active} onActive={setActive} />
 
       <main className="rp-body pb-20">
-        {/* Chapter 01 opens on the two charts (ADR-97): each alone, then the ledger, the share card and Where your charts meet (ADR-101, ADR-102, ADR-177). */}
+        {/* Chapter 01 opens on the two charts (ADR-97): each alone, then the ledger and Where your charts meet (ADR-101, ADR-177). */}
         <Chapter {...ch(1)} lede={interpretation?.twoCharts?.headline}>
           <div className="grid gap-6 sm:grid-cols-2 sm:gap-8" data-two-charts>
             <div className="min-w-0"><NatalWheel chartData={chartA} centreName={first(names.a)} /></div>
@@ -202,19 +204,7 @@ export default function CompatibilityReportPage() {
           </div>
           {done("twoCharts") && interpretation?.twoCharts
             ? (
-              <>
-                <TwoChartsLedger s={interpretation.twoCharts} names={names} interpretation={interpretation} lens={lens} />
-                <ShareCard
-                  names={names}
-                  lens={lens}
-                  headline={interpretation.twoCharts.headline}
-                  strengths={interpretation.twoCharts.strengths}
-                  recipient={recipient}
-                  send={send}
-                  onSend={() => setSending(true)}
-                  onStopSharing={sender ? stop : undefined}
-                />
-              </>
+              <TwoChartsLedger s={interpretation.twoCharts} names={names} interpretation={interpretation} lens={lens} />
             )
             : <div className="mt-8"><ChapterSkeleton /></div>}
           {done("links") && interpretation?.links
@@ -230,6 +220,22 @@ export default function CompatibilityReportPage() {
             : <ChapterSkeleton lines={4} />}
         </Chapter>
 
+        {/* The story card closes the report, after the last section and only once every chapter has landed (ADR-338). */}
+        {done("twoCharts") && done("whatToPractise") && interpretation?.twoCharts && (
+          <div className="rp-chapter">
+            <ShareCard
+              names={names}
+              lens={lens}
+              headline={interpretation.twoCharts.headline}
+              strengths={interpretation.twoCharts.strengths}
+              recipient={recipient}
+              send={send}
+              onSend={() => setSending(true)}
+              onStopSharing={sender ? stop : undefined}
+            />
+          </div>
+        )}
+
         {interpretation && (
           <div className="rp-chapter">
             <MethodologyStrip meta={interpretation.meta} />
@@ -244,7 +250,7 @@ export default function CompatibilityReportPage() {
         </Suspense>
       )}
 
-      <SendDialog open={sending} onClose={() => setSending(false)} target={send ? { kind: "pair", reportId: id!, send } : null} />
+      {send && <ShareWindow open={sending} onClose={() => setSending(false)} target={{ kind: "pair", reportId: id!, name: recipient }} />}
     </div>
     </WorkbookProvider>
   );

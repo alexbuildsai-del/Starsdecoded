@@ -20,9 +20,11 @@ import { CHAPTERS } from "@/lib/chapters";
 import type { DateOrder } from "@/lib/date-entry";
 import { dayWords } from "@/lib/dial";
 import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
-import { cycleBody, cycleDay, cycleMark, cycleWhen, type CycleView, type WaveLine } from "@/lib/life-view";
+import {
+  bodyName, cycleBody, cycleDay, cycleMark, cycleWhat, cycleWhen, lifeStops, type CycleView, type LifeStop, type WaveLine,
+} from "@/lib/life-view";
 import { PERSONAL_REPORT } from "@/lib/product";
-import { dayIn, factsLine, fullDate, lastsLine, listOf, longDay, nearDate, weekdayOf, type ContactView } from "@/lib/timeline-view";
+import { dayIn, dayMonth, factsLine, fullDate, lastsLine, listOf, nearDate, weekdayOf, type ContactView } from "@/lib/timeline-view";
 
 /** Week · Month · 6 months, each from today (reading 4), named as Your week on the dashboard names them (ADR-211). */
 export const RANGES: readonly { id: TimelineRange; label: string; ahead: string }[] = [
@@ -119,43 +121,72 @@ export interface EventCard {
   /** The reading's own everyday line once it is written, none before (reading 9). */
   line: string | null;
   lasts: string;
+  /** The astronomy for Read more, not for the card's face (Review 05/10 §2). */
   facts: string;
+  /** "Pluto going back" while the planet is going backwards today (ADR-392), else none. */
+  chip: string | null;
+  /** A retrograde's own line, "Mercury retrograde · about 3 weeks", else none. */
+  retro: string | null;
   reads: boolean;
   reading: ReadingStatus;
+  /** What a tap hands the reading sheet, so Read more can show its passes (reading 27). */
+  event: TimelineEvent;
 }
 
 /** The shared contact card's view, for a card with a tone; a toneless eclipse is drawn without one. */
 export function contactOf(card: EventCard): ContactView | null {
   if (card.tone === null) return null;
-  const { key, tone, headline, line, lasts, facts } = card;
-  return { key, tone, headline, line, lasts, facts };
-}
-
-/** "3 Oct to 14 Nov", both with their years when either would be misread without one. */
-function spanText(start: string, end: string, today: string, order: DateOrder): string {
-  const years = [start, end].some((day) => nearDate(day, today, order) === fullDate(day, order));
-  const say = (day: string) => (years ? fullDate(day, order) : nearDate(day, today, order));
-  return `${say(start)} to ${say(end)}`;
+  const { key, tone, headline, line, lasts, facts, chip, retro } = card;
+  return { key, tone, headline, line, lasts, facts, chip, retro };
 }
 
 /**
- * A contact lasts to the end of the stretch the day sits in and says when it comes back after a gap. The orb is
- * today's, so it is printed only on today. A retrograde runs station to station and is never exact.
+ * "3 Oct to 14 Nov 2026" inside one year, each date with its own across two: the range carries the year, never a bare
+ * day. Where the reader's order puts the year first, it leads the range instead.
  */
-function cardOf(placed: Placed, day: string, now: TimelineNow, order: DateOrder): EventCard {
+function spanText(start: string, end: string, today: string, order: DateOrder): string {
+  if (start.slice(0, 4) !== end.slice(0, 4)) return `${nearDate(start, today, order)} to ${nearDate(end, today, order)}`;
+  return order === "ymd"
+    ? `${nearDate(start, today, order)} to ${dayMonth(end, order)}`
+    : `${dayMonth(start, order)} to ${nearDate(end, today, order)}`;
+}
+
+/** The planets that look like they go backwards for months (Review 08/10 §1); Mars passes carry the same data and get no chip. */
+const CHIP_BODIES: ReadonlySet<string> = new Set(["jupiter", "saturn", "uranus", "neptune", "pluto", "chiron"]);
+
+/** Whether a contact's planet is going backwards at `now`: inside one of the stretches that meet the contact's window. */
+export function goingBack(event: TimelineEvent, now: Date): boolean {
+  if (event.kind !== "contact" || !CHIP_BODIES.has(event.body)) return false;
+  const at = now.getTime();
+  return event.backwards.some((stretch) => Date.parse(stretch.start) <= at && at <= Date.parse(stretch.end));
+}
+
+const WEEK_MS = 7 * 86_400_000;
+
+/** "Mercury retrograde · about 3 weeks", from the engine's two stations. */
+function retroLine(event: TimelineEvent): string {
+  const weeks = Math.max(1, Math.round((Date.parse(event.end) - Date.parse(event.start)) / WEEK_MS));
+  return `${bodyName(event.body)} retrograde · about ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+}
+
+/**
+ * A contact lasts to the end of the stretch the day sits in; its later passes are Read more's. The orb is today's, so
+ * it is printed only on today. A retrograde runs station to station and is never exact.
+ */
+function cardOf(placed: Placed, day: string, now: TimelineNow, order: DateOrder, clock: Date): EventCard {
   const { event } = placed;
   const today = now.from;
   const house = housesText(event.houses);
   let lasts: string;
   let facts: string;
   if (event.kind === "contact") {
-    const at = placed.spans.findIndex((span) => span.start <= day && day <= span.end);
-    const span = placed.spans[at] ?? { start: placed.start, end: placed.end };
-    lasts = lastsLine({ end: span.end, back: at >= 0 ? (placed.spans[at + 1]?.start ?? null) : null }, today, order);
+    const stretch = placed.spans.findIndex((span) => span.start <= day && day <= span.end);
+    const span = placed.spans[stretch] ?? { start: placed.start, end: placed.end };
+    lasts = lastsLine({ end: span.end }, today, order);
     facts = factsLine({ sky: event.facts.sky, house }, placed.exact, today, order, day === today ? event.orbNow : null);
   } else if (event.kind === "retrograde") {
-    lasts = lastsLine({ end: placed.end }, today, order);
-    facts = [event.facts.sky, house, spanText(placed.start, placed.end, today, order)].filter(Boolean).join(" · ");
+    lasts = spanText(placed.start, placed.end, today, order);
+    facts = [event.facts.sky, house, lasts].filter(Boolean).join(" · ");
   } else {
     lasts = ONE_DAY;
     facts = [event.facts.sky, house].filter(Boolean).join(" · ");
@@ -168,8 +199,11 @@ function cardOf(placed: Placed, day: string, now: TimelineNow, order: DateOrder)
     line: event.line,
     lasts,
     facts,
+    chip: goingBack(event, clock) ? `${bodyName(event.body)} going back` : null,
+    retro: event.kind === "retrograde" ? retroLine(event) : null,
     reads: reads(event),
     reading: event.reading,
+    event,
   };
 }
 
@@ -219,7 +253,7 @@ function nextAfter(model: NowModel, after: string, order: DateOrder): NextChange
 export interface NowDay {
   index: number;
   date: string;
-  /** "Monday 5 October", with its year where the reader could mistake it. */
+  /** "Monday 5 October 2026". */
   title: string;
   today: boolean;
   /** The API's tones for the day, its contacts' alone (reading 17), which the mix bar draws. */
@@ -229,13 +263,12 @@ export interface NowDay {
   next: NextChange[];
 }
 
-export function nowDay(model: NowModel, index: number, order: DateOrder): NowDay {
+export function nowDay(model: NowModel, index: number, order: DateOrder, clock: Date = new Date()): NowDay {
   const { now } = model;
   const last = Math.max(0, now.days.length - 1);
   const at = Number.isFinite(index) ? Math.min(Math.max(0, Math.round(index)), last) : 0;
   const day = now.days[at];
   const date = day?.date ?? now.from;
-  const kept = nearDate(date, now.from, order) === fullDate(date, order);
   const cards = model.events
     .filter((placed) => placed.spans.some((span) => span.start <= date && date <= span.end))
     .sort((a, b) =>
@@ -243,11 +276,11 @@ export function nowDay(model: NowModel, index: number, order: DateOrder): NowDay
       || KIND_RANK[a.event.kind] - KIND_RANK[b.event.kind]
       || a.start.localeCompare(b.start)
       || a.event.key.localeCompare(b.event.key))
-    .map((placed) => cardOf(placed, date, now, order));
+    .map((placed) => cardOf(placed, date, now, order, clock));
   return {
     index: at,
     date,
-    title: kept ? dayWords(date, order) : longDay(date, order),
+    title: dayWords(date, order),
     today: date === now.from,
     tones: day ? [...day.tones] : [],
     cards,
@@ -255,16 +288,27 @@ export function nowDay(model: NowModel, index: number, order: DateOrder): NowDay
   };
 }
 
-/** "5 Oct to 11 Oct", the range's own first and last day. */
+/** Whether a day from today can go without its year in the range's label: this calendar year, or under six months ahead. */
+function rangeYearless(day: string, today: string): boolean {
+  if (day.slice(0, 4) === today.slice(0, 4)) return true;
+  const months = (Number(day.slice(0, 4)) - Number(today.slice(0, 4))) * 12 + Number(day.slice(5, 7)) - Number(today.slice(5, 7));
+  return day > today && months < 6;
+}
+
+/**
+ * "5 Oct to 11 Oct", the range's own first and last day, each with its year when either would be misread without one.
+ * It labels the span from today (the dial's, the setup's ready line), not a card's date, so it keeps the rule `nearDate`
+ * dropped: the setup's critical test pins it.
+ */
 export function rangeSpan(now: Pick<TimelineNow, "from" | "to">, order: DateOrder): string {
-  return spanText(now.from, now.to, now.from, order);
+  const years = [now.from, now.to].some((day) => !rangeYearless(day, now.from));
+  const say = (day: string) => (years ? fullDate(day, order) : dayMonth(day, order));
+  return `${say(now.from)} to ${say(now.to)}`;
 }
 
 /** One of the four known ages Life opens on (ADR-209), with the reader's own dates. */
 export interface AgeCard {
   id: CycleId;
-  /** "29", "every 12", "19 · 37", "early 40s". */
-  label: string;
   name: string;
   word: string;
   /** What happens in the sky, in a sentence. */
@@ -276,19 +320,11 @@ export interface AgeCard {
   opens: { key: string; name: string; reading: ReadingStatus } | null;
 }
 
-const ABOUT: Readonly<Partial<Record<CycleId, string>>> = {
-  "saturn-return": "Saturn comes back to where it was when you were born.",
-  "jupiter-return": "Jupiter comes back to where it was when you were born.",
-  "node-return": "The Moon's nodes come back to where they were when you were born.",
-  "uranus-opposition": "Uranus gets halfway round, opposite where it was when you were born.",
-};
-
 const sameInstant = (a: string | null, b: string) => a !== null && Date.parse(a) === Date.parse(b);
 const anchorOf = (cycle: Pick<LifeCycleView, "exact" | "start">) => cycle.exact[0] ?? cycle.start;
 
 function ageCardOf(age: KnownAge, cycles: readonly LifeCycleView[], today: string, day: (at: string) => string, order: DateOrder): AgeCard {
   const words = CYCLE_WORDS[age.id];
-  const known = KNOWN_AGES.find((k) => k.id === age.id);
   const own = cycles.filter((cycle) => cycle.id === age.id);
   const next = own.find((cycle) => sameInstant(age.next, anchorOf(cycle))) ?? null;
   const last = own.find((cycle) => sameInstant(age.last, anchorOf(cycle))) ?? null;
@@ -304,10 +340,9 @@ function ageCardOf(age: KnownAge, cycles: readonly LifeCycleView[], today: strin
   const opens = next ?? last;
   return {
     id: age.id,
-    label: known?.label ?? String(age.age),
     name: words.name,
     word: words.word,
-    about: ABOUT[age.id] ?? "",
+    about: cycleWhat(age.id),
     yours: said.join(" "),
     progress: age.progress,
     opens: opens ? { key: opens.key, name: opens.name, reading: opens.reading } : null,
@@ -322,6 +357,10 @@ export interface LifeModel {
   /** The most recent first, where looking back starts. */
   behind: CycleView[];
   waves: WaveLine[];
+  /** The reader's birth instant, which dates the line wherever it is dragged. */
+  birth: string;
+  /** Where each cycle on the waves sits: the marks the line snaps to. */
+  stops: LifeStop[];
   /** The reader's age today, which marks today on the waves. */
   age: number;
   /** Each cycle's reading status by key, for what a tap opens. */
@@ -349,6 +388,9 @@ export function waveLinesOf(life: Pick<TimelineLife, "waves" | "cycles" | "birth
   }));
 }
 
+// Four rows draw (Review 05/10 §4); Neptune's and Pluto's squares are cycles without a row, found in the list.
+const GRAPH_ROWS: readonly string[] = ["jupiter", "saturn", "north_node", "uranus"];
+
 export function lifeModel(life: TimelineLife, today: string, zone: string, order: DateOrder): LifeModel {
   const day = dayReader(zone);
   const progress = progressByBody(life);
@@ -374,6 +416,8 @@ export function lifeModel(life: TimelineLife, today: string, zone: string, order
       progress: progress[cycleBody(cycle.id)] ?? null,
       last: before ? { on: day(anchorOf(before)), age: before.age } : null,
       ages: same.map((c) => c.age),
+      ageDays: same.map((c) => day(anchorOf(c))),
+      at: anchorOf(cycle),
     };
   });
 
@@ -385,7 +429,9 @@ export function lifeModel(life: TimelineLife, today: string, zone: string, order
     behind: views
       .filter((view) => cycleWhen(view, today) === "past")
       .sort((a, b) => cycleDay(b).localeCompare(cycleDay(a)) || a.key.localeCompare(b.key)),
-    waves: waveLinesOf(life),
+    waves: waveLinesOf(life).filter((line) => GRAPH_ROWS.includes(line.body)),
+    birth: life.birth,
+    stops: lifeStops(life.cycles.filter((cycle) => GRAPH_ROWS.includes(cycle.body)), life.birth),
     age: life.age,
     readings: new Map(life.cycles.map((cycle) => [cycle.key, cycle.reading])),
   };

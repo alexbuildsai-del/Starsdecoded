@@ -1,7 +1,8 @@
 /**
  * The share grant (ADR-235). Whether a grant stands is pure and runs here
  * with no database. Its writes and reads, the pair picker and summary that
- * read through it, and Share yours back's route, run on a scratch Postgres when
+ * read through it, Share yours back's route, a gift's two answers (ADR-331)
+ * and Cancel invite and Copy their link (ADR-390) run on a scratch Postgres when
  * WALK_DATABASE_URL names a bootstrapped one (the walk's own variable), and
  * skip, saying why, without it.
  */
@@ -18,8 +19,10 @@ process.env.OPENAI_API_KEY ??= "sk-dummy-never-sent";
 process.env.OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
 process.env.LOG_LEVEL ??= "silent";
 
-const { grantShare, grantStands, ownChartOf, revokeShare, shareBackOffered, sharedProfileIds, sharerOf, sharesOf } =
-  await import("./shares.js");
+const {
+  grantShare, grantShareBacks, grantShareBacksOn, grantStands, ownChartOf, revokeShare, shareBackOffered, sharedProfileIds,
+  sharerOf, sharesOf,
+} = await import("./shares.js");
 
 const SHARER = "user_beatrice";
 const READER = "user_william";
@@ -122,17 +125,20 @@ function seed(): Promise<void> {
   return seeded;
 }
 
-/** Every test starts with no grant and no share link, whatever the one before it left. */
+/** Every test starts with no grant, no share link and no gift, whatever the one before it left. */
 async function fresh(): Promise<void> {
   await seed();
   const { db: pg, profileSharesTable, inviteTokensTable } = await db();
-  const { inArray } = await import("drizzle-orm");
+  const { inArray, or } = await import("drizzle-orm");
   const charts = Object.values(P);
+  const people = [BEA, WILL, CHARLES, GEORGE].map((v) => v.userId as string);
   await pg.delete(profileSharesTable).where(inArray(profileSharesTable.profileId, charts));
-  await pg.delete(inviteTokensTable).where(inArray(inviteTokensTable.profileId, charts));
+  // A gift has no chart of its own, so it goes by its giver.
+  await pg.delete(inviteTokensTable)
+    .where(or(inArray(inviteTokensTable.profileId, charts), inArray(inviteTokensTable.createdByUserId, people)));
 }
 
-async function shareLink(over: Partial<{ email: string; createdAt: Date; expiresAt: Date; claimedAt: Date; claimedByUserId: string; revokedAt: Date; createdByUserId: string }> = {}) {
+async function shareLink(over: Partial<{ tokenHash: string; email: string; createdAt: Date; expiresAt: Date; claimedAt: Date; claimedByUserId: string; revokedAt: Date; createdByUserId: string }> = {}) {
   const { db: pg, inviteTokensTable } = await db();
   const linkId = randomUUID();
   const now = Date.now();
@@ -312,11 +318,12 @@ type Answered = {
   state?: string;
 };
 
-/** The compatibility and share routes as app.ts mounts them, the session and Clerk middleware stood in by the viewer. */
-async function asViewer<Body = Answered>(viewer: Viewer, method: "GET" | "POST", path: string, body?: unknown) {
+/** The compatibility, share and invite routes as app.ts mounts them, the session and Clerk middleware stood in by the viewer. */
+async function asViewer<Body = Answered>(viewer: Viewer, method: "GET" | "POST" | "DELETE", path: string, body?: unknown) {
   const { default: express } = await import("express");
   const { default: compatibility } = await import("../routes/compatibility.js");
   const { default: shares } = await import("../routes/shares.js");
+  const { default: invites } = await import("../routes/invites.js");
   const { logger } = await import("./logger.js");
   const app = express();
   app.use(express.json());
@@ -328,6 +335,7 @@ async function asViewer<Body = Answered>(viewer: Viewer, method: "GET" | "POST",
   });
   app.use(compatibility);
   app.use(shares);
+  app.use(invites);
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.on("listening", () => resolve()));
   try {
@@ -336,7 +344,9 @@ async function asViewer<Body = Answered>(viewer: Viewer, method: "GET" | "POST",
       headers: { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { status: res.status, body: (await res.json()) as Body };
+    // A 204 has no body to read.
+    const text = await res.text();
+    return { status: res.status, body: (text ? JSON.parse(text) : {}) as Body };
   } finally {
     server.close();
   }
@@ -378,4 +388,104 @@ test("pair on a shared chart: it reads while the grant stands and closes once it
   assert.equal((await asViewer(BEA, "GET", summary)).status, 404);
   assert.equal(await revokeShare(shareId, BEA.userId as string), true);
   assert.equal((await asViewer(WILL, "GET", summary)).status, 404);
+});
+
+/** A gift from Beatrice to William's address, its link as its email carries it; `giverShares` is her answer. */
+async function giftTo(giverShares: boolean) {
+  const { db: pg, inviteTokensTable } = await db();
+  const { mintInviteToken } = await import("./inviteToken.js");
+  const { token, tokenHash } = mintInviteToken();
+  const giftId = randomUUID();
+  await pg.insert(inviteTokensTable).values({
+    id: giftId, tokenHash, email: `${WILL.userId}@example.com`, kind: "gift", profileId: null, recipientName: "William",
+    createdByUserId: BEA.userId, createdBySessionId: BEA.sessionId, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    giverShares,
+  });
+  return { giftId, token };
+}
+
+const claimOf = (token: string) => `/invites/${encodeURIComponent(token)}/claim`;
+
+/** Who reads whose own Personal report, as [Beatrice reads William's, William reads Beatrice's]. */
+async function eachReads(): Promise<[boolean, boolean]> {
+  return [(await sharedProfileIds(BEA.userId)).has(P.will), (await sharedProfileIds(WILL.userId)).has(P.bea)];
+}
+
+test("gift: the giver's Yes is a grant at the claim; the claimer's waits for their own report and becomes a grant once (reading 16)", { skip: NO_DB }, async () => {
+  await fresh();
+  const { db: pg, reportsTable, profileSharesTable } = await db();
+  const { and, eq } = await import("drizzle-orm");
+  const { giftId, token } = await giftTo(true);
+  const preview = await asViewer<{ giverShares?: boolean; kind?: string }>(WILL, "GET", `/invites/${encodeURIComponent(token)}`);
+  assert.deepEqual([preview.status, preview.body.kind, preview.body.giverShares], [200, "gift", true]);
+
+  await pg.update(reportsTable).set({ status: "interpreting" }).where(eq(reportsTable.id, R.will));
+  try {
+    const claimed = await asViewer(WILL, "POST", claimOf(token), { shareBack: true });
+    assert.equal(claimed.status, 200, JSON.stringify(claimed.body));
+    assert.deepEqual(await eachReads(), [false, true], "Beatrice's Yes reads at once; William's report is still being written");
+    assert.equal((await linkRow(giftId)).shareBack, true);
+    assert.equal(await grantShareBacksOn(P.will), 0);
+  } finally {
+    await pg.update(reportsTable).set({ status: "complete" }).where(eq(reportsTable.id, R.will));
+  }
+
+  assert.equal(await grantShareBacksOn(P.will), 1);
+  assert.deepEqual(await eachReads(), [true, true]);
+  assert.equal((await linkRow(giftId)).shareBack, false);
+  const [back] = await pg.select().from(profileSharesTable)
+    .where(and(eq(profileSharesTable.profileId, P.will), eq(profileSharesTable.readerUserId, BEA.userId as string)));
+  assert.deepEqual([back.ownerUserId, back.inviteId], [WILL.userId, giftId]);
+
+  // Once written it is a grant like any other: Stop sharing ends it, and no later report writes it again (R-3.6).
+  assert.equal(await revokeShare(back.id, WILL.userId as string), true);
+  assert.equal(await grantShareBacksOn(P.will), 0);
+  assert.equal(await grantShareBacks(WILL.userId as string), 0);
+  assert.deepEqual(await eachReads(), [false, true]);
+});
+
+test("gift: Not now on both sides writes no grant, at the claim or once a report is finished (ADR-331)", { skip: NO_DB }, async () => {
+  await fresh();
+  const { giftId, token } = await giftTo(false);
+  const preview = await asViewer<{ giverShares?: boolean }>(WILL, "GET", `/invites/${encodeURIComponent(token)}`);
+  assert.equal(preview.body.giverShares, false);
+  const claimed = await asViewer(WILL, "POST", claimOf(token), { shareBack: false });
+  assert.equal(claimed.status, 200, JSON.stringify(claimed.body));
+  assert.equal((await linkRow(giftId)).shareBack, false);
+  assert.equal(await grantShareBacksOn(P.will), 0);
+  assert.deepEqual(await eachReads(), [false, false]);
+});
+
+test("cancel and copy: a copied link claims as its email's does, and a cancelled link claims nothing by either (ADR-390)", { skip: NO_DB }, async () => {
+  await fresh();
+  const { mintInviteToken } = await import("./inviteToken.js");
+  const tokenOf = (claimUrl: unknown) => new URL(String(claimUrl)).searchParams.get("token") ?? "";
+
+  const email = mintInviteToken();
+  const cancelled = await shareLink({ tokenHash: email.tokenHash });
+  const copied = await asViewer<{ claimUrl?: string }>(BEA, "POST", `/invites/${cancelled}/link`);
+  assert.equal(copied.status, 200, JSON.stringify(copied.body));
+  assert.equal((await asViewer(CHARLES, "POST", `/invites/${cancelled}/link`)).status, 404, "only its sender copies it");
+  assert.equal((await asViewer(CHARLES, "DELETE", `/invites/${cancelled}`)).status, 404, "only its sender cancels it");
+  assert.equal((await asViewer(BEA, "DELETE", `/invites/${cancelled}`)).status, 204);
+  for (const token of [email.token, tokenOf(copied.body.claimUrl)]) {
+    assert.equal((await asViewer(CHARLES, "POST", claimOf(token))).status, 404);
+  }
+  assert.equal((await sharedProfileIds(CHARLES.userId)).has(P.bea), false);
+  assert.equal((await asViewer(BEA, "DELETE", `/invites/${cancelled}`)).status, 404);
+  assert.deepEqual(await sharesOf(BEA.userId as string), []);
+
+  const kept = mintInviteToken();
+  const waiting = await shareLink({ tokenHash: kept.tokenHash });
+  const first = tokenOf((await asViewer<{ claimUrl?: string }>(BEA, "POST", `/invites/${waiting}/link`)).body.claimUrl);
+  const second = tokenOf((await asViewer<{ claimUrl?: string }>(BEA, "POST", `/invites/${waiting}/link`)).body.claimUrl);
+  // Only a hash is kept, so a new copy takes the place of the one before; the email's link keeps working.
+  for (const [token, opens] of [[kept.token, 200], [second, 200], [first, 404]] as const) {
+    assert.equal((await asViewer(CHARLES, "GET", `/invites/${encodeURIComponent(token)}`)).status, opens);
+  }
+  assert.equal((await asViewer(CHARLES, "POST", claimOf(first))).status, 404);
+  const claimed = await asViewer<{ kind?: string }>(CHARLES, "POST", claimOf(second));
+  assert.deepEqual([claimed.status, claimed.body.kind], [200, "share"]);
+  assert.equal((await sharedProfileIds(CHARLES.userId)).has(P.bea), true);
+  assert.equal((await asViewer(BEA, "DELETE", `/invites/${waiting}`)).status, 404, "a claimed link is no longer waiting");
 });

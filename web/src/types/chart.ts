@@ -1,3 +1,7 @@
+import type { DidYouKnow, PairLinkOf } from "@workspace/api-client-react";
+
+export type { DidYouKnow };
+
 export interface ChartPlanet {
   sign: string;
   degree: number;
@@ -124,7 +128,12 @@ export interface WithClaims {
   claims: Claim[];
 }
 
-export interface OverviewSection extends WithClaims {
+/** The seven chapters that can carry a Did you know (ADR-383); absent before v12, null when the chapter had no fit. */
+export interface WithFact {
+  didYouKnow?: DidYouKnow | null;
+}
+
+export interface OverviewSection extends WithClaims, WithFact {
   headline: string;
   concentration: string;
   temperament: string;
@@ -144,9 +153,15 @@ export interface TriadSection extends WithClaims {
   rising?: TriadPart;
 }
 
+/** From v12 a card also holds a block for each body going backwards in the house, its stellium and one idea often noticed; reports before v12 hold none of the three. */
 export interface HouseReading {
   house: number;
   reading: string;
+  /** `planet` is the chart's key ("saturn"). */
+  retrograde?: { planet: string; text: string }[];
+  stellium?: { text: string; balance: string } | null;
+  /** Filled in code from the observations table, never model text. */
+  noticed?: { idea: string; why: string } | null;
 }
 
 /** The twelve house-card readings. No claims: the card they sit on is the evidence. */
@@ -154,7 +169,7 @@ export interface HousesSection {
   houses: HouseReading[];
 }
 
-export interface MindSection extends WithClaims {
+export interface MindSection extends WithClaims, WithFact {
   howYouThink: string;
   howYouDecide: string;
   howYouAreUnderstood: string;
@@ -167,7 +182,7 @@ export interface ListedItem {
   reason: string;
 }
 
-export interface CareerSection extends WithClaims {
+export interface CareerSection extends WithClaims, WithFact {
   vocationalPull: string;
   howYouShowUp: string;
   growthThroughWork: string;
@@ -190,7 +205,7 @@ export interface RelationshipsSection extends WithClaims {
   connectBestWith: ListedItem[];
 }
 
-export interface FamilySection extends WithClaims {
+export interface FamilySection extends WithClaims, WithFact {
   whatYouCarry: string;
   whatRootsYou: string;
   theInheritedEdge: string;
@@ -203,7 +218,7 @@ export interface SuperpowerItem {
   actions: ActionItem[];
 }
 
-export interface SuperpowersSection extends WithClaims {
+export interface SuperpowersSection extends WithClaims, WithFact {
   superpower: SuperpowerItem;
   chronicPattern: SuperpowerItem;
   growingEdge: SuperpowerItem;
@@ -215,7 +230,7 @@ export interface Paradox {
   invitation: string;
 }
 
-export interface DiscoveriesSection extends WithClaims {
+export interface DiscoveriesSection extends WithClaims, WithFact {
   opening: string;
   paradoxes: Paradox[];
 }
@@ -230,7 +245,7 @@ export interface FocusGroup {
   bullets: FocusBullet[];
 }
 
-export interface FocusSection extends WithClaims {
+export interface FocusSection extends WithClaims, WithFact {
   leanInto: FocusGroup;
   notice: FocusGroup;
   practice: FocusGroup;
@@ -336,7 +351,7 @@ export interface PairLink {
   aspect?: string;
   orb?: number;
   planet?: string;
-  of?: "A" | "B";
+  of?: PairLinkOf;
   house?: number;
   reading: string;
 }
@@ -424,16 +439,17 @@ export function sceneTitleOf(interpretation: PairInterpretation | null, id: stri
 
 /**
  * The prompt versions this page renders: v7 to v11 changed the words, not the
- * shape (ADR-104, ADR-185), so a stored v6 report reads as it was written.
+ * shape (ADR-104, ADR-185), so a stored v6 report reads as it was written; v12
+ * only adds fields the page reads where it knows them.
  * Older stored reports get the regenerate call to action.
  */
-export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9", "v10", "v11"] as const;
+export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9", "v10", "v11", "v12"] as const;
 
 /**
  * p3 dropped the pointer and wrote one scene a chapter, and p4 to p6 kept that
- * shape; the page reads a p2 report's written scene the same way (ADR-176).
+ * shape, as does p7; the page reads a p2 report's written scene the same way (ADR-176).
  */
-export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4", "p5", "p6"] as const;
+export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4", "p5", "p6", "p7"] as const;
 
 /**
  * A stored report this page can render. Anything older keeps its words but not
