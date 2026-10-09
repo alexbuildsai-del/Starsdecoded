@@ -21,6 +21,10 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    picture is gone has failed. Then: second person with "often", "may" or "tend to"; one scene the reader could
    picture, with when it shows; the reason, the planet's plain meaning then the house's or sign's. No closing full
    stop, no sentence over 25 words, no em dash or semicolon, and no word the `/ux-copy` voice chart would cut.
+   Wording never rules an idea out (the Owner, 2026-10-09): a guess about the past, a forecast or a promise is
+   reworded to the present-day habit under it ("grew up feeling alone" becomes "home may not feel like where you fit")
+   and goes on to find its second source. Left out stays for what no rewording fixes: looks, synastry, an outer
+   planet's sign, a transit, or no single placement.
 4. **Merge.** The same idea from another account joins its row; one account counts once, however many posts.
 5. **Find the second source; never ask the Owner** (ADR-403). Spawn the `researcher` for another creator, an article
    or a book: a search result is a lead, not a source, and content farms never count. The `verifier` re-fetches each
