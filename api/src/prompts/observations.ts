@@ -807,6 +807,11 @@ export const OBSERVATIONS: readonly Observation[] = [
         scene: "Friends of years still learn something about you that surprises them",
         sources: [site("The AstroTwins, astrostyle.com", "https://astrostyle.com/astrology/8th-house/"), site("Astrolibrary", "https://astrolibrary.org/interpretations/sun-house/")],
       },
+      {
+        idea: "When you get very close to someone, you may lose a bit of yourself in them",
+        scene: "A few months into a relationship, you notice your weekends, music and plans have all quietly become theirs",
+        sources: [video("@the_innercosmos", "7636839710832233735"), doctrine("Sun; the 8th house")],
+      },
     ],
   },
   {
@@ -1930,6 +1935,11 @@ export const OBSERVATIONS: readonly Observation[] = [
         idea: "You may feel most loved when you are useful, and you tend to show care by helping in practical ways",
         scene: "A friend is sad, and before you say much you have made tea and sorted their week's shopping",
         sources: [video("@the_innercosmos", "7639030539202104594"), doctrine("Moon; Virgo")],
+      },
+      {
+        idea: "Lateness and last-minute changes to plans can put you off someone more than you show",
+        scene: "A date cancels an hour before, and even though you say it's fine, the spark is gone",
+        sources: [video("@the_innercosmos", "7635424513567640839"), video("@the_innercosmos", "7638667161669553415"), doctrine("Moon; Virgo")],
       },
     ],
   },

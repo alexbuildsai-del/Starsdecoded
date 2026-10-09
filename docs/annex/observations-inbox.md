@@ -9,11 +9,12 @@ wording, lightly adapted so it is not a word-for-word copy (the Owner, 2026-10-0
 A source counts when it is another creator, an article or a book, each account or author once, or our doctrine when the
 planet's meaning and the house's or sign's in `vocabulary.ts` carry the reason on their own. A search result is a lead, never a
 source, and content farms never count. Hype, forecasts, promised outcomes and guesses about a reader's past never enter (R-5.2).
-Keys follow `ObservationKey`; "none" means the table has no key for it yet.
+The first column names the placement. "No placement" means the idea is not about one placement we can match in a chart
+(a Midheaven, a mix of signs, two people's charts), so it has nowhere to go.
 
 ## Waiting for a second source
 
-| Key | The idea | Source | Leads | Why it waits |
+| Placement | The idea | Source | Leads | Why it waits |
 |---|---|---|---|---|
 | aspect: Jupiter and Pluto, conjunction or trine | You want to grow big, and you spot a chance where others mostly see a risk | @anemowitch, TikTok (slide 17) | Cafe Astrology's Jupiter-Pluto page says you see a way "where others see a dead end" | Close, but Cafe speaks of a dead end, not a risk. One more source that says risk would bring it in. |
 | planet-in-house: Venus, 2nd | You may have a good eye for quality and taste, and earn through it | @anemowitch, TikTok (slide 14) | Cafe Astrology and Astrolibrary give the eye for quality, not the earning | Close. |
@@ -28,14 +29,14 @@ Keys follow `ObservationKey`; "none" means the table has no key for it yet.
 
 ## Check
 
-Ideas that pull against what a placement already says, or that did not fit its three, for the Owner to judge. Nothing here
+Ideas that pull against what a placement already says, or that did not fit its three, for the Owner to judge. The Owner
+settled Sun in the 8th (both ideas, not a contradiction) and Moon in Virgo (four ideas) on 2026-10-09. Nothing here
 reaches a report.
 
 | Placement | In the table | Pulls the other way, or left over | Note |
 |---|---|---|---|
-| Sun in the 8th | You often keep your real self private, and people may take a long time to really know you (The AstroTwins, Astrolibrary) | When you get very close to someone, you may lose a bit of yourself in them (@the_innercosmos, our doctrine) | Private with most, merged with one: maybe both true. Your call. |
-| Moon in Virgo | Calms down by organising; replays a hurt; feels loved when useful | Reads feelings from small signs; put off by lateness and last-minute changes (@the_innercosmos, our doctrine) | Over the three. |
-| Moon in Pisces | Feelings close to the surface; takes in others' drama; daydreams picked apart | Needs distance and time alone after a hard ending (@the_innercosmos, our doctrine) | Over the three. Venus in Pisces says the same and stays. |
+| Moon in Virgo | Calms down by organising; replays a hurt; feels loved when useful; put off by lateness and last-minute changes (the Owner kept all four) | Reads feelings from small signs (@the_innercosmos, our doctrine) | Over the limit. |
+| Moon in Pisces | Feelings close to the surface; takes in others' drama; daydreams picked apart | Needs distance and time alone after a hard ending (@the_innercosmos, our doctrine) | Over the three. The Owner is looking at it. |
 
 ## Left out, and why
 
@@ -44,26 +45,26 @@ to the habit under it and looks for its second source. What stays here no reword
 Chiron's sign, fate as the whole claim, a transit, no single placement, or sources that say the opposite. A row whose plain
 core is already in the table says so.
 
-| Key | What it says | Source | Why it stays out |
+| Placement | What it says | Source | Why it stays out |
 |---|---|---|---|
-| none: the Sun on the Midheaven | You are known just for being yourself and lead early | @anemowitch (slide 08) | The Midheaven is not in the chart's aspects. Fame and an early start are a promise and a forecast. Its plain core is the Sun-in-10th row, same account. |
+| No placement, the Sun on the Midheaven | You are known just for being yourself and lead early | @anemowitch (slide 08) | The Midheaven is not in the chart's aspects. Fame and an early start are a promise and a forecast. Its plain core is the Sun-in-10th row, same account. |
 | planet-in-house: Saturn, 10th, its timing | Standing arrives for good after the first Saturn return, near 30 | @anemowitch (slide 10) | A dated forecast and a guarantee. The row keeps the slow, steady effort. |
 | planet-in-house: Jupiter, 2nd, windfalls | Several incomes, a high ceiling, sudden money | @anemowitch (slide 16) | A forecast and hype. The row keeps the knack for earning from skills. |
-| none: Jupiter on the Midheaven | Career growth, doors opened by people in charge, a wide reach | @anemowitch (slide 18) | The Midheaven is not a key, and the reach is hype. |
+| No placement, Jupiter on the Midheaven | Career growth, doors opened by people in charge, a wide reach | @anemowitch (slide 18) | The Midheaven is not a key, and the reach is hype. |
 | planet-in-house: Jupiter, 11th, doors | Friends with influence open doors at work, and a big following gathers | @anemowitch (slide 21) | A promised outcome and hype. The row keeps the wide, warm circle. |
 | planet-in-house: North Node, 2nd and 10th, fate | The path is fated and its success certain | @anemowitch (slides 09, 25) | Fate. The rows keep the direction of growth. |
-| none: every Moon sign | Your Moon sign shows most when you are tired, upset, unwell or with someone you feel safe with | @astrologyobserver (slide 28) | Not one placement. Its lesson is already the writer's rule that every claim says when it shows (review-08-10 §9). |
+| No placement, every Moon sign | Your Moon sign shows most when you are tired, upset, unwell or with someone you feel safe with | @astrologyobserver (slide 28) | Not one placement. Its lesson is already the writer's rule that every claim says when it shows (review-08-10 §9). |
 | planet-in-sign: Moon, Pisces, drink | Tears that come with a few drinks | @astrologyobserver (slide 28) | A detail we leave out. The row keeps feelings that spill over when your guard is down. |
-| none: synastry | A partner's planets in your 5th feel like wanting, in your 7th like belonging | @astrologyobserver (slide 32) | Synastry observations are out of scope (review-08-10). |
-| none: Capricorn and Taurus among Sun, Moon and rising | Torn between working hard and resting | @astrologyobserver (slide 36) | A mix of three placements, no single key. |
-| none | Carousel titles about successful, protected or intuitive placements | @anemowitch (slides 13, 38 to 40) | Titles and hype, no claim. |
-| none | Covers, intros and the disclaimer slide | @sarahmoodyofficial (slides 14, 15, 28 to 30, 43, 56, 67) | Titles, no claim. |
+| No placement, synastry | A partner's planets in your 5th feel like wanting, in your 7th like belonging | @astrologyobserver (slide 32) | Synastry observations are out of scope (review-08-10). |
+| No placement, Capricorn and Taurus among Sun, Moon and rising | Torn between working hard and resting | @astrologyobserver (slide 36) | A mix of three placements, no single key. |
+| No placement | Carousel titles about successful, protected or intuitive placements | @anemowitch (slides 13, 38 to 40) | Titles and hype, no claim. |
+| No placement | Covers, intros and the disclaimer slide | @sarahmoodyofficial (slides 14, 15, 28 to 30, 43, 56, 67) | Titles, no claim. |
 | planet-in-house: Venus, 2nd, slow money | You build money slowly and steadily rather than in jumps | @anemowitch (slide 14) | Astrolibrary says the opposite: you spend as fast as you earn. |
 | planet-in-sign: Chiron by sign | Like many people born in your years, a tender spot around your mind, balance, feelings or standards | @the_innercosmos | Chiron is read by house, never by sign. |
-| none | Looks, a scar or birthmark, weight, a health condition | @the_innercosmos | Looks and health never enter. |
-| none | Past lives, karma, the vertex and the Part of Fortune as fate | @the_innercosmos | Fate is the whole claim. |
-| none | Synastry, composite charts and claims made for one gender | @the_innercosmos | Out of scope (review-08-10). |
-| none | 2026 forecasts, transits and eclipses (25 videos) | @the_innercosmos | Forecasts, not a placement. |
+| No placement | Looks, a scar or birthmark, weight, a health condition | @the_innercosmos | Looks and health never enter. |
+| No placement | Past lives, karma, the vertex and the Part of Fortune as fate | @the_innercosmos | Fate is the whole claim. |
+| No placement | Synastry, composite charts and claims made for one gender | @the_innercosmos | Out of scope (review-08-10). |
+| No placement | 2026 forecasts, transits and eclipses (25 videos) | @the_innercosmos | Forecasts, not a placement. |
 
 ## Read
 
@@ -79,7 +80,7 @@ core is already in the table says so.
   shared with people born in the same years. The innercosmos captions were read again for ideas left out for their wording
   (113 entered, reworded) and three astrology websites became reachable: Cafe Astrology, The AstroTwins and Astrolibrary,
   each page read in full. 278 rows in the table, 10 waiting, 18 left out.
-- 2026-10-09, last: one placement, many ideas (the Owner). 278 rows became 221 placements holding 269 ideas, each with its own
+- 2026-10-09, last: one placement, many ideas (the Owner). 278 rows became 221 placements holding 271 ideas (with the Owner's two additions), each with its own
   sources, at most three, best-sourced first. Five near-twins were folded into one idea with both sets of sources. One pulled against its placement and three were over the limit: see Check.
 
 ## In reports
@@ -150,7 +151,7 @@ The placements in `observations.ts` today, in the table's order. A house card sh
 | North Node in the 10th | You grow most by stepping out of your private comfort zone into roles where people can see you (@anemowitch, our doctrine) | your North Node, which shows where you grow, sits in your 10th, the house of public life |
 | South Node in the 6th | You may keep busy with the day-to-day and forget to make time for your inner life (@the_innercosmos, our doctrine) | your South Node, what you fall back on, sits in your 6th, the house of daily tasks |
 | South Node in the 12th | You may enjoy your own company so much that making new friends takes real effort (@the_innercosmos, our doctrine) | your South Node, what you fall back on, sits in your 12th, the house of time alone |
-| Sun in the 8th | You often keep your real self private, and people may take a long time to really know you (The AstroTwins, astrostyle.com, Astrolibrary) | your Sun, which is who you are, sits in your 8th, the house of what is hidden and shared with few |
+| Sun in the 8th | 1. You often keep your real self private, and people may take a long time to really know you (The AstroTwins, astrostyle.com, Astrolibrary)<br>2. When you get very close to someone, you may lose a bit of yourself in them (@the_innercosmos, our doctrine) | your Sun, which is who you are, sits in your 8th, the house of what is hidden and shared with few |
 | Sun in the 6th | You tend to feel most like yourself when you work hard and keep good daily routines (@the_innercosmos, our doctrine) | your Sun, the planet of who you are, is in your 6th, the house of daily work and habits |
 | Moon in the 12th | You may look after other people's feelings and keep your own needs quiet, even from yourself (@the_innercosmos, our doctrine) | your Moon, the planet of feelings and needs, is in your 12th, the house of what is hidden and private sadness |
 | Mars in the 8th | Shared money can turn into a point of conflict for you, so clear agreements tend to help (@the_innercosmos, our doctrine) | your Mars, the planet of conflict, is in your 8th, the house of shared money and debt |
@@ -252,7 +253,7 @@ The placements in `observations.ts` today, in the table's order. A house card sh
 | Moon in Gemini | 1. You often work out how you feel by talking about it, sometimes over and over, until it makes sense (@astrologyobserver, @the_innercosmos, our doctrine)<br>2. You may lose interest in someone who shuts down your questions or stops talking (@the_innercosmos, our doctrine) | your Moon, which is about feelings, is in Gemini, a sign that wants to talk things over |
 | Moon in Cancer | 1. When something hurts, you often need to cry it out somewhere cosy, not play it tough (@the_innercosmos, our doctrine)<br>2. You may carry the feelings of the people close to you as if they were your job (@the_innercosmos, our doctrine)<br>3. Being met with coldness when you share something personal can close you off for a long time (@the_innercosmos, our doctrine) | your Moon, which is about feelings, is in Cancer, its own sign, which feels everything fully |
 | Moon in Leo | 1. When you are low, you often need someone in your corner who makes you feel seen and valued (@the_innercosmos, our doctrine)<br>2. Being ignored, or told you are too dramatic, can sting you more than people expect (@the_innercosmos, our doctrine) | your Moon, which is about what you need, is in Leo, a sign that wants to be seen |
-| Moon in Virgo | 1. When you are upset, you tend to calm down by organising something: a list, a chore, a tidy drawer (@the_innercosmos, our doctrine)<br>2. You may replay a hurt over and over, going through every detail again (@the_innercosmos, our doctrine)<br>3. You may feel most loved when you are useful, and you tend to show care by helping in practical ways (@the_innercosmos, our doctrine) | your Moon, the planet of what makes you feel safe, is in Virgo, the sign that wants things to work properly |
+| Moon in Virgo | 1. When you are upset, you tend to calm down by organising something: a list, a chore, a tidy drawer (@the_innercosmos, our doctrine)<br>2. You may replay a hurt over and over, going through every detail again (@the_innercosmos, our doctrine)<br>3. You may feel most loved when you are useful, and you tend to show care by helping in practical ways (@the_innercosmos, our doctrine)<br>4. Lateness and last-minute changes to plans can put you off someone more than you show (@the_innercosmos, our doctrine) | your Moon, the planet of what makes you feel safe, is in Virgo, the sign that wants things to work properly |
 | Moon in Libra | 1. When you are upset, you often need someone on your side who reminds you that you are liked (@the_innercosmos, our doctrine)<br>2. You may keep the peace first and check what others think before you know what you feel (@the_innercosmos, our doctrine) | your Moon, which is about feelings, is in Libra, a sign that needs others to agree |
 | Moon in Scorpio | 1. You can tell when someone's energy toward you changes, often before they realise they are acting differently (@astrologyobserver, our doctrine)<br>2. When something hurts, you tend to go off on your own and deal with it privately, without telling anyone (@the_innercosmos, our doctrine)<br>3. If someone shares your secret or lies to you, your trust in them may not come back (@the_innercosmos, our doctrine) | your Moon, which is about feelings, is in Scorpio, a sign that wants to know what is really going on |
 | Moon in Sagittarius | 1. When you feel stuck, you need to remind yourself you are free, often by doing something spontaneous (@the_innercosmos, our doctrine)<br>2. Someone who needs to be with you all the time can quickly make you feel boxed in (@the_innercosmos, our doctrine) | your Moon, which is about what you need, is in Sagittarius, a sign that wants freedom |
