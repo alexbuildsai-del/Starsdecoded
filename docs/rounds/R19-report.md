@@ -51,10 +51,10 @@ know card, the 9th house's stellium), your Pluto card's years, `?visitor=new`. M
 MB-235's two calls ship at their defaults, provisional.
 
 ## Spend
-Spend: 7.92M Opus (32 Opus cards with follow-ups, six researchers, the sentinel), 3.52M Sonnet (18 cards, the gate-fix card, four
+Spend: 8.15M Opus (32 Opus cards with follow-ups, six researchers, the sentinel, the close's docs), 3.52M Sonnet (18 cards, the gate-fix card, four
 extractors, the verifier, the tester, the words list), 0 Haiku · cards 30 Opus, 18 Sonnet, 0 Haiku by planned tier,
 plus R19-49 and R19-50 (Opus) · escalations none · lab 0 ¢.
 
 **Lessons.** The caller rule seen again (R19-20, 23, 29, 30): its five rounds restart. Seen once: a test's schema race, builders'
 leftover dev servers, a layout fix measuring only its own overlap. Retired: the R13 tester base and R14 pushes lines (fixes kept).
-**Mailbox and backlog.** Raised: none new. Backlog done: B-07, 32, 33, 50 to 52, 57, 62 to 64, 67, 73, 74, 76, B-03's dry-lab part; added B-85 to 95.
+**Mailbox and backlog.** Raised: none new. Backlog done: B-07, 32, 33, 50 to 52, 57, 62 to 64, 67, 73, 74, 76, B-03's dry-lab part; added B-85 to 96.

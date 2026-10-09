@@ -67,6 +67,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-93 · ClaimPage says "Share yours back when it's ready?", the locked spec "Share yours back?"; one changes · R19-41
 - B-94 · The buyer walk's "someone you know" road (Tomás) never reads step 4 as a first-steps state · `buyer.walk.ts` · R19-41
 - B-95 · First visit leftovers: `Orbit.tsx` draws "YOU / Your report" with ghost seats where the mock has one "You"; Practising shows Audrey's sample when an own report has nothing to practise; the gift nudge's line repeats its heading (/ux-copy) · R19-35
+- B-96 · Docs drift: MASTERFILE §4 still calls the admin Timeline's only access (R-6.2 adds a subscription); §3's testers row lacks the QA account's mark (ADR-387); INDEX's code-map heading lists QA-02 and QA-03 only · R19 close
 
 ## Waiting on Alex
 
