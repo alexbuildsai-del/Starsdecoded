@@ -15,54 +15,44 @@ Keys follow `ObservationKey`; "none" means the table has no key for it yet.
 
 | Key | The idea | Source | Leads | Why it waits |
 |---|---|---|---|---|
-| aspect: Jupiter and Pluto, conjunction or trine | You want to grow big, and you spot a chance where others mostly see a risk | @anemowitch, TikTok (slide 17) | sallykirkman.com, close (search result, not read) | One creator. Our doctrine gives growth and intensity, not the eye for risk. The talk of great wealth never enters. |
-| aspect: Venus and Jupiter, conjunction or trine | You are warm, generous and easy to like | @anemowitch, TikTok (slide 24) | none yet | One creator, and most of the slide is hype about money. |
-| planet-in-house: Venus, 2nd | You may earn best through taste, art or getting on well with people | @anemowitch, TikTok (slide 14) | @the_innercosmos says taste, not the earning; astrologyzone.com, close (not read) | The table's Venus row keeps the slide's first idea. This one leans toward an outcome, so it needs a source that says the same. |
-| planet-in-sign: Sun, Aquarius | Under a cool surface you may feel insecure or jealous, and you work hard to hide it | @astrologyobserver, TikTok (slide 26) | none yet | Sent about women only: it enters for anyone or not at all. Our doctrine does not carry jealousy for Aquarius. |
-| none: Capricorn, no body named | Once you are at ease with someone, your humour turns sillier than people expect | @astrologyobserver, TikTok (slide 36) | none yet | A sign idea needs a body. Our Capricorn already has a dry sense of humour. |
-| aspect: Sun or Mars with Saturn, trine or sextile | You set firm limits and stay steady under pressure | @anemowitch, TikTok (slide 40) | none yet | One creator. The talk of shutting out bad influences is hype and never enters. It would take four keys. |
-| stellium-in-house: 9th | To balance a full 9th, lean on the 3rd: everyday talk, short trips, brothers and sisters | imagineastrologyy (the Owner's example on Review 08/10) | none | Already doctrine as a stellium's "To balance it" line (ADR-402), so it needs no row yet. |
-| planet-in-house: Jupiter, 2nd | Growth follows once you treat your time and energy as worth something | @sarahmoodyofficial (slide 12) | none yet | One creator. It reads as advice more than a scene. |
-| planet-in-house: Jupiter, 8th | You grow by facing change and going deep, and vulnerability does not scare you | @sarahmoodyofficial (slide 57) | none yet | One creator. Our doctrine gives depth, not the ease with vulnerability. |
-| sign-on-house: Leo on the 2nd | What you are good at is warmth, creativity and play | @sarahmoodyofficial (slide 35) | none yet | Our Leo has warmth but not the knack for value the slide claims. |
+| aspect: Jupiter and Pluto, conjunction or trine | You want to grow big, and you spot a chance where others mostly see a risk | @anemowitch, TikTok (slide 17) | Cafe Astrology's Jupiter-Pluto page says you see a way "where others see a dead end" | Close, but Cafe speaks of a dead end, not a risk. One more source that says risk would bring it in. |
+| planet-in-house: Venus, 2nd | You may have a good eye for quality and taste, and earn through it | @anemowitch, TikTok (slide 14) | Cafe Astrology and Astrolibrary give the eye for quality, not the earning | Close. |
+| sign-on-house: Leo on the 2nd | Your creativity and warmth tend to be your best assets | @sarahmoodyofficial (slide 35) | Cafe Astrology says you may earn in the arts. Astrolibrary says through positions of authority | The sources lean two ways. |
 | sign-on-house: Cancer on the 1st to 8th and 11th | Gentle advice on caring for yourself in each area | @sarahmoodyofficial (slides 13, 16, 18 to 23, 26) | none | Advice more than observation. Cancer on 10 and 12 entered. |
-| planet-in-house: Sun, 8th | You keep your real self private and show it only to a few | @the_innercosmos | none yet | Our doctrine gives depth, not secrecy, to the Sun here. |
-| planet-in-house: Saturn, 7th | You take commitment slowly and seriously | @the_innercosmos | none yet | The video ties it to a late marriage, a forecast. Only the slow care could enter. |
-| planet-in-sign: Mars, Pisces | You act on feeling and back off from a straight fight | @the_innercosmos | none yet | The only Mars sign without a second source in our doctrine. |
-| aspect: Moon and Saturn | You hold feelings in until you trust someone | @the_innercosmos | none yet | The video leans on childhood. Only the present-day habit could enter. |
-| aspect: Sun opposite Moon | You often feel pulled two ways between what you want and what you need | @the_innercosmos | none yet | One creator. |
-| aspect: Mars and Pluto | Once you decide, you push hard and rarely let go | @the_innercosmos | none yet | One creator, and half the video is about power over others. |
+| aspect: Mars and Pluto, square or opposition | Once you decide, you push hard and rarely let go | @the_innercosmos | Cafe Astrology backs it for the conjunction only | The conjunction entered. |
+| stellium-in-house: 7th and 11th | none yet | none | The three websites we can reach have no page on these | No source at all yet. |
+| stellium-in-house: 8th, partners | You understand yourself through the people you are close to | @the_innercosmos | none | One creator. |
+| sign-on-house: Leo on the 5th | You tend to be warm and protective with children, even ones who are not your own | @the_innercosmos | none | One creator. |
+| sign-on-house: Gemini or Virgo on the 7th | When people push back on you openly, it is often about your words or your logic | @the_innercosmos | none | One creator, and it reads the 7th as open enemies, which our doctrine does not. |
+| planet-in-sign: Moon, Libra | You may cool on someone who can't get along with your friends | @the_innercosmos | none | One creator. |
 
 ## Left out, and why
 
-These break a rule as they were sent (a forecast, a guess about the past, hype, or not about one person), so more sources
-would not bring them in. Where the idea has a plain core, that core is often already in the table.
+Wording alone never puts an idea here (the Owner, 2026-10-09): a forecast, a guess about the past or a promise is reworded
+to the habit under it and looks for its second source. What stays here no rewording fixes: looks or health, synastry,
+Chiron's sign, fate as the whole claim, a transit, no single placement, or sources that say the opposite. A row whose plain
+core is already in the table says so.
 
 | Key | What it says | Source | Why it stays out |
 |---|---|---|---|
 | none: the Sun on the Midheaven | You are known just for being yourself and lead early | @anemowitch (slide 08) | The Midheaven is not in the chart's aspects. Fame and an early start are a promise and a forecast. Its plain core is the Sun-in-10th row, same account. |
 | planet-in-house: Saturn, 10th, its timing | Standing arrives for good after the first Saturn return, near 30 | @anemowitch (slide 10) | A dated forecast and a guarantee. The row keeps the slow, steady effort. |
-| planet-in-house: Uranus, Saturn or Pluto, 4th | You grew up feeling alone or left behind | @astronotebook (slide 11) | A guess about the reader's childhood, and a heavy one. |
-| planet-in-house: Venus, 2nd, money's pace | Money builds slowly rather than in jumps | @anemowitch (slide 14) | A forecast about money. |
-| none: Midheaven in Leo | People see you as valuable, and you do best as the face of your own name | @anemowitch (slide 15) | A sign on an angle is not a key, and the wealth talk is hype. |
 | planet-in-house: Jupiter, 2nd, windfalls | Several incomes, a high ceiling, sudden money | @anemowitch (slide 16) | A forecast and hype. The row keeps the knack for earning from skills. |
 | none: Jupiter on the Midheaven | Career growth, doors opened by people in charge, a wide reach | @anemowitch (slide 18) | The Midheaven is not a key, and the reach is hype. |
-| planet-in-house: Venus, 4th, the past | You grew up with gardens, or in a family of high achievers | @astronotebook (slide 19) | A guess about the reader's past. The row keeps the wish for a calm home. |
-| planet-in-house: Venus, 4th, and Taurus on the 4th | As a child your practical needs were met but your feelings were not | @astronotebook (slide 20) | A guess about the reader's childhood. A sign on a house is not a key. |
 | planet-in-house: Jupiter, 11th, doors | Friends with influence open doors at work, and a big following gathers | @anemowitch (slide 21) | A promised outcome and hype. The row keeps the wide, warm circle. |
 | planet-in-house: North Node, 2nd and 10th, fate | The path is fated and its success certain | @anemowitch (slides 09, 25) | Fate. The rows keep the direction of growth. |
 | none: every Moon sign | Your Moon sign shows most when you are tired, upset, unwell or with someone you feel safe with | @astrologyobserver (slide 28) | Not one placement. Its lesson is already the writer's rule that every claim says when it shows (review-08-10 §9). |
 | planet-in-sign: Moon, Pisces, drink | Tears that come with a few drinks | @astrologyobserver (slide 28) | A detail we leave out. The row keeps feelings that spill over when your guard is down. |
 | none: synastry | A partner's planets in your 5th feel like wanting, in your 7th like belonging | @astrologyobserver (slide 32) | Synastry observations are out of scope (review-08-10). |
 | none: Capricorn and Taurus among Sun, Moon and rising | Torn between working hard and resting | @astrologyobserver (slide 36) | A mix of three placements, no single key. |
-| planet-in-house: Jupiter, 12th | Help or a lucky escape turns up in a crisis | @anemowitch (slide 38) | A promised outcome, sold as protection. |
-| planet-in-sign: Pluto, Scorpio | A sharp sense for what is hidden | @anemowitch (slide 39) | Pluto stays in one sign for years, so this is about a generation, not a reader. |
 | none | Carousel titles about successful, protected or intuitive placements | @anemowitch (slides 13, 38 to 40) | Titles and hype, no claim. |
 | none | Covers, intros and the disclaimer slide | @sarahmoodyofficial (slides 14, 15, 28 to 30, 43, 56, 67) | Titles, no claim. |
-| planet-in-house: Jupiter, 12th | A sense of being protected | @sarahmoodyofficial (slide 64) | A promised outcome, sold as protection. Its quiet time alone could still come back. |
-| none | Childhood guesses, looks, synastry, past lives and karma | @the_innercosmos (many videos) | R-5.2 and review-08-10. |
-| planet-in-sign: Pluto, Neptune and Uranus by sign | Generation traits | @the_innercosmos | About a generation, not a reader. |
-| sign-on-house: Gemini on the 5th or 7th, and other timing lines | Two loves, two marriages, a late start | @the_innercosmos | Forecasts. |
+| planet-in-house: Venus, 2nd, slow money | You build money slowly and steadily rather than in jumps | @anemowitch (slide 14) | Astrolibrary says the opposite: you spend as fast as you earn. |
+| planet-in-sign: Chiron by sign | Like many people born in your years, a tender spot around your mind, balance, feelings or standards | @the_innercosmos | Chiron is read by house, never by sign. |
+| none | Looks, a scar or birthmark, weight, a health condition | @the_innercosmos | Looks and health never enter. |
+| none | Past lives, karma, the vertex and the Part of Fortune as fate | @the_innercosmos | Fate is the whole claim. |
+| none | Synastry, composite charts and claims made for one gender | @the_innercosmos | Out of scope (review-08-10). |
+| none | 2026 forecasts, transits and eclipses (25 videos) | @the_innercosmos | Forecasts, not a placement. |
 
 ## Read
 
@@ -74,13 +64,17 @@ would not bring them in. Where the idea has a plain core, that core is often alr
   named the account as a reference) and the 33 Review 08/10 slides again. The Owner changed the wording rule: keep the source's
   good wording, lightly adapted. The table now holds 142 rows, with a new key for the sign on a house. 17 wait above and 23 stay
   out. The network policy blocked every astrology website again, so the second sources are creators and our doctrine.
+- 2026-10-09, later: the Owner asked that wording never rule an idea out, and that outer planets in signs come in, worded as
+  shared with people born in the same years. The innercosmos captions were read again for ideas left out for their wording
+  (113 entered, reworded) and three astrology websites became reachable: Cafe Astrology, The AstroTwins and Astrolibrary,
+  each page read in full. 278 rows in the table, 10 waiting, 18 left out.
 
 ## In reports
 
 The ideas in `observations.ts` today, in the table's order (the first match leads a house card). Kept in step with the file by
 `/observe`. "Our doctrine" means the planet's and the house's or sign's meaning in `vocabulary.ts` give the reason.
 
-### Many planets in one house (4)
+### Many planets in one house (12)
 
 | Placement | The idea | Sources |
 |---|---|---|
@@ -88,8 +82,16 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 | Stellium in the 12th | You often need downtime and time alone to recharge, more than most people around you | @the_innercosmos, our doctrine |
 | Stellium in the 6th | Life can feel like a never-ending list of things to do, and you may try to control every small task | @the_innercosmos, our doctrine |
 | Stellium in the 4th | You tend to get most of your energy back at home, so home needs to feel peaceful and looked after | @the_innercosmos, our doctrine |
+| Stellium in the 1st | Your own growth and finding out who you are tend to come first, and relationships may take a back seat for a while | @the_innercosmos, our doctrine |
+| Stellium in the 5th | You tend to put fun, play and making things first, and settling down may not feel urgent to you | @the_innercosmos, our doctrine |
+| Stellium in the 3rd | You tend to keep learning all your life, and you enjoy the details and fine points of whatever you pick up | @the_innercosmos, our doctrine |
+| Stellium in the 9th | You tend to keep learning all your life, and you are drawn to big ideas that stretch how you see the world | @the_innercosmos, our doctrine |
+| Stellium in the 2nd | You may put a lot of energy into building money and things that make you feel safe | @the_innercosmos, our doctrine |
+| Stellium in the 12th | You may have a rich inner life few people ever see, quite separate from the life everyone knows | @the_innercosmos, our doctrine |
+| Stellium in the 4th | Questions about family and where you come from may keep coming back to you, long into adult life | @the_innercosmos, our doctrine |
+| Stellium in the 10th | Work may quietly become the main thing in your life, often before you decide it should | The AstroTwins, astrostyle.com, our doctrine |
 
-### A planet in a house (46)
+### A planet in a house (93)
 
 | Placement | The idea | Sources |
 |---|---|---|
@@ -139,6 +141,53 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 | North Node in the 10th | You grow most by stepping out of your private comfort zone into roles where people can see you | @anemowitch, our doctrine |
 | South Node in the 6th | You may keep busy with the day-to-day and forget to make time for your inner life | @the_innercosmos, our doctrine |
 | South Node in the 12th | You may enjoy your own company so much that making new friends takes real effort | @the_innercosmos, our doctrine |
+| Sun in the 8th | When you get very close to someone, you may lose a bit of yourself in them | @the_innercosmos, our doctrine |
+| Sun in the 10th | You may feel strong pressure to succeed, and what you achieve can feel tied to who you are | @the_innercosmos, our doctrine |
+| Sun in the 12th | You tend to work out who you are and where you are going on your own, mostly in private | @the_innercosmos, our doctrine |
+| Sun in the 6th | You tend to feel most like yourself when you work hard and keep good daily routines | @the_innercosmos, our doctrine |
+| Moon in the 11th | You may check how your friends feel about something before you know how you feel yourself | @the_innercosmos, our doctrine |
+| Moon in the 12th | You may look after other people's feelings and keep your own needs quiet, even from yourself | @the_innercosmos, our doctrine |
+| Moon in the 6th | Your feelings may hum in the background all day, and you tend to look after them like another daily task | @the_innercosmos, our doctrine |
+| Mercury in the 6th | Small daily worries can wear on your mind over time, so a clear list helps you more than most | @the_innercosmos, our doctrine |
+| Venus in the 3rd | Long, deep talks are often what make you feel loved, and you miss them most when they stop | @the_innercosmos, our doctrine |
+| Venus in the 6th | You tend to feel loved when someone shows up for you in small, everyday ways | @the_innercosmos, our doctrine |
+| Venus in the 11th | Friendship tends to be the heart of love for you, and it is what you miss most if love ends | @the_innercosmos, our doctrine |
+| Mars in the 4th | You may feel on guard at home, and sharing a home with others can take real effort | @the_innercosmos, our doctrine |
+| Mars in the 8th | Shared money can turn into a point of conflict for you, so clear agreements tend to help | @the_innercosmos, our doctrine |
+| Jupiter in the 8th | You may find it easy to accept help and support from the people close to you | @the_innercosmos, our doctrine |
+| Jupiter in the 9th | You tend to feel most open and hopeful when you travel or spend time abroad | @the_innercosmos, our doctrine |
+| Saturn in the 1st | You may hold back from being fully yourself until you feel allowed, and confidence comes slowly but lasts | @the_innercosmos, our doctrine |
+| Saturn in the 2nd | You may tie your sense of worth to what you earn and own, and feel you never quite have enough | @the_innercosmos, our doctrine |
+| Saturn in the 4th | Home may take real work to feel safe for you, and you tend to build your own idea of what home should be | @the_innercosmos, our doctrine |
+| Saturn in the 5th | Letting yourself play, create or be seen enjoying something may not come easily, and fun can feel like something you must earn | @the_innercosmos, our doctrine |
+| Saturn in the 6th | You may push through work and duties past the point of tiredness, so rest needs to be planned in | @the_innercosmos, our doctrine |
+| Saturn in the 7th | You tend to start close relationships slowly, and once you commit you take it very seriously | @the_innercosmos, our doctrine, Cafe Astrology (Annie Heese), Astrolibrary |
+| Saturn in the 8th | Letting go and being emotionally open with someone may not come easily to you, and shared money can feel heavy | @the_innercosmos, our doctrine |
+| Saturn in the 9th | You may want to travel far or study further, yet it can feel daunting, and your own beliefs form slowly and carefully | @the_innercosmos, our doctrine |
+| Saturn in the 12th | You may need time alone, yet find it hard to fully switch off when you get it | @the_innercosmos, our doctrine |
+| Pluto in the 1st | You tend to change deeply over time, and after a hard stretch you may feel like a different person | @the_innercosmos, our doctrine |
+| Pluto in the 2nd | Money and what you own can feel tied to your safety, and earning it can take over your attention | @the_innercosmos, our doctrine |
+| Pluto in the 3rd | Words carry a lot of weight for you, and everyday talk can turn into a quiet tug of war | @the_innercosmos, our doctrine |
+| Pluto in the 4th | Home and family can stir strong feelings in you, and you may want to set your own rules for home | @the_innercosmos, our doctrine |
+| Pluto in the 5th | You tend to love and create with great intensity, and it can sting when someone else outshines you | @the_innercosmos, our doctrine |
+| Pluto in the 6th | You may push hard to be useful and get every task right, to the point of losing yourself in work | @the_innercosmos, our doctrine |
+| Pluto in the 7th | Your close relationships tend to be intense, and there is rarely anything casual about them for you | @the_innercosmos, our doctrine |
+| Pluto in the 8th | Being emotionally open with someone may feel risky, and part of you may watch for betrayal | @the_innercosmos, our doctrine |
+| Pluto in the 9th | Your beliefs tend to go through big changes, and you may let go of views you were handed | @the_innercosmos, our doctrine |
+| Pluto in the 10th | Success and how people see you can matter intensely to you | @the_innercosmos, our doctrine |
+| Pluto in the 11th | Friendships and groups can be intense for you, and you may often ask yourself where you really fit | @the_innercosmos, our doctrine |
+| Pluto in the 12th | You may keep some fears well out of sight, and notice you sometimes work against yourself without knowing why | @the_innercosmos, our doctrine |
+| Chiron in the 3rd | You may second-guess how you speak and think, even when you know your stuff | @the_innercosmos, our doctrine |
+| Chiron in the 4th | Feeling that you belong at home may be a tender spot, and you may become good at making others feel at home | @the_innercosmos, our doctrine |
+| Chiron in the 2nd | Money and your own worth may be a tender spot, and a small money worry can hit harder than it should | @the_innercosmos, our doctrine |
+| Chiron in the 7th | One-to-one relationships may be a tender spot, and you may end up helping others with theirs | @the_innercosmos, our doctrine |
+| North Node in the 1st | You tend to grow by putting your own path first, even when fitting around others feels easier | @the_innercosmos, our doctrine |
+| Sun in the 8th | You often keep your real self private, and people may take a long time to really know you | The AstroTwins, astrostyle.com, Astrolibrary |
+| Venus in the 4th | You may want beautiful things around you at home, and you often have an eye for making a room feel good | @astronotebook, Cafe Astrology (Annie Heese), Astrolibrary |
+| Uranus in the 4th | You may not always feel you fit in at home, so you often build your own base, where friends become family | @astronotebook, Cafe Astrology (Annie Heese), The AstroTwins, astrostyle.com |
+| Jupiter in the 2nd | You tend to trust what your time and skills are worth, and you rarely sell yourself short for long | @sarahmoodyofficial, Cafe Astrology (Annie Heese), Astrolibrary |
+| Jupiter in the 8th | You tend to dig to the root of things, and subjects that shock others rarely shock you | @sarahmoodyofficial, Cafe Astrology (Annie Heese) |
+| Jupiter in the 12th | You tend to carry a quiet faith that things will work out, even when they look hard | @sarahmoodyofficial, @anemowitch, Cafe Astrology (Annie Heese), Astrolibrary |
 
 ### A house's ruler (1)
 
@@ -146,7 +195,7 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 |---|---|---|
 | Ruler of the 4th in the 10th | Your family and your work tend to be linked, through big hopes they have for your career or through working together | @astronotebook, our doctrine |
 
-### The sign on a house (37)
+### The sign on a house (56)
 
 | Placement | The idea | Sources |
 |---|---|---|
@@ -187,8 +236,27 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 | Gemini on the 11th | You make friends fast, and you tend to have several different friend groups | @the_innercosmos, our doctrine |
 | Cancer on the 11th | Your friendships tend to be nostalgic, and old friends are hard for you to let go | @the_innercosmos, our doctrine |
 | Cancer on the 12th | You pick up a lot that you never say out loud, and it can pile up when it has nowhere to go | @sarahmoodyofficial, our doctrine |
+| Gemini on the 1st | You may reinvent yourself often, and you dislike being put in one box | @the_innercosmos, our doctrine |
+| Gemini on the 4th | Home tends to be a feeling more than a place for you, and moving may not scare you | @the_innercosmos, our doctrine |
+| Gemini on the 5th | You tend to like variety in dating and in what you make, and your interests go through phases | @the_innercosmos, our doctrine |
+| Gemini on the 7th | You need a partner you can always talk to, and a relationship that stands still may start to feel flat | @the_innercosmos, our doctrine |
+| Gemini on the 8th | You may pull back when things get too deep or heavy | @the_innercosmos, our doctrine |
+| Gemini on the 12th | The ways you get in your own way tend to change over time, rarely the same one twice | @the_innercosmos, our doctrine |
+| Taurus on the 2nd | You tend to stay in your comfort zone with money, and a risk can feel bigger to you than it is | @the_innercosmos, our doctrine |
+| Cancer on the 2nd | When money gets tight, you may pull back into your shell instead of facing it head on | @the_innercosmos, our doctrine |
+| Leo on the 2nd | You may spend on things that make you feel special, and you tend to be generous with money | @the_innercosmos, our doctrine |
+| Virgo on the 2nd | You may hold off on earning from something until every detail is right | @the_innercosmos, our doctrine |
+| Sagittarius on the 2nd | You tend to love the start of a money idea more than the follow-through | @the_innercosmos, our doctrine |
+| Scorpio on the 4th | Home tends to feel intense and private for you, and you like to have a say in what happens there | @the_innercosmos, our doctrine |
+| Aquarius on the 4th | You may want a home life that is a bit unusual and does not follow the usual rules | @the_innercosmos, our doctrine |
+| Aquarius on the 1st | You often live in your own unusual way, and you may feel like the odd one out even among your people | @the_innercosmos, our doctrine |
+| Cancer on the 5th | You tend to be protective of children, even ones who are not your own | @the_innercosmos, our doctrine |
+| Capricorn on the 5th | Even your hobbies tend to need a goal, and pure play can feel like wasted time | @the_innercosmos, our doctrine |
+| Leo on the 12th | You may keep your wish to be seen and praised private, sometimes even from yourself | @the_innercosmos, our doctrine |
+| Leo on the 10th | You tend to do best in work that carries your own mark, where you stand out rather than blend in | @anemowitch, Cafe Astrology (Annie Heese), The AstroTwins, astrostyle.com |
+| Taurus on the 4th | You often show care at home by making it secure and comfortable and by providing for the people in it | @astronotebook, Cafe Astrology (Annie Heese), Astrolibrary |
 
-### A planet in a sign (53)
+### A planet in a sign (98)
 
 | Placement | The idea | Sources |
 |---|---|---|
@@ -217,7 +285,7 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 | Mercury in Scorpio | You often get what is happening under the surface without anyone having to tell you | @anemowitch, @the_innercosmos, our doctrine |
 | Mercury in Sagittarius | You see the big picture and the bright side, and the small details can lose you | @the_innercosmos, our doctrine |
 | Mercury in Capricorn | You tend not to enjoy small talk, but you are the friend who gives real, practical advice | @the_innercosmos, our doctrine |
-| Mercury in Aquarius | Your mind jumps in ways others can't follow, and you may come out with remarks so specific people wonder how you got there | @astrologyobserver, @the_innercosmos |
+| Mercury in Aquarius | Your mind jumps in ways others can't follow, and you may come out with remarks so specific people wonder how you got there | @astrologyobserver, @the_innercosmos, Astrolibrary, Cafe Astrology (Annie Heese) |
 | Mercury in Pisces | Your inner world is rich, and putting it into words can be hard, so you may feel misunderstood | @the_innercosmos, our doctrine |
 | Venus in Aries | You tend not to hide what you want in love, and you would rather go after someone than wait to be chosen | @sarahmoodyofficial, @the_innercosmos |
 | Venus in Taurus | Rather than chase love, you tend to let it build slowly and on your own terms | @sarahmoodyofficial, our doctrine |
@@ -245,9 +313,71 @@ The ideas in `observations.ts` today, in the table's order (the first match lead
 | Mars in Capricorn | You almost always have a plan, for everything | @the_innercosmos, our doctrine |
 | Mars in Aquarius | You may push against the usual way of doing things, sometimes just because it is the usual way | @the_innercosmos, our doctrine |
 | Jupiter in Capricorn | You may not feel ready for big good things until you have built the structure to hold them | @the_innercosmos, our doctrine |
+| Moon in Virgo | You may feel most loved when you are useful, and you tend to show care by helping in practical ways | @the_innercosmos, our doctrine |
+| Moon in Cancer | You may carry the feelings of the people close to you as if they were your job | @the_innercosmos, our doctrine |
+| Moon in Capricorn | You may be used to handling your feelings alone, and asking for comfort may not come naturally | @the_innercosmos, our doctrine |
+| Moon in Libra | You may keep the peace first and check what others think before you know what you feel | @the_innercosmos, our doctrine |
+| Moon in Aries | You tend to burn through feelings fast, almost before they have time to land | @the_innercosmos, our doctrine |
+| Moon in Virgo | You often read feelings by studying the small signs, and you can tell a lot from one look | @the_innercosmos, our doctrine |
+| Moon in Aries | You may be put off when someone hides their feelings and makes you guess | @the_innercosmos, our doctrine |
+| Moon in Taurus | Having your quiet, comfortable time interrupted can put you off someone quickly | @the_innercosmos, our doctrine |
+| Moon in Gemini | You may lose interest in someone who shuts down your questions or stops talking | @the_innercosmos, our doctrine |
+| Moon in Cancer | Being met with coldness when you share something personal can close you off for a long time | @the_innercosmos, our doctrine |
+| Moon in Leo | Being ignored, or told you are too dramatic, can sting you more than people expect | @the_innercosmos, our doctrine |
+| Moon in Virgo | Lateness and last-minute changes to plans can put you off someone more than you show | @the_innercosmos, our doctrine |
+| Moon in Scorpio | If someone shares your secret or lies to you, your trust in them may not come back | @the_innercosmos, our doctrine |
+| Moon in Sagittarius | Someone who needs to be with you all the time can quickly make you feel boxed in | @the_innercosmos, our doctrine |
+| Moon in Capricorn | You may lose interest in someone who has no goals or never follows through | @the_innercosmos, our doctrine |
+| Moon in Aquarius | Being pushed to talk about your feelings too soon can make you pull away | @the_innercosmos, our doctrine |
+| Moon in Pisces | Having your daydreams picked apart can put you off someone fast | @the_innercosmos, our doctrine |
+| Moon in Pisces | After a hard ending, you may need real distance and time alone to feel like yourself again | @the_innercosmos, our doctrine |
+| Venus in Aries | You may move very fast in love, and lose interest just as fast once it feels finished in your head | @the_innercosmos, our doctrine |
+| Venus in Gemini | You may jump from one interest to the next, and love tends to deepen when you stay curious about the same person | @the_innercosmos, our doctrine |
+| Venus in Scorpio | Fear of being let down may keep you guarded, so you can feel alone even in a close relationship | @the_innercosmos, our doctrine |
+| Venus in Virgo | You may be drawn to partners you feel you can help or improve | @the_innercosmos, our doctrine |
+| Venus in Pisces | After love ends, you may need real distance to stop feeling the other person's moods as your own | @the_innercosmos, our doctrine |
+| Mars in Pisces | When you want something badly, you may blur the usual lines to get it | @the_innercosmos, our doctrine |
+| Mars in Cancer | You rarely fight, but when you do, your words can cut deep because you know exactly where it hurts | @the_innercosmos, our doctrine |
+| Saturn in Leo | You may find it hard to let yourself shine or play freely, and confidence in being seen grows slowly | @the_innercosmos, our doctrine |
+| North Node in Aries | You tend to grow by trusting yourself and acting alone, even when keeping everyone happy feels safer | @the_innercosmos, our doctrine |
+| North Node in Taurus | You tend to grow by choosing what is steady and simple, even if calm feels boring after so much intensity | @the_innercosmos, our doctrine |
+| North Node in Gemini | You tend to grow by asking questions and listening, rather than holding tight to what you already believe | @the_innercosmos, our doctrine |
+| North Node in Cancer | You tend to grow by letting yourself need people and accept their help, not only by working harder | @the_innercosmos, our doctrine |
+| North Node in Leo | You tend to grow by letting yourself be seen and leading with your heart, rather than blending into the group | @the_innercosmos, our doctrine |
+| North Node in Virgo | You tend to grow by choosing clear details and practical steps over drifting along | @the_innercosmos, our doctrine |
+| North Node in Libra | You tend to grow by learning to compromise and work with others, and your self-trust gives you a steady base | @the_innercosmos, our doctrine |
+| North Node in Scorpio | Letting go of an old version of your life may be hard for you, and growth comes when you allow deep change | @the_innercosmos, our doctrine |
+| North Node in Sagittarius | You tend to grow by stepping back to the big picture and committing to what you believe, rather than getting lost in details | @the_innercosmos, our doctrine |
+| North Node in Capricorn | You tend to grow by taking charge and building something step by step, even when it feels lonely at first | @the_innercosmos, our doctrine |
+| North Node in Aquarius | You tend to grow when your talents serve a group or a cause, not only your own applause | @the_innercosmos, our doctrine |
+| North Node in Pisces | You tend to grow by trusting your gut and letting go of control, rather than perfecting every detail | @the_innercosmos, our doctrine |
+| Pluto in Sagittarius | Like most people born in your years, you may keep your hope through big changes and look for the meaning in them | @the_innercosmos, our doctrine |
+| Pluto in Sagittarius | Like many people born in your years, you may shrug off traditions that feel empty and keep only what means something to you | @the_innercosmos, our doctrine |
+| Neptune in Capricorn | Like most people born in your years, you may dream in practical terms and want your plans to feel meaningful, not just solid | @the_innercosmos, our doctrine |
+| Neptune in Aquarius | Like most people born in your years, you may hold big ideals about how people should live together, and feelings can trail behind them | @the_innercosmos, our doctrine |
+| Sun in Capricorn | You can seem serious, yet once you are at ease with someone your humour is often wackier than people expect | @astrologyobserver, The AstroTwins, astrostyle.com |
+| Mars in Pisces | You often go with the flow, and you tend to work around a conflict rather than face it head-on | Astrolibrary, Cafe Astrology (Annie Heese) |
+| Sun in Aquarius | Under a cool surface you may feel more anxious than you let on, and you tend to act as if everything is fine | @astrologyobserver, The AstroTwins, astrostyle.com |
 
-### Aspects (1)
+### Aspects (18)
 
 | Placement | The idea | Sources |
 |---|---|---|
 | Venus opposition Jupiter | Love can feel all or nothing for you, growing very fast and dropping just as fast | @the_innercosmos, our doctrine |
+| Jupiter conjunction Saturn | You may feel you have to earn your good luck, and you tend to grow most when you face what scares you | @the_innercosmos, our doctrine |
+| Sun opposition Jupiter | You may think big about yourself and say yes to more than fits, then need to bring things back to size | @the_innercosmos, our doctrine |
+| Moon opposition Jupiter | Your feelings tend to run big, and a small upset can grow fast | @the_innercosmos, our doctrine |
+| Moon opposition Mercury | You may feel torn between what your head says and what your heart wants, and the middle ground takes work | @the_innercosmos, our doctrine |
+| Mercury conjunction Chiron | You may doubt your own mind and voice, and you may become patient with others who struggle to learn | @the_innercosmos, our doctrine |
+| Moon conjunction Chiron | Getting close to your own feelings may feel uncomfortable, and you may be good at comforting others in pain | @the_innercosmos, our doctrine |
+| Venus conjunction Jupiter | You are often warm, generous and easy to like, with a ready smile | @anemowitch, Cafe Astrology (Annie Heese) |
+| Venus trine Jupiter | You are often warm, generous and easy to like, with a ready smile | @anemowitch, Cafe Astrology (Annie Heese) |
+| Sun trine Saturn | You tend to keep a cool head under pressure, and you often know your limits well | @anemowitch, Astrolibrary |
+| Sun sextile Saturn | You tend to keep a cool head under pressure, and you often know your limits well | @anemowitch, Astrolibrary |
+| Mars trine Saturn | You tend to keep a cool head under pressure, and you often know your limits well | @anemowitch, Cafe Astrology (Annie Heese) |
+| Mars sextile Saturn | You tend to keep a cool head under pressure, and you often know your limits well | @anemowitch, Cafe Astrology (Annie Heese) |
+| Moon conjunction Saturn | You tend to keep people at arm's length at first, and you share how you feel once trust is there | @the_innercosmos, Cafe Astrology (Annie Heese) |
+| Moon square Saturn | You tend to keep people at arm's length at first, and you share how you feel once trust is there | @the_innercosmos, Cafe Astrology (Annie Heese) |
+| Moon opposition Saturn | You tend to keep people at arm's length at first, and you share how you feel once trust is there | @the_innercosmos, Cafe Astrology (Annie Heese) |
+| Sun opposition Moon | You often feel pulled two ways between what you want and what you need, and a choice can bring a quick "but what if" | Cafe Astrology (Annie Heese), Astrolibrary |
+| Mars conjunction Pluto | Once you commit to something, you tend to go all in and rarely waver | @the_innercosmos, Cafe Astrology (Annie Heese) |
