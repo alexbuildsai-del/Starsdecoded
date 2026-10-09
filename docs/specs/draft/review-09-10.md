@@ -115,7 +115,8 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
 - **A private repo and docs in it**: the Owner leans that way; handed on 2026-10-09 to the "Rounds R16-R19 efficiency
   analysis" session with the verified prices (Pro $4 a month for branch protection on a private repo, 3,000 included
   minutes, $0.006 a minute beyond), the two token-less GitHub reads that would break (`labImport.ts:18`, `github.ts:105`),
-  and his condition: CI minutes measured and the waste cut first. Not decided here.
+  and his condition: CI minutes measured and the waste cut first. Measured there (3 to 9 Oct): 2,387 minutes a week, about $43
+  to $52 a month private; after alexbuildsai-del/Starsdecoded#135 (approved), about $0 to $1 plus Pro. Not decided here.
 - **Roadmap**: a list of future ideas, separate from the Mailbox, wherever the docs question lands. First item: "Learn to
   read your houses", a short explainer video, house by house, also a post.
 
