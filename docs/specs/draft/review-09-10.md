@@ -90,7 +90,7 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   three colours a screen** (chapter colour, the content's one, greys); a new tag, label or icon enters this page first.
 - **No house drawings** (the Owner, v5: "it looks really childish… keep it as text"): `HouseObject.tsx` leaves the primer,
   and the loading story too (the Owner; supersedes ADR-321's drawings).
-- Written in `docs/annex/chart-system.md` (rules, states, do's and don'ts) and the bible's design page, rebuilt from the live
+- Written in `docs/annex/ds-charts/` (one folder a part: how it is drawn, states, uses, do's and don'ts, what changes; design-system cards) and the bible's design page, rebuilt from the live
   tokens (it still shows the Astra-era styles); the "Stars Decoded Atlas" canvas is the base. `/ideate` and `/web-taste`
   draw charts by it.
 

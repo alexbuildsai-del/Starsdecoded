@@ -1,476 +1,92 @@
-<title>Review 09/10</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!-- @dsCard group="Charts" height=2822 width=880 subtitle="The flat horizon and the rising marker; how the birth time turns the sky; no MC" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Horizon</title>
 <style>
-/* Dark only, like the product. Every mock is drawn by one chart function, the chart system proposed in Part 2. */
-:root{
-  --void:#06080C; --ground:#0D1117; --surface:#11161F; --line:#242C3B; --paper:#E8EBF2; --dim:#9AA3B5; --faint:#6B7486;
-  --indigo:#5C6BC0; --indigo-lt:#9FA8DA; --violet:#9575CD; --brass:#D4B06A; --rose:#D9668A; --teal:#3FA796;
-  --you:#8E9BE8; --them:#C9A8F0;
-  --bad:#2E1820; --good:#132B26;
-  --display:"Newsreader",Georgia,serif; --body:"Inter",system-ui,sans-serif; --label:"Space Grotesk","Inter",sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
-  --ease:cubic-bezier(.16,1,.3,1);
-  color-scheme:dark;
-}
+:root{--bg:#0D1117;--card:#121823;--raise:#171D29;--line:#242C3B;--fg:#E8EBF2;--mut:#A3ABBC;--dim:#7E889A;--brass:#D4B06A;--teal:#3FA796;--rose:#D9668A;--blue:#3BB3DB;--red:#E24D4D;--acc:#5C6BC0;color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--void);color:var(--paper);font-family:var(--body);font-size:16px;line-height:1.55;margin:0}
-.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:32px 96px}
-h1,h2,h3,h4{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0}
-h1{font-size:clamp(34px,6vw,52px);line-height:1.05}
-h2{font-size:clamp(26px,4vw,36px);line-height:1.15}
-h3{font-size:22px;line-height:1.25}
-h4{font-size:19px}
-p{margin:0} ul,ol{margin:0}
-.eyebrow{font-family:var(--label);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo-lt)}
-.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.lede{font-family:var(--display);font-size:20px;color:var(--dim);max-width:65ch}
-.small{font-size:14px;color:var(--dim)}
-.stack{display:flex;flex-direction:column;gap:16px}
-.section{display:flex;flex-direction:column;gap:22px;padding-block:48px;border-top:1px solid var(--line)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font-family:var(--label);font-size:12px;letter-spacing:.06em;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
-.grid2>*{min-width:0}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
-.panel ul,.panel ol{padding-left:20px;color:#C9CEDA;font-size:15px;display:flex;flex-direction:column;gap:6px}
-.changed{border-left:3px solid var(--brass)}
-.ba{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.ba>div{padding:16px;min-width:0;font-size:15px}
-.ba .b{background:var(--bad)} .ba .a{background:var(--good)}
-.ba .h{font-family:var(--label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding-block:10px;color:var(--dim)}
-.ba .why{grid-column:1/-1;background:var(--ground);color:var(--dim);font-size:14px;border-top:1px solid var(--line)}
-@media (max-width:640px){.ba{grid-template-columns:1fr}}
-.avoid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:10px}
-.avoid>div{background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:14px;display:flex;flex-direction:column;gap:4px}
-.avoid s{color:#e7a3b6;text-decoration-thickness:1px}
-.avoid .ok{color:#8fd3c3}
-/* three ideas */
-.ideas{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:20px;align-items:center}
-@media (max-width:760px){.ideas{grid-template-columns:1fr}}
-.ideas svg{width:100%;max-width:340px;height:auto;justify-self:center}
-.steps{display:flex;flex-direction:column;gap:12px;counter-reset:s;padding:0}
-.steps li{list-style:none;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start}
-.steps li::before{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;border:1px solid var(--brass);color:var(--brass);display:grid;place-items:center;font-family:var(--mono);font-size:13px}
-.say{font-family:var(--display);font-size:21px;line-height:1.45;background:var(--ground);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
-.say em{font-style:normal;color:var(--brass)}
-.variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}
-.variants>div{background:var(--ground);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;font-size:15px}
-.variants .k{font-family:var(--label);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-/* voice flow */
-.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.3fr);gap:14px;align-items:center}
-@media (max-width:760px){.flow{grid-template-columns:1fr}.flow .arrow{transform:rotate(90deg);justify-self:center}}
-.flow .src{background:var(--ground);border:1px solid var(--brass);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
-.flow .src b{font-family:var(--label);font-weight:500;color:var(--brass)}
-.flow .arrow{font-size:28px;color:var(--brass)}
-.flow .dst{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px}
-.flow .dst div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
-.flow .dst .new{border-style:dashed;color:var(--dim)}
-/* chart system */
-.sys{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:center}
-@media (max-width:820px){.sys{grid-template-columns:1fr}}
-.sys svg{width:100%;height:auto;max-width:520px;justify-self:center}
-.legend{display:flex;flex-direction:column;gap:10px;padding:0;counter-reset:l}
-.legend li{list-style:none;display:grid;grid-template-columns:24px 1fr;gap:10px;font-size:15px;color:#C9CEDA}
-.legend li::before{counter-increment:l;content:counter(l);width:22px;height:22px;border-radius:50%;background:var(--brass);color:var(--void);display:grid;place-items:center;font-family:var(--mono);font-size:12px}
-.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
-.states>div{background:var(--ground);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}
-.states svg{width:100%;height:auto}
-.states b{font-family:var(--label);font-weight:500;font-size:14px}
-.states span{font-size:13px;color:var(--dim)}
-.dodont{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width:640px){.dodont{grid-template-columns:1fr}}
-.dodont>div{border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
-.dodont .do{background:var(--good);border:1px solid #1f4a40}
-.dodont .dont{background:var(--bad);border:1px solid #4a2430}
-.dodont ul{padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:6px}
-.comps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
-.comps>div{background:var(--ground);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
-.comps b{font-family:var(--label);font-weight:500;font-size:14px}
-.comps span.small{font-size:13px}
-/* the planet pill */
-.occ{display:flex;flex-wrap:wrap;gap:10px}
-.body{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 4px;font-size:14px;background:var(--surface);position:relative}
-.body img,.body .pt{width:30px;height:30px;border-radius:50%}
-.body .pt{display:grid;place-items:center;border:1px solid var(--brass);color:var(--brass);background:#0b0f16}
-.body .r{font-family:var(--label);font-size:11px;color:var(--rose)}
-.body .deg{color:var(--faint);font-size:12px}
-.body .tip{position:absolute;left:0;bottom:calc(100% + 6px);background:var(--paper);color:var(--void);font-size:12px;padding:3px 8px;border-radius:6px;width:max-content;max-width:min(240px,70vw);display:none;pointer-events:none;z-index:3}
-.body:hover .tip,.body:focus .tip{display:block}
-/* house card */
-.card{background:var(--ground);border:1px solid #5a4b2b;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px}
-.card .kick{font-family:var(--label);font-size:13px;letter-spacing:.16em;color:var(--brass)}
-.card h3{font-size:34px}
-.card .crisp{font-family:var(--display);font-size:22px;line-height:1.35}
-.card .read{color:#C9CEDA}
-.block{display:grid;grid-template-columns:30px 1fr;gap:12px}
-.block .badge{width:30px;height:30px;border-radius:8px;border:1px solid currentColor;display:grid;place-items:center;font-family:var(--label);font-size:13px}
-.block .t{font-family:var(--label);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
-.rose{color:#E39AAE} .violet{color:#B9A6E6}
-.ask{border-top:1px solid var(--line);padding-top:12px}
-.palette2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;max-width:620px}
-.palette2>div{display:flex;flex-direction:column;gap:6px}
-.palette2 svg{width:100%;max-width:240px;height:auto}
-/* the walk inside the report page (mock of CompatibilityReportPage, ChapterRail, Chapter) */
-.rpm{position:relative;overflow:hidden;background:var(--void);color:var(--paper);font-family:var(--body)}
-.rpm-nav{position:absolute;top:0;left:0;right:0;height:48px;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(6,8,12,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.rpm-nav .logo{font-family:var(--display);font-size:16px}.rpm-nav .act{display:flex;gap:10px;align-items:center}.rpm-nav .btn{font-family:var(--label);font-size:11px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--dim)}.rpm-nav .av{width:24px;height:24px;border-radius:50%;background:#2a3246}
-.rpm-mob{position:absolute;top:48px;left:0;right:0;height:34px;z-index:8;display:flex;gap:10px;align-items:center;padding:0 16px;background:rgba(6,8,12,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);opacity:0}
-.rpm-mob .cur{font-family:var(--label);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#5C6BC0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}.rpm-mob .bar{flex:1;height:2px;background:var(--line);border-radius:2px;overflow:hidden}.rpm-mob .bar i{display:block;height:100%;width:0;background:#5C6BC0}
-.rpm-rail{position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:8;display:grid;gap:9px}
-.rpm-rail button{display:flex;align-items:center;gap:9px;color:var(--faint);font-family:var(--label);font-size:9px;letter-spacing:.16em;text-transform:uppercase;background:none;border:0;padding:2px 0;text-align:left}
-.rpm-rail button i{width:16px;height:2px;background:var(--line);border-radius:2px;display:block;transition:width .3s}.rpm-rail button span{opacity:0;white-space:nowrap}.rpm-rail:hover button span{opacity:1}
-.rpm-rail button.on{color:var(--paper)}.rpm-rail button.on i{width:30px;background:#5C6BC0}.rpm-rail button.on span{opacity:1}
-.rpm-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;box-sizing:border-box}
-.rpm-div{position:relative;height:110px;display:flex;align-items:center;justify-content:center;max-width:880px;margin-inline:auto;padding:0 32px}
-.rpm-div .ln{width:100%;height:1px;background:linear-gradient(90deg,transparent,#5C6BC0,transparent);opacity:.55}.rpm-div .mk{position:absolute;font-family:var(--label);font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:#5C6BC0;background:var(--void);padding:0 12px}
-.rpm-ch{position:relative;max-width:880px;margin-inline:auto;padding:0 32px 60px}
-.rpm.ph .rpm-ch{padding:0 16px 48px}.rpm.ph .rpm-div{padding:0 16px;height:90px}
-.rpm-head{position:relative;margin-bottom:20px}.rpm-head .big{position:absolute;right:0;top:-28px;font-family:var(--display);font-weight:300;font-size:110px;line-height:1;color:rgba(232,235,242,.045)}
-.rpm-head .eye{font-family:var(--label);font-size:10px;letter-spacing:.28em;color:#5C6BC0}.rpm-head h2{font-family:var(--display);font-weight:400;font-size:clamp(27px,4vw,40px);line-height:1.08;margin-top:8px}
-.rpm-head .rule{height:1px;background:linear-gradient(90deg,#5C6BC0,transparent);margin-top:14px;opacity:.6}.rpm-head .lede{font-family:var(--display);font-size:18px;line-height:1.5;margin-top:14px;max-width:52ch}
-.rpm.ph .rpm-head h2{font-size:27px}.rpm.ph .rpm-head .lede{font-size:16.5px}
-.rpm-skel{display:flex;flex-direction:column;gap:8px;margin:14px 0 22px}.rpm-skel i{display:block;height:9px;border-radius:5px;background:#151b27}
-.rpm-h3{font-family:var(--display);font-weight:400;font-size:24px;margin-top:8px}.rpm-sub{font-size:13px;color:var(--dim);margin:4px 0 14px}
-.rpm-walk{position:relative}
-.rpm.dt .rpm-walk{display:grid;grid-template-columns:400px minmax(0,1fr);gap:28px;align-items:start}
-.rpm-stage{position:sticky;z-index:4;background:var(--void);display:flex;flex-direction:column;gap:6px;padding:8px 0 8px}
-.rpm.ph .rpm-stage{margin:0 -16px;padding:8px 16px;border-bottom:1px solid var(--line);background:rgba(6,8,12,.96)}
-.rpm-stage svg{width:100%;height:auto;transition:max-height .25s}
-.rpm.ph .rpm-stage.compact svg{max-height:92px}
-.rpm-stage .prog{display:flex;justify-content:space-between;gap:8px;font-family:var(--label);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
-.rpm-stage .gname{color:#5C6BC0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rpm-stage .count{color:var(--dim);white-space:nowrap}
-.rpm-stage .segs{display:flex;gap:2px}.rpm-stage .segs i{flex:1;height:3px;border-radius:2px;background:var(--line)}.rpm-stage .segs i.gap{margin-left:5px}
-.rpm-stage .segs i.done{background:#5d6170}.rpm-stage .segs i.on{background:#5C6BC0}
-.rpm-stage .now{font-family:var(--label);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-align:center}
-.rpm-cards{display:flex;flex-direction:column;gap:14px;padding-top:6px;padding-bottom:30vh}
-.rpm.dt .rpm-cards{padding:0;gap:0}
-.rpm-step{display:flex;align-items:center}
-.rpm-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;opacity:.42;transition:opacity .3s}
-.rpm-card.on{opacity:1;border-color:#353f55}
-.rpm-card .grp{font-family:var(--label);font-size:10px;color:#5C6BC0;letter-spacing:.2em;text-transform:uppercase}
-.rpm-card .tag{font-family:var(--label);font-size:10px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:6px}.rpm-card .tag i{width:7px;height:7px;border-radius:50%;display:block}
-.rpm-card .astro{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;line-height:1.5;color:#9AA3B5}
-.rpm-card .ck{display:flex;flex-direction:column;gap:6px}.rpm-card h4{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.25}
-.rpm-card .who{font-size:12.5px;color:var(--dim)}.rpm-card .read{font-size:14.5px;line-height:1.55;color:#C9CEDA}
-.rpm-card .pin{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--ground);font-size:13.5px}.rpm-card .pin input{width:16px;height:16px;margin-top:2px;accent-color:#5C6BC0;flex:none}.rpm-card .tt{font-family:var(--label);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6E7789}
-.rpm.dt .rpm-card{padding:18px 20px}.rpm.dt .rpm-card h4{font-size:22px}.rpm.dt .rpm-card .read{font-size:15.5px}
-#walkDt,#phScreen{overflow:hidden}
-/* primer */
-.primer{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
-.primer>div{background:radial-gradient(120% 80% at 50% 0%,#151b2b,var(--ground) 70%);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.primer svg{width:100%;height:auto;aspect-ratio:1;max-width:240px;align-self:center}
-.primer b{font-family:var(--label);font-weight:500;font-size:15px}
-.primer i{font-family:var(--display);font-style:normal;font-size:16px;color:var(--dim)}
-.primer .cap{font-size:13px;color:var(--paper);min-height:3.2em;font-family:var(--body)}
-details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-summary{cursor:pointer;font-weight:500}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-family:var(--label);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:500}
-.tbl{overflow-x:auto}
-/* devices */
-.devices{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
-@media (max-width:900px){.devices{grid-template-columns:1fr}.devices .ph{justify-self:center}}
-.devices>div{min-width:0;display:flex;flex-direction:column;gap:8px}
-.dlabel{font-family:var(--label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-.scaler{width:100%;overflow:hidden;border-radius:14px;border:1px solid #2c3446;background:#000}
-.scaler>.screen{transform-origin:0 0}
-.ph .screen{width:300px;max-width:100%;border-radius:30px;border:6px solid #1e2533;overflow:hidden;background:#000}
-.devices .ph{width:min(100%,320px)}
-.ph .seg{max-width:100%}
-.phs{border:0;background:transparent}
-.phs>.screen{max-width:none!important;box-sizing:content-box}
-.ph .seg{flex-wrap:wrap;border-radius:12px}
-.ph .seg button{padding:5px 9px;font-size:11px}
-.ph .screen.hero{background:radial-gradient(120% 90% at 50% 0%,#2a3260,#121631 70%)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;align-self:flex-start}
-.seg button{font-family:var(--label);font-size:12px;background:transparent;color:var(--dim);border:0;padding:6px 12px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:#241d36;color:var(--paper)}
-/* hero */
-.hero{background:radial-gradient(120% 90% at 50% 0%,#2a3260,#121631 70%);color:var(--paper);display:flex;align-items:center;justify-content:center;gap:28px;text-align:center;overflow:hidden;position:relative}
-.hero .kick{font-family:var(--label);font-size:11px;letter-spacing:.2em;color:var(--brass)}
-.hero .names{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.hero .n{font-family:var(--display);line-height:1.04;overflow-wrap:anywhere;max-width:100%}
-.hero .and{font-family:var(--display);font-style:italic;color:var(--brass)}
-.hero .skies{display:flex;gap:18px;justify-content:center}
-.hero .sky{display:flex;flex-direction:column;align-items:center;gap:6px}
-.hero .sky span{font-family:var(--label);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hero .cue{position:absolute;bottom:14px;left:0;right:0;font-family:var(--label);font-size:10px;letter-spacing:.2em;color:var(--dim)}
-/* angles */
-.angles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px}
-.angles>div{background:var(--ground);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center}
-.angles svg{width:120px;height:120px}
-.angles b{font-family:var(--label);font-weight:500;font-size:14px}
-.angles span{font-size:13px;color:var(--dim)}
-/* topic map */
-.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
-.map>div{background:var(--ground);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.map b{font-family:var(--display);font-weight:400;font-size:19px}
-.pair{display:flex;align-items:center;gap:6px;font-size:13px;color:#C9CEDA}
-.own{width:26px;height:26px;border-radius:50%;border:2px solid;flex:none}
-.own.y{border-color:var(--you)} .own.t{border-color:var(--them)}
-.k-you{color:var(--you)} .k-them{color:var(--them)}
-/* the walk, inside a device */
-.walk{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;background:var(--ground);position:relative;overscroll-behavior:contain;scrollbar-width:thin}
-.walk .stage{position:sticky;top:0;z-index:2;background:linear-gradient(var(--ground) 88%,transparent);display:flex;flex-direction:column;align-items:center;padding:10px 8px 4px}
-.walk .stage svg{width:100%;height:auto}
-.walk .stage .now{font-family:var(--label);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);min-height:1.4em;text-align:center}
-.walk .scr{scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;padding:10px 14px 16px}
-.walk .intro h3{font-size:24px}
-.walk .intro .no{font-family:var(--mono);font-size:12px;color:var(--brass)}
-.walk .lc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:7px}
-.walk .tag{font-family:var(--label);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
-.walk h4{font-size:18px;line-height:1.25}
-.walk .who{font-size:12px;color:var(--dim)}
-.walk .read{font-size:13.5px;line-height:1.5;color:#C9CEDA}
-.walk .pin{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--ground);font-size:13px}
-.walk .pin input{width:16px;height:16px;margin-top:2px;accent-color:var(--indigo);flex:none}
-.walk .pos{font-family:var(--mono);font-size:11px;color:var(--faint)}
-.dt .walk{display:grid;grid-template-columns:520px 1fr;scroll-snap-type:y mandatory}
-.dt .walk .stage{grid-column:1;grid-row:1/span 99;height:560px;justify-content:center;background:var(--ground)}
-.dt .walk .scr{grid-column:2;height:560px;justify-content:center;padding:28px 34px}
-.dt .walk .lc{padding:18px 20px;gap:10px} .dt .walk h4{font-size:22px} .dt .walk .read{font-size:15px}
-.qs{display:flex;flex-direction:column;gap:14px}
-.q{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px}
-a{color:var(--indigo-lt)}
-button:focus-visible,summary:focus-visible,.body:focus-visible,input:focus-visible{outline:2px solid var(--indigo-lt);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-</style>
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 "Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding-inline:16px;padding-block:20px 36px;display:grid;gap:26px}
+h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:500;margin:0;text-wrap:balance}
+h1{font-size:30px;line-height:1.15}h2{font-size:21px}h3{font-size:16px;font-family:inherit;font-weight:600}
+p{margin:0;max-width:68ch}.lede{color:var(--mut);font-size:15px}
+.eyebrow,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+section{display:grid;gap:12px}
+.both{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
+.dev{margin:0;display:grid;gap:6px;min-width:0}.dev svg{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.dev figcaption{font-size:12px;color:var(--mut)}.dev .mono{color:var(--dim)}
+.stage{position:relative;display:grid;gap:10px}
+.replay{justify-self:start;background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:999px;font:inherit;font-size:12px;padding:4px 12px;cursor:pointer}
+.replay:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.box ul,.box ol{margin:0;padding-left:18px;display:grid;gap:4px}
+.do{border-left:3px solid var(--teal)}.dont{border-left:3px solid var(--rose)}
+.do h3{color:var(--teal)}.dont h3{color:var(--rose)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--mut);font-size:12px;background:var(--card)}tr:last-child td{border-bottom:0}
+td.n,th.n{font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",ui-monospace,monospace;white-space:nowrap}
+code{overflow-wrap:anywhere;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--mut)}
+.steps{display:grid;gap:4px;margin:0;padding:0;list-style:none;counter-reset:s}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:8px;padding:6px 8px;border-radius:8px;color:var(--mut)}
+.steps li::before{counter-increment:s;content:counter(s);font-family:"IBM Plex Mono",monospace;color:var(--dim)}
+.steps li.on{background:var(--raise);color:var(--fg)}.steps li.on::before{color:var(--brass)}
+.cap{min-height:3.2em;color:var(--fg);font-size:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.tile{margin:0;display:grid;gap:6px;min-width:0}.tile svg{width:100%;height:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.tile figcaption{font-size:12.5px;color:var(--mut)}.tile b{color:var(--fg);font-weight:600}
+.gap{color:var(--rose)}.ok{color:var(--teal)}.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--mut)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1px solid #fff2}
+@media (max-width:640px){.both{grid-template-columns:1fr!important}h1{font-size:25px}}
+@media (prefers-reduced-motion:reduce){.replay{display:none}}
+</style></head>
+<body><main>
+<header style="display:grid;gap:8px">
+  <span class="eyebrow">Charts · part</span>
+  <h1>Horizon and rising marker</h1>
+  <p class="lede">The horizon is the flat line across the chart. Left is east, where the sky rises; right is west, where it sets. The rising marker sits on the left end: the exact degree that was rising at birth. Both need a birth time. Without one, neither is drawn.</p>
+</header>
+<section class="cols">
+  <div class="box"><h3>Use it for</h3><ul><li>Every chart with a birth time, in every state except Pair.</li><li>Teaching why the birth time matters: the sky turns, the horizon stays.</li></ul></div>
+  <div class="box"><h3>Not for</h3><ul><li>The MC. No MC line, label or marker anywhere. It is not explained, so it is not drawn.</li><li>A chart without a birth time.</li></ul></div>
+</section>
+<section>
+  <h2>How it is drawn</h2>
+  <div id="anat" class="both" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"></div>
+  <ol class="steps">
+    <li><div><b>The horizon line</b> runs from the inner circle (<code>0.146 S</code>) out past the sign ring's inside edge (<code>0.386 S + 0.012 S</code>), on both sides. East (left) is <code>1.5 × S/600</code> wide at 45%; west (right) <code>1 × S/600</code> at 25%. Colour <code>#E8EBF2</code>. It never crosses the middle: the lines between planets live there.</div></li>
+    <li><div><b>The rising marker</b> sits on the sign ring's outer edge at 9 o'clock. A ring of radius <code>max(3 px, 0.0142 S)</code> filled with the background, edge <code>#E8EBF2</code> <code>max(1.2, 0.003 S)</code> wide; a dot inside at 35% of the radius; and a short tail <code>0.02 S</code> long to the left, pointing east.</div></li>
+    <li><div><b>Lit.</b> The marker goes brass only when the report is talking about the rising sign. Otherwise it stays white.</div></li>
+  </ol>
+</section>
+<section>
+  <h2>The birth time turns the sky</h2>
+  <p>Same day, same place, different hours. The planets barely move in a day; the Moon moves about half a degree an hour. What changes is which sign is rising, so the whole chart turns under the flat horizon. Thibault's birth day, every two hours, from the engine.</p>
+  <div class="stage" id="dayStage"><div id="day"></div><p class="cap" id="dayCap"></p></div>
+</section>
+<section>
+  <h2>States</h2>
+  <div class="tiles" id="tiles"></div>
+</section>
+<section class="cols">
+  <div class="box do"><h3>Do</h3><ul><li>Keep the horizon flat. The sky turns, never the horizon.</li><li>Put the rising degree exactly at 9 o'clock.</li><li>With no birth time, say so in words and draw the Moon's stretch.</li></ul></div>
+  <div class="box dont"><h3>Don't</h3><ul><li>Don't draw MC, IC or DSC lines.</li><li>Don't write "ASC" on the chart. The marker is the sign, and the words around the chart say "rising".</li><li>Don't dash the horizon or shade the half below it.</li></ul></div>
+</section>
+<section>
+  <h2>What changes from today</h2>
+  <div class="scroll"><table><thead><tr><th>File</th><th>What goes</th><th>What stays</th></tr></thead><tbody>
+    <tr><td><code>components/chart/NatalWheel.tsx</code></td><td>The ASC, MC, DSC, IC lines with "ASC" and "MC" labels (L150-156, L378-406). No marker today: the model's marker comes in.</td><td>No-birth-time chart has no axes.</td></tr>
+    <tr><td><code>site/components/HorizonWheel.tsx</code></td><td>MC line and "MC" label, IC and DSC lines. Brass marker (to white; brass when lit).</td><td>The page's "EAST · RISING" / "WEST · SETTING" words in HTML.</td></tr>
+    <tr><td><code>ReportHero.tsx</code>, <code>TriadPlate.tsx</code>, <code>SampleHead.tsx</code>, <code>TwoPlates.tsx</code></td><td><code>AngleGlyphShape</code> markers at r 13, 7, 7 and 6.5; dashed horizons (<code>2 5</code>); TwoPlates' shared brass gradient horizon and violet centre point.</td><td>The idea of one shared horizon in TwoPlates: two Small charts side by side on one line.</td></tr>
+    <tr><td><code>lib/build-story.ts</code>, <code>PairStory.tsx</code></td><td>Brass ASC and MC ring markers; the veil below the horizon; violet glow.</td><td>The step "Your birth time sets the horizon".</td></tr>
+    <tr><td><code>components/TriadRow.tsx</code></td><td>Nothing.</td><td><code>AngleGlyph</code> as the "Rising" icon in the legend row. It is the marker's twin.</td></tr>
+  </tbody></table></div>
+</section>
 
-<div class="wrap">
-  <header class="stack" style="gap:14px">
-    <span class="eyebrow">Ideation · 9 Oct 2026 · version 11, your answers in</span>
-    <h1>Review 09/10</h1>
-    <p class="lede">Your notes on Thibault's report and Alex and Luna's. Every chart here is the model wheel this session agreed, drawn from our engine's numbers, and every screen is shown on a phone and a computer.</p>
-    <div class="panel changed">
-      <h4>What changed since version 6 (versions 7 to 10)</h4>
-      <ul>
-        <li><b>Version 11, your answers:</b> names stay as today; the walk's groups follow our pair doctrine's order (Sun and Moon, then Venus and Mars, then the rest, closest first); the house drawings leave the loading story.</li>
-        <li><b>Version 10: this page's wheel is the model.</b> Not the landing page. Every chart, the landing page included, is brought to it: grey-blue, brass only for what's lit, no MC line. The landing page keeps its motion. This page is saved in the repo as the reference builders work from.</li>
-        <li><b>Version 9, the walk's card is the live link card.</b> Same tags as the cards under the ledger today, "Comes naturally" in teal and "Challenge" in rose, with their dot; no new "Together" tag. The astrology goes in the same small grey line under the title ("Your Venus (6th, work) square Athena's Neptune (10th, career) · 3.8°"). "Try together" is the report's existing tick list. The angle words are the live ones: conjunct, sextile, square, trine, opposite.</li>
-        <li><b>Version 9, three colours a screen:</b> the chapter's own colour for labels and progress, teal or rose for the link, and greys. The two purples are gone: whose planet is told by the chart's name and the ring, solid for its own planet, dashed for the guest.</li>
-        <li><b>The walk now sits inside the report page as it is today.</b> The nav, the chapter rail on a computer, the chapter bar under the nav on a phone, chapter 01's divider, number and title. Nothing of the page changes; the walk is a part of chapter 01, and chapter 02 follows it.</li>
-        <li><b>Cards are as tall as their words.</b> No empty space under a short one; the next card shows underneath, dimmed.</li>
-        <li><b>Version 8, the scroll:</b> the locking you liked in version 6 is back, but by direction. One flick moves exactly one card, down or up, and on a computer each card gets its own screen beside the charts. A card longer than the screen is never pulled away while you read it: you scroll through it freely, and the page settles on the next card only after you've reached its end. Past the last card, the page scrolls on to chapter 02 normally.</li>
-        <li><b>A progress line on the charts</b>: the group ("02 · Talking"), "Link 3 of 8 · 5 left", and a bar with one notch per link, a gap between groups.</li>
-        <li><b>When cards don't fit</b> (small phones, longer prose): the phone picks the small charts once for the whole walk, so nothing jumps under your thumb; a card that still runs longer reads like normal text. Try the four sizes and the "twice as long" test.</li>
-        <li>Kept from version 6: the grey-blue chart with brass for what's lit, no MC line, card 4's words, the shapes in the walk.</li>
-      </ul>
-    </div>
-  </header>
-
-  <!-- PART 1 -->
-  <section class="section" id="explain">
-    <span class="eyebrow">Part 1 · explain it, every time</span>
-    <h2>Three ideas, one at a time</h2>
-    <p class="lede">A house has a sign. Every sign has a planet that rules it. And some planets happen to sit in the house. The report explains them in that order, the first time a ruler comes up. You liked this; it stays.</p>
-    <div class="ideas">
-      <svg id="threeIdeas" viewBox="0 0 340 340" role="img" aria-label="Thibault's wheel: Capricorn on the 7th house, its ruler Saturn sitting in the 8th, and Uranus and Neptune sitting in the 7th"></svg>
-      <ol class="steps">
-        <li><div><b>The sign of the house.</b> <span class="small">Your rising sign starts the 1st house, and the signs follow in order. Thibault rises in Cancer, so Capricorn lands on his 7th (partnership).</span></div></li>
-        <li><div><b>The ruler.</b> <span class="small">Every sign has a planet that rules it. Capricorn's is Saturn. So Saturn rules Thibault's 7th, even though it isn't in it.</span></div></li>
-        <li><div><b>Where the ruler sits.</b> <span class="small">His Saturn sits in his 8th (depth). That links partners to what you share: money, trust.</span></div></li>
-        <li><div><b>The planets inside.</b> <span class="small">A different idea: Uranus and Neptune happen to sit in his 7th. They colour it directly.</span></div></li>
-      </ol>
-    </div>
-    <p class="say">Saturn rules Capricorn, the sign of this house, so Saturn rules your 7th (partnership) too. And your Saturn sits in your 8th (depth), the house of what you share with someone, like money and trust. <em>Saturn is about rules and patience. So with a partner, you may want clear terms on money before you relax.</em></p>
-    <div class="variants">
-      <div><span class="k">4th house · Libra</span><p>Libra is the sign of your 4th (home), and Venus rules Libra. Venus is about getting on and keeping the peace. Yours sits in your 10th (career), so you want home and work to agree.</p></div>
-      <div><span class="k">12th house · Gemini</span><p>Gemini, the sign of your 12th (solitude), belongs to Mercury, the planet of thinking and talking. Your Mercury sits in your 11th (friends). So you often sort out a private worry by talking it through with a friend.</p></div>
-      <div><span class="k">2nd house · Leo</span><p>Your 2nd (money) starts in Leo, the Sun's sign. The Sun is what you want your life to be about, and yours is in your 11th (friends). Money feels well spent when it's spent with people.</p></div>
-    </div>
-
-    <h3>Words we avoid, and when they're fine</h3>
-    <p class="small" style="max-width:70ch">You're right that "never" is rarely never. So each one is a default with its reason, not a ban. The writer can step outside it when it truly helps the reader.</p>
-    <div class="avoid">
-      <div><s>At three, you…</s><span>No age as a number: it's often wrong for the reader and adds nothing.</span><span class="ok">Fine: "when you were young", "as you grow older", when a placement speaks to a stage of life.</span></div>
-      <div><s>…until you know what's real.</s><span>"Real", "keep it real", "authentic", "true self": vague words that sound deep and say nothing.</span><span class="ok">Instead: say the actual thing ("until you've seen it work in daily life").</span></div>
-      <div><s>…so Venus has a say in it.</s><span>One frame, used once a report at most. Vary how a ruler is said.</span></div>
-      <div><s>This is common, about 44 in 100 people…</s><span>How rare a placement is says nothing about the reader.</span></div>
-      <div><s>Luna's Uranus (11th)</s><span>A house always carries its word.</span><span class="ok">Instead: Luna's Uranus (11th, friends).</span></div>
-      <div><s>This week, notice…</s><span>A report isn't about this week. "Does this sound like you?" asks about life in general.</span></div>
-    </div>
-    <div class="ba">
-      <div class="b h">Version 3 (still vague)</div><div class="a h">Version 4</div>
-      <div class="b">Neptune is about hopes and dreams. Going backwards when you were born, it turns them inward. With a partner, you may keep your hopes to yourself until you know what's real, and wait for facts before you say anything.</div>
-      <div class="a">Neptune is about hopes and dreams. Going backwards when you were born, it turns them inward. With a partner, you may keep a big hope to yourself until you've seen it can work. For example, you might not say "I'd love to live by the sea" until you've spent a few weekends there together.</div>
-      <div class="why">"What's real" left the reader guessing. The new line says what you wait for, and gives one everyday example.</div>
-    </div>
-    <div class="ba">
-      <div class="b h">A life stage, without an age</div><div class="a h">How it reads</div>
-      <div class="b">At 7, you probably made friends easily…</div>
-      <div class="a">Your Sun and Mercury both sit in your 11th (friends). When you were young, friends may have felt like a second family: the place you tried out who you were.</div>
-      <div class="why">Thibault's real placements. The stage of life helps here, so it stays; the number never helped.</div>
-    </div>
-
-    <h3>One voice, read by every writer</h3>
-    <p class="small" style="max-width:70ch">Today the rules are in the prompts (good), but the model passages reach only the Personal report, and some rules exist only as checks after writing. After this round, one voice block goes to every writer, with the good and bad examples. A French writer or translator later gets the same block, never a copy.</p>
-    <div class="flow">
-      <div class="src"><b>The voice block</b><span class="small">How we talk (simple words, one idea a sentence), how we explain (meaning, why, an example), the rulers, houses in brackets, the words we avoid, and good and bad examples.</span></div>
-      <div class="arrow" aria-hidden="true">→</div>
-      <div class="dst"><div>Personal report</div><div>Compatibility</div><div>Timeline</div><div>Ask</div><div class="new">French, when it comes</div><div class="new">The bible's Voice page</div></div>
-    </div>
-  </section>
-
-  <!-- PART 2 -->
-  <section class="section" id="system">
-    <span class="eyebrow">Part 2 · the chart system</span>
-    <h2>One chart, drawn one way, everywhere</h2>
-    <p class="lede">We draw a chart in about fifteen places, and they've drifted: dots in the loading story, symbols in the ledger, long lines through the small pair charts. <b>The model is the wheel on this page, with every decision of this session.</b> It started from the landing page's wheel; now it leads. Every chart takes its format, the landing page's included, in a few states, with the rules written down.</p>
-    <div class="sys">
-      <svg id="backbone" viewBox="0 0 520 520" role="img" aria-label="Thibault's full chart, drawn by the chart system, with numbered parts"></svg>
-      <ol class="legend">
-        <li><span><b>The horizon is flat.</b> The rising degree sits at 9 o'clock, level, on every chart, with the Ascendant's one marker; the chart turns under it. The signs run counter-clockwise. No MC line: it appears only beside the sentence that explains it.</span></li>
-        <li><span><b>Two lines on the rim, curved with the circle</b>: the sign outside, the house inside ("4 · HOME"). Text follows the ring like a clock face, never straight across it.</span></li>
-        <li><span><b>The ticks</b>, every 5°, longer every 30°.</span></li>
-        <li><span><b>The bodies</b> are our planet pictures at their true degree. When two crowd, one steps inward, never sideways. On a report chart, Chiron and the nodes are always there.</span></li>
-        <li><span><b>The aspect lines</b>, exactly as the site draws them: inside the inner circle, the engine's list, fainter when wide, dashed when separating. Only on the full chart; How two planets meet explains them.</span></li>
-      </ol>
-    </div>
-    <h3>One palette rule, for every chart, the landing page too</h3>
-    <div class="palette2">
-      <div><svg id="palLanding" viewBox="0 0 240 240" role="img" aria-label="The landing page's wheel today, in brass with its MC line"></svg><b>The landing page today</b><span class="small">All brass, with the MC line. It changes to the model; its motion (the first light, the rewind) stays.</span></div>
-      <div><svg id="palProduct" viewBox="0 0 240 240" role="img" aria-label="A report chart in grey-blue with one house lit in brass"></svg><b>The model, everywhere</b><span class="small">Grey-blue frame. Brass marks only what the words are about: here, his 4th (home) and Jupiter in it.</span></div>
-    </div>
-    <h3>Seven states of the same chart</h3>
-    <div class="states" id="states"></div>
-    <div class="dodont">
-      <div class="do"><b>Do</b><ul>
-        <li>Draw from the engine's numbers, never by hand.</li>
-        <li>Use the planet pictures for bodies, at every size.</li>
-        <li>Draw the frame in grey-blue; keep brass for what's lit, the part the words are about.</li>
-        <li>Dim what's not the point instead of removing it.</li>
-        <li>At most three colours a screen: the chapter's colour, the one the content carries (teal or rose for a link, brass for a lit chart part), and greys. Contrast by size, type and grey, not by a new hue.</li>
-        <li>Reuse a live part's words, colours and order before making one: a new tag, label or icon goes in this page first.</li>
-        <li>Let a loading story build the chart in this same geometry, step by step.</li>
-      </ul></div>
-      <div class="dont"><b>Don't</b><ul>
-        <li>Swap a planet for a dot or a symbol (the loading story, the ledger do today).</li>
-        <li>Draw the axes on a small chart (pair plates, the hero): there they read as lines through it.</li>
-        <li>Join two people's charts with a line between them (ADR-97).</li>
-        <li>Write rim text straight across the circle, or let it spill outside the ring.</li>
-        <li>Draw the MC, or any line, that nothing on the screen explains.</li>
-        <li>Show the aspect lines on a teaching chart, unless the card is about that line.</li>
-        <li>Move a planet off its true degree to make room.</li>
-      </ul></div>
-    </div>
-    <h3>The parts we reuse</h3>
-    <div class="comps">
-      <div><b>The planet pill</b><div class="occ" data-occ="11"></div><span class="small">Picture, name, R when going backwards, degree. Hover or tap: what it does. On every house card, and wherever a card lists bodies.</span></div>
-      <div><b>The Ascendant</b><svg width="120" height="44" viewBox="0 0 120 44" aria-hidden="true"><circle cx="34" cy="22" r="8.5" fill="#0D1117" stroke="#E8EBF2" stroke-width="1.8"/><circle cx="34" cy="22" r="3" fill="#E8EBF2"/><line x1="25.5" y1="22" x2="13.5" y2="22" stroke="#E8EBF2" stroke-width="1.8" stroke-linecap="round"/><line x1="44" y1="22" x2="110" y2="22" stroke="#E8EBF2" stroke-opacity=".45" stroke-width="1.5"/></svg><span class="small">The Ascendant: the one marker, on the flat horizon. Brass when a card is about it. No MC on a chart until a sentence explains it.</span></div>
-      <div><b>The link card</b><span class="small">From <span class="mono">LinkCard.tsx</span>: the tag with its dot (Comes naturally, teal · Challenge, rose), the title in people words, the astrology in small grey mono, the body; Try together from <span class="mono">Checklist.tsx</span>. The walk uses it as it is.</span></div>
-      <div><b>The link glyph</b><div id="glyphs" style="display:flex;flex-direction:column;gap:4px"></div><span class="small">Between two people, as the ledger draws it: teal straight comes naturally, brass straight for two planets on one spot, the rose zigzag a challenge.</span></div>
-    </div>
-    <p class="small">Where it lives: <span class="mono">docs/annex/chart-system.md</span> in the repo, and the bible's design page, which is out of date (it still shows the old Astra styles). The old design canvas, "Stars Decoded Atlas", is the base.</p>
-  </section>
-
-  <!-- PART 3 -->
-  <section class="section" id="houses">
-    <span class="eyebrow">Part 3 · House by House</span>
-    <h2>Four things to know, each with its picture</h2>
-    <p class="lede">Each card plays a short loop on Thibault's own chart: the model wheel, in its teaching state. Words only, no drawings.</p>
-    <div class="primer" id="primer"></div>
-    <details>
-      <summary>Where each planet is at home</summary>
-      <div class="tbl" style="margin-top:10px"><table>
-        <thead><tr><th>Planet</th><th>At home in</th><th>Least at ease in</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr><td>Venus</td><td>Taurus, Libra</td><td>Scorpio, Aries</td><td>Venus wants calm and closeness. Scorpio and Aries want intensity or a win.</td></tr>
-          <tr><td>Mars</td><td>Aries, Scorpio</td><td>Libra, Taurus</td><td>Mars wants to act now. Libra and Taurus want peace or to stay put.</td></tr>
-          <tr><td colspan="4" class="small">…the other five rows as today. "The cool fact, in one table" goes.</td></tr>
-        </tbody>
-      </table></div>
-    </details>
-    <h3 style="margin-top:12px">The card, with its planets back</h3>
-    <div class="grid2">
-      <div class="card" aria-label="Thibault's 4th house card">
-        <span class="kick">4TH HOUSE · LIBRA</span>
-        <h3>Home &amp; roots</h3>
-        <div class="occ" data-occ="4"></div>
-        <p class="crisp">Family hopes and work choices may get mixed together.</p>
-        <p class="read">Jupiter is the planet of growth and help, and it sits right here in your 4th (home). So help often comes from home: a parent who backs a fresh start, a family table where plans get made. You may take on more than fits, because saying yes to family feels natural.</p>
-        <div class="block violet"><span class="badge">✦</span><div class="stack" style="gap:4px"><span class="t">Often noticed</span><p class="read">Your family and your work tend to be linked. <b style="color:var(--paper)">Why:</b> the ruler of your 4th (home) sits in your 10th (career).</p></div></div>
-        <div class="block rose"><span class="badge">R</span><div class="stack" style="gap:4px"><span class="t">Jupiter is going backwards here</span><p class="read">Going backwards turns Jupiter's help inward. You trust what you learn for yourself more than advice you hear.</p></div></div>
-      </div>
-      <div class="stack">
-        <div class="card" style="gap:10px"><span class="kick">2ND HOUSE · LEO</span><h3>Money &amp; worth</h3><div class="occ" data-occ="2"></div></div>
-        <div class="card" style="gap:10px"><span class="kick">12TH HOUSE · GEMINI</span><h3>Solitude</h3><div class="occ" data-occ="12"></div></div>
-        <div class="panel"><h4>So it never disappears again</h4><ul>
-          <li>The row comes back as before R19: pictures, Chiron, both nodes, R, degree, name on hover.</li>
-          <li>A test that runs on every push fails if a house card misses one of its bodies.</li>
-          <li>Builders' rule: a card never removes something its plan doesn't name.</li>
-        </ul></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PART 4 -->
-  <section class="section" id="dyk">
-    <span class="eyebrow">Part 4 · Did you know leaves the chapters</span>
-    <h2>Each idea goes where its placement is talked about</h2>
-    <div class="tbl"><table>
-      <thead><tr><th>Thibault's card</th><th>Where it goes</th></tr></thead>
-      <tbody>
-        <tr><td>Can the Moon's phase speak to how you begin and finish? (Closing)</td><td>Goes. Closing gets no card.</td></tr>
-        <tr><td>Could home bring help?</td><td>Into the 4th house reading (Part 3).</td></tr>
-        <tr><td>Did you know Saturn is linked with slow results?</td><td>Into the 8th house card.</td></tr>
-        <tr><td>Do the Sun and Moon describe what parents showed you?</td><td>Into the Family chapter, as you liked it.</td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <!-- PART 5 -->
-  <section class="section" id="pairs">
-    <span class="eyebrow">Part 5 · Compatibility</span>
-    <h2>The hero: stacked names and two skies</h2>
-    <p class="lede">Your idea: both. The names stand one above the other, so length never matters, and each person's own chart sits beside them. No line between the charts.</p>
-    <div class="seg" role="group" aria-label="Names"><button type="button" data-names="long" aria-pressed="true">Long and short</button><button type="button" data-names="short" aria-pressed="false">Two short</button><button type="button" data-names="test" aria-pressed="false">A test name</button></div>
-    <div class="devices">
-      <div class="dt"><span class="dlabel">Computer</span><div class="scaler" data-w="960" data-h="460"><div class="screen hero" id="heroDt" style="width:960px;height:460px"></div></div></div>
-      <div class="ph"><span class="dlabel">Phone</span><div class="screen hero" id="heroPh" style="height:600px;flex-direction:column;gap:22px"></div></div>
-    </div>
-    <div class="panel">
-      <h4>Why the line went</h4>
-      <p class="small">There's no single strongest link. The brief sorts links by how close to exact they are, and I drew the closest one (Beatrice's Jupiter and Athena's Sun, 0.0° apart). But a pair has a dozen links, and an old decision (ADR-97) says two charts are never joined by a line. So the hero shows the two people, and the links come in the walk.</p>
-      <p class="small"><b style="color:var(--paper)">Names with numbers:</b> today a name takes letters only (the name rule, ADR-202), so "Alexandra 9/10" is refused. Names now reach the writer as plain data, so digits are safe to allow. Question 1 below.</p>
-    </div>
-
-    <h2 style="margin-top:18px">How two planets meet</h2>
-    <p class="small" style="max-width:70ch">We never explained this. A link is the angle between two planets, one from each chart, measured round the zodiac. A few angles count. You loved this one, so it's saved as a model visual, and it goes on the site (the Learn pages) and behind each link's ⓘ.</p>
-    <div class="angles" id="angles"></div>
-
-    <h2 style="margin-top:18px">The walk: each link shown on the two charts</h2>
-    <p class="small" style="max-width:70ch">No third circle. On your chart, your planet lights up with a solid ring, and Athena's planet sits on it as a faint guest with a dashed ring, at its true degree. The angle between them is drawn across your chart's centre, where a chart draws its aspects, so a square looks like a square. Athena's chart shows the same from her side. Inside the circle, the link's whole shape is drawn faintly (a triangle for a trine, a square for a square, a hexagon for a sextile), with the pair's own side bright. Each card is as tall as its words; the page settles on the card you stop near; the charts show the group, the link number and how many are left.</p>
-    <div class="seg" role="group" aria-label="Stress test"><button id="longText" aria-pressed="false">Test: every card twice as long</button></div>
-    <div class="devices">
-      <div class="dt"><span class="dlabel">Computer · inside the report, rail on the left</span><div class="scaler" data-w="1280" data-h="760"><div class="screen" id="walkDt" style="width:1280px;height:760px"></div></div></div>
-      <div class="ph"><span class="dlabel">Phone · inside the report, chapter bar on top</span><div class="seg" role="group" aria-label="Phone size"><button data-ph="360x640" aria-pressed="false">Small Android</button><button data-ph="375x667" aria-pressed="false">iPhone SE</button><button data-ph="390x844" aria-pressed="true">iPhone 15</button><button data-ph="430x932" aria-pressed="false">Pro Max</button></div><div class="scaler phs" id="phScaler"><div class="screen" id="phScreen"><div id="walkPh" style="width:100%;height:100%"></div></div></div><span class="small" id="phFit"></span></div>
-    </div>
-    <p class="small" style="max-width:70ch"><b style="color:var(--paper)">The groups</b> follow our pair doctrine, not a list in a prompt: "luminaries and Venus and Mars before the rest", then "tight before wide". So the Sun's and Moon's links come first, then Venus's and Mars's, then Mercury, Jupiter and Saturn; each link sits under the first of its two planets in that order, the closest link first. Two slow outer planets together come last. A pair only gets the groups it has.</p>
-    <p class="small">Mock data: Beatrice (born 8 Aug 1988, London) and her daughter Athena (born 22 Jan 2025, London), our parent-and-baby test pair, computed by the engine.</p>
-  </section>
-
-  <!-- PART 6 -->
-  <section class="section" id="obs">
-    <span class="eyebrow">Your P.S.</span>
-    <h2>Observations and where docs live</h2>
-    <div class="stack small" style="max-width:70ch">
-      <p>Nothing to do on observations: the waiting list is on your <a href="https://app.notion.com/p/3f3fefe74931814da8f4e4f2d5a3d404">Observations inbox</a>.</p>
-      <p>A private repo with docs in it: sent to the "Rounds R16-R19 efficiency analysis" session, with the verified GitHub prices, the two things that would break, and your condition: measure our CI minutes and cut the waste before we pay for them.</p>
-      <p><b style="color:var(--paper)">Measured there (3 to 9 Oct):</b> 2,387 CI minutes in one week, 81% of them site checks, 1,375 minutes on docs-only commits. Private today would cost about $43 to $52 a month in minutes, plus $4 for Pro (my earlier guess of $4 to $30 was low). With the fixes you approved there (skip docs-only commits, cancel replaced runs), about $0 to $1 a month plus Pro. Going private is still undecided.</p>
-    </div>
-  </section>
-
-  <section class="section" id="questions">
-    <span class="eyebrow">Your answers so far · and what's left</span>
-    <div class="qs">
-      <div class="q"><b>Taken from your notes:</b><p class="small">The walk with no scenes and no third circle; Chiron, the nodes and R back on the cards; the hero stacked plus two skies, no line, smaller names; the landing wheel kept as the backbone; no house drawings in the primer; phone and computer in every mock. Since version 5: no MC line, a grey-blue chart with brass for what's lit, the aspect lines as the site draws them, the shape inside each walk chart, and the phone walk checked at four sizes. Questions 1 to 3 stay open; if you say nothing, each takes its default.</p></div>
-      <div class="q"><b>Your answers, 9 Oct</b><p class="small">1. Names stay as they are today, no numbers. 2. The grouping is an astrology call, so the doctrine decides it (above). 3. Yes: the house drawings leave the loading story too, words only.</p></div>
-    </div>
-  </section>
-</div>
-
+</main>
 <script>
+"use strict";
 const R={
 sun:'data:image/webp;base64,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',
 jupiter:'data:image/webp;base64,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',
@@ -484,7 +100,6 @@ uranus:'data:image/webp;base64,UklGRlIQAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSJ4KA
 venus:'data:image/webp;base64,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',
 };
 
-(function(){
   const NAME={sun:"Sun",moon:"Moon",mercury:"Mercury",venus:"Venus",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",uranus:"Uranus",neptune:"Neptune",pluto:"Pluto",chiron:"Chiron",north_node:"North Node",south_node:"South Node"};
   const DOES={sun:"what you want your life to be about",moon:"what you need to feel safe",mercury:"how you think and talk",venus:"how you love and get on",mars:"how you act",jupiter:"growth and help",saturn:"rules and patience",uranus:"change and doing it your way",neptune:"hopes and dreams",pluto:"deep, all-in feeling",chiron:"an old sore spot that teaches",north_node:"where you grow",south_node:"what comes easy from before"};
   const PT={chiron:"⚷",north_node:"☊",south_node:"☋"};
@@ -523,160 +138,43 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
       for(const[a,t]of AS){const orb=Math.abs(d-a);if(orb<=ORBS[t])out.push([ks[i],ks[j],t,orb,l1<l2]);}}return out;}
   const ASP={conjunction:BRASS,sextile:C4,trine:C4,square:DES,opposition:DES};
 
+  // The one chart. Every state below only switches layers on or off, dims, rings or lights; the radii never change.
   function sky(svg,c,cx,cy,S,o){
     o=o||{};const id="w"+(uid++);const RIM=o.landing?BRASS:MUT,RT=o.landing?BRASS:MUTXT;
     const R={so:S*.478,si:S*.386,bs:S*.4535,bh:S*.411,tk:S*.38,as:S*.146,lanes:[S*.324,S*.266,S*.208],node:S*.05*(o.nodeK||1)};
-    const th=l=>180+n360(l-c.asc);const first=Math.floor(n360(c.asc)/30);
+    const asc=c.asc==null?0:c.asc;const th=l=>180+n360(l-asc);const first=Math.floor(n360(asc)/30);
     const root=el("g",{},svg),turn=el("g",{},root);
-    const hl={},houseText={};
+    const L={};["signs","signText","houses","houseText","circles","ticks"].forEach(k=>L[k]=el("g",{"data-layer":k},turn));
+    const hl={},houseText={},signs={};
     for(let i=0;i<12;i++){const a0=th(i*30),a1=a0+30,h=((i-first+12)%12)+1;
-      el("path",{d:wedge(cx,cy,R.so,R.si,a0,a1),fill:RIM,"fill-opacity":h%2?.05:.085,stroke:RIM,"stroke-opacity":.3},turn);
-      if(o.labels!==false){el("path",{id:id+"s"+i,d:arcLabel(cx,cy,R.bs,a0+1.5,a1-1.5),fill:"none"},turn);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.0225,"letter-spacing":S*.0023,fill:RT,"dominant-baseline":"middle"},turn);const tp=el("textPath",{href:"#"+id+"s"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=SIGNS[i].toUpperCase();}}
-    for(let h=1;h<=12;h++){const a0=th((first+h-1)*30),a1=a0+30;
-      hl[h]=el("path",{d:wedge(cx,cy,R.tk,R.as,a0,a1),fill:"#fff","fill-opacity":h%2?.012:.026},turn);
-      if(o.labels!==false){el("path",{id:id+"h"+h,d:arcLabel(cx,cy,R.bh,a0+1.5,a1-1.5),fill:"none"},turn);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.019,"letter-spacing":S*.002,fill:FG,"fill-opacity":.55,"dominant-baseline":"middle"},turn);const tp=el("textPath",{href:"#"+id+"h"+h,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=h+" · "+HW[h].toUpperCase();houseText[h]=t;}}
-    el("circle",{cx,cy,r:R.si,fill:"none",stroke:RIM,"stroke-opacity":.28},turn);
-    el("circle",{cx,cy,r:R.as,fill:"none",stroke:RIM,"stroke-opacity":.2},turn);
-    if(o.ticks!==false)for(let d=0;d<360;d+=5){const a=th(d);const[x0,y0]=pa(cx,cy,R.tk,a),[x1,y1]=pa(cx,cy,R.tk-(d%30===0?S*.02:S*.008),a);el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:RIM,"stroke-opacity":d%30===0?.42:.16},turn);}
+      signs[i]=el("path",{d:wedge(cx,cy,R.so,R.si,a0,a1),fill:RIM,"fill-opacity":h%2?.05:.085,stroke:RIM,"stroke-opacity":.3},L.signs);
+      if(o.labels!==false){el("path",{id:id+"s"+i,d:arcLabel(cx,cy,R.bs,a0+1.5,a1-1.5),fill:"none"},L.signText);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.0225,"letter-spacing":S*.0023,fill:RT,"dominant-baseline":"middle"},L.signText);const tp=el("textPath",{href:"#"+id+"s"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=SIGNS[i].toUpperCase();}}
+    if(o.houses!==false&&c.asc!=null)for(let h=1;h<=12;h++){const a0=th((first+h-1)*30),a1=a0+30;
+      hl[h]=el("path",{d:wedge(cx,cy,R.tk,R.as,a0,a1),fill:"#fff","fill-opacity":h%2?.012:.026},L.houses);
+      if(o.labels!==false){el("path",{id:id+"h"+h,d:arcLabel(cx,cy,R.bh,a0+1.5,a1-1.5),fill:"none"},L.houseText);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.019,"letter-spacing":S*.002,fill:FG,"fill-opacity":.55,"dominant-baseline":"middle"},L.houseText);const tp=el("textPath",{href:"#"+id+"h"+h,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=h+" · "+HW[h].toUpperCase();houseText[h]=t;}}
+    el("circle",{cx,cy,r:R.si,fill:"none",stroke:RIM,"stroke-opacity":.28},L.circles);
+    el("circle",{cx,cy,r:R.as,fill:"none",stroke:RIM,"stroke-opacity":.2},L.circles);
+    if(o.ticks!==false)for(let d=0;d<360;d+=5){const a=th(d);const[x0,y0]=pa(cx,cy,R.tk,a),[x1,y1]=pa(cx,cy,R.tk-(d%30===0?S*.02:S*.008),a);el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:RIM,"stroke-opacity":d%30===0?.42:.16},L.ticks);}
     const keys=Object.keys(c.p).filter(k=>!o.only||o.only.includes(k));
-    const asp=el("g",{},root);
-    if(o.aspects)aspectsOf(c,keys.filter(k=>!k.includes("node")&&k!=="chiron")).forEach(([a,b,t,orb,ap])=>{const[x1,y1]=pa(cx,cy,R.as,th(c.p[a][0])),[x2,y2]=pa(cx,cy,R.as,th(c.p[b][0]));const s=1-orb/ORBS[t];const L=el("line",{x1,y1,x2,y2,stroke:ASP[t],"stroke-width":(.6+1.2*s)*S/600,"stroke-opacity":.18+.42*s,"stroke-linecap":"round"},asp);if(!ap)L.setAttribute("stroke-dasharray",(3*S/600)+" "+(4*S/600));});
-    if(o.axes!==false){const mc=th(c.mc);const L=o.mc?[[180,1],[0,0],[mc,1],[mc+180,0]]:[[180,1],[0,0]];L.forEach(([a,maj])=>{const[x0,y0]=pa(cx,cy,R.as,a),[x1,y1]=pa(cx,cy,R.si+S*.012,a);el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:o.landing?BRASS:FG,"stroke-width":(maj?1.5:1)*S/600,"stroke-opacity":o.landing?(maj?.72:.4):(maj?.45:.25)},root);});
-      if(o.mc){const[lx,ly]=pa(cx,cy,R.so+S*.026,mc);txt(root,lx,ly+S*.006,"MC",{"font-family":"IBM Plex Mono","font-size":S*.024,"letter-spacing":S*.0023,fill:BRASS});}}
-    if(o.asc!==false){const AC=o.landing?BRASS:FG;const[mx,my]=pa(cx,cy,R.so,180),r=Math.max(3,S*.0142);el("circle",{cx:mx,cy:my,r,fill:BG,stroke:AC,"stroke-width":Math.max(1.2,S*.003)},root);el("circle",{cx:mx,cy:my,r:r*.35,fill:AC},root);el("line",{x1:mx-r,y1:my,x2:mx-r-S*.02,y2:my,stroke:AC,"stroke-width":Math.max(1.2,S*.003),"stroke-linecap":"round"},root);}
-    // lanes: true degree never moves, only the radius (assignLanes)
-    const pos={},bodies={},last=R.lanes.map(()=>-1e9);
-    keys.map(k=>({k,t:th(c.p[k][0])})).sort((a,b)=>a.t-b.t).forEach(({k,t})=>{let lane=0;for(;lane<3;lane++){const need=((R.node+S*.01)/R.lanes[lane])*(180/Math.PI);if(t-last[lane]>=need)break;}if(lane===3)lane=0;last[lane]=t;
-      const[x,y]=pa(cx,cy,R.lanes[lane],t);pos[k]=[x,y];const g=el("g",{"data-k":k},root);bodies[k]=g;
-      const tt=el("title",{},g);tt.textContent=NAME[k]+" · "+dm(c.p[k][0])+" "+SIGNS[Math.floor(c.p[k][0]/30)]+" · "+ord(c.p[k][1])+" ("+HW[c.p[k][1]]+")"+(c.p[k][2]?" · going backwards":"");
+    const asp=el("g",{"data-layer":"aspects"},root);L.aspects=asp;const lines=[];
+    if(o.aspects)(c.aspects?c.aspects.filter(([a,b])=>keys.includes(a)&&keys.includes(b)).map(x=>x.slice()):aspectsOf(c,keys.filter(k=>!k.includes("node")&&k!=="chiron"))).sort((x,y)=>x[3]/ORBS[x[2]]-y[3]/ORBS[y[2]]).forEach(([a,b,t,orb,ap])=>{const[x1,y1]=pa(cx,cy,R.as,th(c.p[a][0])),[x2,y2]=pa(cx,cy,R.as,th(c.p[b][0]));const s=1-orb/ORBS[t];const Ln=el("line",{x1,y1,x2,y2,stroke:ASP[t],"stroke-width":(.6+1.2*s)*S/600,"stroke-opacity":.18+.42*s,"stroke-linecap":"round"},asp);if(!ap)Ln.setAttribute("stroke-dasharray",(3*S/600)+" "+(4*S/600));lines.push({a,b,t,orb,el:Ln});});
+    L.horizon=el("g",{"data-layer":"horizon"},root);L.rising=el("g",{"data-layer":"rising"},root);
+    if(o.axes!==false&&c.asc!=null){const mc=th(c.mc);const Ls=o.mc?[[180,1],[0,0],[mc,1],[mc+180,0]]:[[180,1],[0,0]];Ls.forEach(([a,maj])=>{const[x0,y0]=pa(cx,cy,R.as,a),[x1,y1]=pa(cx,cy,R.si+S*.012,a);el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:o.landing?BRASS:FG,"stroke-width":(maj?1.5:1)*S/600,"stroke-opacity":o.landing?(maj?.72:.4):(maj?.45:.25)},L.horizon);});}
+    if(o.asc!==false&&c.asc!=null){const AC=o.landing?BRASS:FG;const[mx,my]=pa(cx,cy,R.so,180),r=Math.max(3,S*.0142);el("circle",{cx:mx,cy:my,r,fill:BG,stroke:AC,"stroke-width":Math.max(1.2,S*.003)},L.rising);el("circle",{cx:mx,cy:my,r:r*.35,fill:AC},L.rising);el("line",{x1:mx-r,y1:my,x2:mx-r-S*.02,y2:my,stroke:AC,"stroke-width":Math.max(1.2,S*.003),"stroke-linecap":"round"},L.rising);}
+    // lanes: the true degree never moves, only the radius (assignLanes)
+    const pos={},bodies={},lane={},last=R.lanes.map(()=>-1e9);L.planets=el("g",{"data-layer":"planets"},root);
+    keys.map(k=>({k,t:th(c.p[k][0])})).sort((a,b)=>a.t-b.t).forEach(({k,t})=>{let ln=0;for(;ln<3;ln++){const need=((R.node+S*.01)/R.lanes[ln])*(180/Math.PI);if(t-last[ln]>=need)break;}if(ln===3)ln=0;last[ln]=t;lane[k]=ln;
+      const[x,y]=pa(cx,cy,R.lanes[ln],t);pos[k]=[x,y];const g=el("g",{"data-k":k},L.planets);bodies[k]=g;
+      const tt=el("title",{},g);tt.textContent=NAME[k]+" · "+dm(c.p[k][0])+" "+SIGNS[Math.floor(c.p[k][0]/30)]+(c.p[k][1]?" · "+ord(c.p[k][1])+" ("+HW[c.p[k][1]]+")":"")+(c.p[k][2]?" · going backwards":"");
       const sz=R.node;el("circle",{cx:x,cy:y,r:R.node*(k==="sun"?.48:.62),fill:BG,"fill-opacity":.92},g);
       if(R_[k])el("image",{href:R_[k],x:x-sz/2,y:y-sz/2,width:sz,height:sz},g);else{el("circle",{cx:x,cy:y,r:sz*.42,fill:"#0b0f16",stroke:MUT,"stroke-width":.8},g);txt(g,x,y+sz*.17,PT[k],{"font-size":sz*.5,fill:MUTXT,"font-family":"serif"});}
       if(c.p[k][2]&&o.r!==false)txt(g,x+R.node*.46,y-R.node*.32,"R",{"font-family":"IBM Plex Mono","font-size":S*.019,fill:DES,"text-anchor":"start"});});
     function dim(keep,op){for(const k in bodies)bodies[k].setAttribute("opacity",keep.includes(k)?1:op);}
     function ring(k,col){const[x,y]=pos[k];return el("circle",{cx:x,cy:y,r:R.node*.72,fill:"none",stroke:col,"stroke-width":Math.max(1.5,S*.005)},root);}
-    return {root,turn,asp,pos,bodies,hl,houseText,th,R,cx,cy,S,dim,ring,first};
+    return {root,turn,asp,lines,pos,bodies,lane,hl,houseText,signs,L,th,R,cx,cy,S,dim,ring,first};
   }
   const R_=R;
   const lightHouse=(w,h,col,op)=>{for(const k in w.hl){w.hl[k].setAttribute("fill",+k===h?col:"#fff");w.hl[k].setAttribute("fill-opacity",+k===h?op:(k%2?.012:.026));}};
-
-  // Part 1: three ideas.
-  (function(){const svg=document.getElementById("threeIdeas");
-    const w=sky(svg,TH,170,170,330,{only:["saturn","uranus","neptune"],nodeK:1.4});
-    w.hl[7].setAttribute("fill",BRASS);w.hl[7].setAttribute("fill-opacity",.16);w.hl[8].setAttribute("fill","#9575CD");w.hl[8].setAttribute("fill-opacity",.16);
-    const[sx,sy]=w.pos.saturn;const[ax,ay]=pa(170,170,w.R.as+6,w.th((w.first+6)*30+15));
-    el("path",{d:`M${ax} ${ay} Q 170 170 ${sx} ${sy}`,fill:"none",stroke:BRASS,"stroke-width":1.4,"stroke-dasharray":"4 4"},svg);
-  })();
-
-  // Part 2: the backbone with callouts.
-  (function(){const svg=document.getElementById("backbone");svg.setAttribute("viewBox","-30 -30 580 580");const w=sky(svg,TH,260,260,520,{aspects:true});
-    const call=(n,x,y)=>{el("circle",{cx:x,cy:y,r:11,fill:BRASS},svg);txt(svg,x,y+4,String(n),{"font-size":12,fill:"#06080C","font-family":"IBM Plex Mono"});};
-    const[ax,ay]=pa(260,260,w.R.so,180);call(1,ax+2,ay-24);
-    const[sx,sy]=pa(260,260,w.R.so+16,w.th(TH.asc+140));call(2,sx,sy);
-    const[tx,ty]=pa(260,260,w.R.tk-22,w.th(TH.asc+205));call(3,tx,ty);
-    const[bx,by]=w.pos.pluto;call(4,bx+22,by+16);
-    call(5,260,260);
-  })();
-  (function(){sky(document.getElementById("palLanding"),TH,120,120,228,{landing:true,mc:true,aspects:true});
-    const w=sky(document.getElementById("palProduct"),TH,120,120,228,{});lightHouse(w,4,BRASS,.2);w.houseText[4].setAttribute("fill",BRASS);w.houseText[4].setAttribute("fill-opacity",1);w.dim(["jupiter"],.25);w.ring("jupiter",BRASS);})();
-
-  // Part 2: seven states.
-  (function(){const host=document.getElementById("states");
-    const S=[
-      ["Full","House by House, the wheel tab: every body, Chiron and the nodes.",s=>sky(s,TH,90,90,176,{aspects:true})],
-      ["Focus","One house lit, the rest dimmed. A house card's picture.",s=>{const w=sky(s,TH,90,90,176,{});w.hl[4].setAttribute("fill",BRASS);w.hl[4].setAttribute("fill-opacity",.22);w.dim(["jupiter"],.22);w.ring("jupiter",BRASS);}],
-      ["Teach","Few parts, one idea, moving. The primer and the loading story.",s=>{const w=sky(s,TH,90,90,176,{only:["saturn"],nodeK:1.3});w.hl[7].setAttribute("fill",BRASS);w.hl[7].setAttribute("fill-opacity",.2);}],
-      ["Pair","Two plates, apart, each named. No axes, no labels.",s=>{sky(s,A,45,90,88,{labels:false,axes:false,ticks:false,r:false});sky(s,B,135,90,88,{labels:false,axes:false,ticks:false,r:false});}],
-      ["Small","Sun and Moon. The hero and the dashboard's sky card.",s=>sky(s,TH,90,90,160,{labels:false,axes:false,only:["sun","moon"],nodeK:1.5})],
-      ["No birth time","Signs only: no houses, no Ascendant.",s=>{const w=sky(s,TH,90,90,176,{axes:false,asc:false});Object.values(w.houseText).forEach(t=>t.remove());}],
-      ["Loading","Builds in this same geometry, ring by ring.",s=>sky(s,TH,90,90,176,{only:["sun","moon","mercury","venus"]})]
-    ];
-    S.forEach(([b,t,draw])=>{const d=document.createElement("div");const s=document.createElementNS(ns,"svg");s.setAttribute("viewBox","0 0 180 180");s.setAttribute("aria-hidden","true");draw(s);d.appendChild(s);
-      d.insertAdjacentHTML("beforeend","<b>"+b+"</b><span>"+t+"</span>");host.appendChild(d);});
-  })();
-
-  // Reused parts.
-  function glyph(kind,a,b,w){w=w||120;const c=COL[kind];const line=kind==="rub"?'<polyline points="38,20 44,13 50,27 56,13 62,27 68,13 76,20" fill="none" stroke="'+c+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>':'<line x1="36" y1="20" x2="78" y2="20" stroke="'+c+'" stroke-width="2.4" stroke-linecap="round"/>';
-    return '<svg width="'+w+'" height="'+(w/3)+'" viewBox="0 0 114 40" aria-hidden="true">'+line+'<image href="'+R[a]+'" x="2" y="3" width="34" height="34"/><image href="'+R[b]+'" x="78" y="3" width="34" height="34"/></svg>';}
-  document.getElementById("glyphs").innerHTML=glyph("flow","jupiter","sun",100)+glyph("touch","pluto","moon",100)+glyph("rub","mercury","uranus",100);
-  document.querySelectorAll("[data-occ]").forEach(host=>{const h=+host.dataset.occ;
-    Object.entries(TH.p).filter(([,v])=>v[1]===h).sort((a,b)=>a[1][0]-b[1][0]).forEach(([k,v])=>{
-      const s=document.createElement("span");s.className="body";s.tabIndex=0;
-      s.innerHTML=(R[k]?'<img alt="" src="'+R[k]+'">':'<span class="pt" aria-hidden="true">'+PT[k]+'</span>')+NAME[k]+(v[2]?' <span class="r">R</span>':'')+' <span class="deg mono">'+dm(v[0])+'</span><span class="tip">'+NAME[k]+' · '+DOES[k]+(v[2]?' · going backwards':'')+'</span>';
-      host.appendChild(s);});});
-
-  // Part 3: the primer, four loops on Thibault's chart in the landing wheel.
-  const loops=[];const easeO=x=>1-Math.pow(1-x,3);
-  (function(){const host=document.getElementById("primer");
-    const mk=(n,h,b)=>{const d=document.createElement("div");const s=document.createElementNS(ns,"svg");s.setAttribute("viewBox","0 0 240 240");s.setAttribute("aria-hidden","true");d.appendChild(s);
-      d.insertAdjacentHTML("beforeend",'<span class="mono" style="color:var(--brass);font-size:13px">'+n+'</span><b>'+h+'</b><i>'+b+'</i><span class="cap"></span>');host.appendChild(d);return [s,d.querySelector(".cap"),d];};
-    // 1. The rising sign starts the count: the sky turns under the flat horizon, then the houses count round.
-    (function(){const[s,cap,d]=mk(1,"Your houses start at your rising sign","The horizon stays flat. The sky turns under it, and whatever sign is rising in the east when you're born becomes your 1st house.");
-      const w=sky(s,TH,120,120,232,{only:[],axes:false});const T=8000;let t0=null;
-      function frame(t){if(t0===null)t0=t;const k=((t-t0)%T)/T;const turn=k<.3?(1-easeO(k/.3))*-150:0;w.turn.setAttribute("transform","rotate("+turn+" 120 120)");
-        const shown=k<.34?0:Math.min(12,Math.floor((k-.34)/.045)+1);
-        for(let h=1;h<=12;h++){const t_=w.houseText[h];t_.setAttribute("fill",h===1&&shown?BRASS:FG);t_.setAttribute("fill-opacity",h<=shown?(h===1?1:.85):.12);}
-        if(shown)lightHouse(w,1,BRASS,.14);else lightHouse(w,0);
-        cap.textContent=k<.3?"The sky turns…":shown<12?"Cancer was rising for Thibault, so Cancer is his 1st house. Leo is his 2nd, Virgo his 3rd…":"Twelve signs, twelve houses, counted from his rising sign.";}
-      loops.push([d,frame,T]);})();
-    // 2. Twelve parts of life, in words.
-    (function(){const[s,cap,d]=mk(2,"Each house is one part of life","Money, home, work, love, friends. Twelve parts, twelve houses.");
-      const w=sky(s,TH,120,120,232,{only:[],axes:false});
-      const mid=txt(s,120,117,"",{"font-size":17,fill:FG,"font-family":"Newsreader"}),sub=txt(s,120,134,"",{"font-size":8,fill:"#9AA3B5","letter-spacing":".12em"});
-      const T=12*1500;let t0=null;
-      function frame(t){if(t0===null)t0=t;const h=Math.floor(((t-t0)%T)/1500)+1;lightHouse(w,h,BRASS,.22);
-        for(let j=1;j<=12;j++){w.houseText[j].setAttribute("fill-opacity",j===h?1:.3);}
-        mid.textContent=HW[h];sub.textContent=ord(h).toUpperCase()+" HOUSE";cap.textContent="The "+ord(h)+" ("+HW[h]+"): "+COVERS[h]+".";}
-      loops.push([d,frame,T]);})();
-    // 3. Every house has a planet in charge.
-    (function(){const[s,cap,d]=mk(3,"Every house has a planet in charge","Even an empty house. Look at its sign: that sign's planet is in charge, wherever it sits.");
-      const ex=[[7,"saturn"],[4,"venus"],[2,"sun"]];
-      const w=sky(s,TH,120,120,232,{only:["saturn","venus","sun"],axes:false,nodeK:1.25});
-      const path=el("path",{fill:"none",stroke:BRASS,"stroke-width":1.6,"stroke-dasharray":"4 4"},s);
-      const T=3*3400;let t0=null;
-      function frame(t){if(t0===null)t0=t;const tt=(t-t0)%T,i=Math.floor(tt/3400),k=(tt%3400)/3400;const[h,p]=ex[i];
-        lightHouse(w,h,BRASS,.2);for(let j=1;j<=12;j++)w.houseText[j].setAttribute("fill-opacity",j===h||j===TH.p[p][1]?1:.3);
-        const[a,b]=pa(120,120,w.R.as+4,w.th((w.first+h-1)*30+15)),[x2,y2]=w.pos[p];path.setAttribute("d",`M${a} ${b} Q 120 120 ${x2} ${y2}`);path.setAttribute("opacity",k<.18?0:Math.min(1,(k-.18)*4));
-        w.dim(k>.3?[p]:[],.15);
-        const sign=SIGNS[(w.first+h-1)%12];cap.textContent=sign+" is on his "+ord(h)+" ("+HW[h]+"). "+sign+"'s planet is "+NAME[p]+", and his "+NAME[p]+" sits in his "+ord(TH.p[p][1])+" ("+HW[TH.p[p][1]]+").";}
-      loops.push([d,frame,T]);})();
-    // 4. At home, or least at ease: the words the writers, the brief and the claims already use (vocabulary.ts STRUCTURE).
-    (function(){const[s,cap,d]=mk(4,"At home, or least at ease","A planet works more easily in some signs than in others. Your report says which, for each of your planets.");
-      const w=sky(s,TH,120,120,232,{only:[],axes:false});
-      const signArc=(i,col)=>{const a0=w.th(i*30);return el("path",{d:wedge(120,120,w.R.so,w.R.si,a0,a0+30),fill:col,"fill-opacity":0},s);};
-      const home=[signArc(1,"#3FA796"),signArc(6,"#3FA796")],ease=[signArc(0,"#D9668A"),signArc(7,"#D9668A")];
-      const vs=34,im=el("image",{href:R.venus,x:120-vs/2,y:120-vs/2-6,width:vs,height:vs},s),lab=txt(s,120,138,"",{"font-size":8.5,fill:FG,"letter-spacing":".08em"});
-      const T=12000;let t0=null;
-      function frame(t){if(t0===null)t0=t;const k=((t-t0)%T)/T;const st=k<.22?0:k<.47?1:k<.72?2:3;
-        home.forEach(p=>p.setAttribute("fill-opacity",st===1?.42:st>1?.12:0));ease.forEach((p,i)=>p.setAttribute("fill-opacity",st===2||(st===3&&i===0)?.42:0));
-        if(st<3){im.setAttribute("x",120-vs/2);im.setAttribute("y",120-vs/2-6);im.setAttribute("width",vs);im.setAttribute("height",vs);}
-        else{const[x,y]=pa(120,120,w.R.lanes[0],w.th(TH.p.venus[0]));im.setAttribute("x",x-13);im.setAttribute("y",y-13);im.setAttribute("width",26);im.setAttribute("height",26);}
-        lab.textContent=["VENUS","AT HOME","LEAST AT EASE",""][st];lab.setAttribute("fill",["#E8EBF2","#3FA796","#D9668A","#E8EBF2"][st]);
-        cap.textContent=["Venus is how you love and get on with people.","In Taurus and Libra, Venus is at home. Love comes easily there.","In Aries and Scorpio, Venus is least at ease. Love is still strong; it just takes more effort.","Thibault's Venus is in Aries, so it's least at ease. Venus wants ease and peace; Aries goes first and wants to win."][st];}
-      loops.push([d,frame,T]);})();
-  })();
-  (function(){const live=new Set();
-    loops.forEach(([,f,T])=>f(reduce?T-1:0));
-    if(reduce)return;
-    const io=new IntersectionObserver(es=>es.forEach(e=>{const L=loops.find(([d])=>d===e.target);if(e.isIntersecting)live.add(L);else live.delete(L);}),{threshold:.2});
-    loops.forEach(([d])=>io.observe(d));
-    (function tick(t){live.forEach(([,f])=>f(t));requestAnimationFrame(tick);})(0);
-  })();
-
-  // Part 5: the hero, on a computer and a phone. Names smaller than v4.
-  const NAMES={long:["Alex test Luna model","Luna"],short:["Beatrice","Athena"],test:["Alexandra Montgomery-Wellesley","Jo"]};
-  function nameSize(n,base){return n.length>22?base*.66:n.length>14?base*.8:base;}
-  function heroInto(host,a,b,mode){const ph=mode==="ph";host.innerHTML="";
-    const names=document.createElement("div");names.className="names";const big=ph?30:42;
-    names.innerHTML='<span class="kick">COMPATIBILITY REPORT · PARENT AND CHILD</span><span class="n" style="font-size:'+nameSize(a,big)+'px">'+a+'</span><span class="and" style="font-size:'+(ph?15:18)+'px">and</span><span class="n" style="font-size:'+nameSize(b,big)+'px">'+b+'</span>';
-    names.style.maxWidth=ph?"250px":"380px";
-    const skies=document.createElement("div");skies.className="skies";
-    [[A,a],[B,b]].forEach(([c,n])=>{const k=document.createElement("div");k.className="sky";const s=document.createElementNS(ns,"svg");const sz=ph?124:200;s.setAttribute("width",sz);s.setAttribute("height",sz);s.setAttribute("viewBox","0 0 200 200");s.setAttribute("aria-hidden","true");
-      sky(s,c,100,100,198,{labels:false,axes:false,r:false,ticks:false});k.appendChild(s);const sp=document.createElement("span");sp.textContent=n;k.appendChild(sp);skies.appendChild(k);});
-    host.appendChild(names);host.appendChild(skies);host.insertAdjacentHTML("beforeend",'<span class="cue">SCROLL</span>');}
-  function heroes(which){const[a,b]=NAMES[which];heroInto(document.getElementById("heroDt"),a,b,"dt");heroInto(document.getElementById("heroPh"),a,b,"ph");}
-  document.querySelectorAll("[data-names]").forEach(bt=>bt.onclick=()=>{document.querySelectorAll("[data-names]").forEach(x=>x.setAttribute("aria-pressed",String(x===bt)));heroes(bt.dataset.names);});
-  heroes("long");
-
   // The link line in the ledger's style: teal straight, brass for together, the rose zigzag for a challenge.
   function linkLine(g,x0,y0,x1,y1,kind,w){const col=COL[kind];
     if(kind==="rub"){const n=10,dx=(x1-x0)/n,dy=(y1-y0)/n,len=Math.hypot(x1-x0,y1-y0)||1,nx=-(y1-y0)/len*4,ny=(x1-x0)/len*4;let p="M"+x0+" "+y0;for(let k=1;k<n;k++){const s=k%2?1:-1;p+=" L"+(x0+dx*k+nx*s).toFixed(1)+" "+(y0+dy*k+ny*s).toFixed(1);}p+=" L"+x1+" "+y1;return el("path",{d:p,fill:"none",stroke:col,"stroke-width":w||2,"stroke-linejoin":"round"},g);}
@@ -694,18 +192,6 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
     const br=bodyR||r*.2;const mark=(k,x,y,col,dash)=>{if(k&&R[k])el("image",{href:R[k],x:x-br,y:y-br,width:2*br,height:2*br},g);else el("circle",{cx:x,cy:y,r:5,fill:col},g);const o=el("circle",{cx:x,cy:y,r:br+3.5,fill:"none",stroke:col,"stroke-width":1.6},g);if(dash)o.setAttribute("stroke-dasharray","3 3");};
     mark(a,p0[0],p0[1],YOU);mark(b,p1[0]+(kind==="touch"?br*1.6:0),p1[1],THEM,true);
     if(label)txt(g,cx,cy+r*.15,label,{"font-size":r*.2,fill:MUTXT,"font-family":"IBM Plex Mono"});return g;}
-  (function(){const host=document.getElementById("angles");
-    const L=[["Conjunct","0°","Two planets on the same spot act as one. Strong, for good or hard.","touch","pluto","moon",A.p.pluto[0],B.p.moon[0]],
-      ["Sextile","60°","An easy angle: they help each other with a little effort.","flow","neptune","moon",A.p.neptune[0],B.p.moon[0]],
-      ["Square","90°","A sharp angle: they push on each other. Friction that can teach.","rub","mercury","uranus",A.p.mercury[0],B.p.uranus[0]],
-      ["Trine","120°","The easiest angle: they support each other without trying.","flow","jupiter","sun",A.p.jupiter[0],B.p.sun[0]],
-      ["Opposite","180°","Across the circle: they pull, and can balance. None in this pair.","rub",null,null,0,180]];
-    L.forEach(([n,deg,t,k,a,b,la,lb])=>{const d=document.createElement("div");const s=document.createElementNS(ns,"svg");s.setAttribute("viewBox","0 0 120 120");s.setAttribute("aria-hidden","true");angleDial(s,60,60,44,a,b,la,lb,k,deg,10);d.appendChild(s);
-      d.insertAdjacentHTML("beforeend","<b>"+n+"</b><span>"+t+"</span>"+(a?"<span class='mono' style='font-size:11px'>Your "+NAME[a]+" · Athena's "+NAME[b]+"</span>":""));host.appendChild(d);});
-  })();
-
-  // The walk. The pair doctrine's order (pair/index.ts: "luminaries and Venus and Mars before the rest", "tight before
-  // wide"): a link files under its first planet in that order; outer with outer last; empty groups never show.
   const SPEED=["sun","moon","venus","mars","mercury","jupiter","saturn"];
   const GROUP={moon:"Feelings and comfort",mercury:"Talking",venus:"Affection",sun:"Who you are",mars:"Drive and friction",jupiter:"Growing",saturn:"Limits and staying power",outer:"The times you were born into"};
   const LINKS=[
@@ -755,103 +241,126 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
     if(kind!=="touch")el("path",{d:`M${q0x} ${q0y} A${ar} ${ar} 0 0 ${sweep} ${q1x} ${q1y}`,fill:"none",stroke:MUTXT,"stroke-width":1},g);
     txt(g,w.cx,w.cy+S*.012,deg,{"font-family":"IBM Plex Mono","font-size":Math.max(8,S*.034),fill:MUTXT});
   }
-  // The walk inside the report page as it is today: the nav, the chapter rail (computer) or the chapter bar under the nav
-  // (phone), chapter 01's divider, number and title, then the walk, then chapter 02. Cards are as tall as their words; the
-  // page snaps near a card (proximity), never to a full screen. The stage carries the walk's own progress.
-  const CH=["Your two charts","What your child needs from you","Big feelings and what helps","Home and helping out","School, homework and how they learn","Rules, freedom and screens","Things to try"];
-  const ACC="#5C6BC0";
-  let LONG=false;
-  function page(host,W,H,ph){host.innerHTML="";
-    const navH=48,mobH=ph?34:0;
-    const shell=document.createElement("div");shell.className="rpm"+(ph?" ph":" dt");shell.style.width=W+"px";shell.style.height=H+"px";host.appendChild(shell);
-    shell.insertAdjacentHTML("beforeend",'<div class="rpm-nav"><span class="logo">Stars Decoded</span><span class="act">'+(ph?'':'<span class="btn">Export PDF</span>')+'<span class="av"></span></span></div>');
-    let mob=null,rail=null;
-    if(ph){shell.insertAdjacentHTML("beforeend",'<div class="rpm-mob"><span class="cur">Your two charts</span><span class="bar"><i></i></span></div>');mob=shell.querySelector(".rpm-mob");}
-    else{rail=document.createElement("nav");rail.className="rpm-rail";CH.forEach((c,i)=>rail.insertAdjacentHTML("beforeend",'<button class="'+(i===0?"on":"")+'"><i></i><span>'+c+'</span></button>'));shell.appendChild(rail);}
-    const sc=document.createElement("div");sc.className="rpm-scroll";sc.style.paddingTop=(navH+mobH)+"px";shell.appendChild(sc);
-    const divider=(i)=>'<div class="rpm-div" data-chm="'+i+'"><span class="ln"></span><span class="mk">'+CH[i]+'</span></div>';
-    const head=(i,lede)=>'<header class="rpm-head"><span class="big">'+String(i+1).padStart(2,"0")+'</span><p class="eye">'+String(i+1).padStart(2,"0")+' / 07</p><h2>'+CH[i]+'</h2><div class="rule"></div>'+(lede?'<p class="lede">'+lede+'</p>':'')+'</header>';
-    const ch1=document.createElement("section");ch1.innerHTML=divider(0)+'<div class="rpm-ch">'+head(0,"Your two charts, each on its own, then every place they meet.")+'<div class="rpm-skel"><i></i><i></i><i style="width:60%"></i></div><h3 class="rpm-h3">Where your charts meet</h3><p class="rpm-sub">'+LINKS.length+' links, grouped by what they touch. <span class="ⓘ">ⓘ How two planets meet</span></p><div class="rpm-walk"></div></div>';
-    sc.appendChild(ch1);
-    const ch2=document.createElement("section");ch2.innerHTML=divider(1)+'<div class="rpm-ch">'+head(1,"")+'<div class="rpm-skel"><i></i><i></i><i></i><i style="width:70%"></i></div><div class="rpm-skel"><i></i><i></i><i style="width:40%"></i></div><div style="height:'+H+'px"></div></div>';sc.appendChild(ch2);
-    const wk=ch1.querySelector(".rpm-walk");
-    // the stage: progress, the two charts, the link named
-    const stage=document.createElement("div");stage.className="rpm-stage";stage.style.top=(ph?0:24)+"px";// sticky counts from inside the scroller's padding, which already clears the nav
-    stage.innerHTML='<div class="prog"><span class="gname"></span><span class="count"></span></div><div class="segs"></div>';
-    const s=document.createElementNS(ns,"svg");const VW=ph?300:400,VH=ph?150:210;s.setAttribute("viewBox","0 0 "+VW+" "+VH);s.setAttribute("role","img");s.setAttribute("aria-label","Your chart and Athena's, each showing the link from its own side");stage.appendChild(s);
-    const now=document.createElement("div");now.className="now";stage.appendChild(now);
-    const cards=document.createElement("div");cards.className="rpm-cards";
-    wk.appendChild(stage);wk.appendChild(cards);
-    const all=[];
-    GROUPS.forEach((gp,gi)=>gp.items.forEach((it,j)=>all.push({it,gp,gi,j})));
-    const segs=stage.querySelector(".segs");all.forEach((x,i)=>{const b=document.createElement("i");if(i&&x.j===0)b.className="gap";segs.appendChild(b);});
-    all.forEach(({it,gp,gi,j},i)=>{const ha=A.p[it.a][1],hb=B.p[it.b][1];const c=document.createElement("article");c.className="rpm-card";
-      const text=LONG?it.text+" "+it.text:it.text;
-      c.innerHTML=(j===0?'<span class="grp">'+gp.t+'</span>':'')+'<span class="tag" style="color:'+TAGCOL[it.kind]+'"><i style="background:'+TAGCOL[it.kind]+'"></i>'+TAG[it.kind]+'</span><h4>'+it.title+'</h4><p class="astro">Your '+NAME[it.a]+' ('+ord(ha)+', '+HW[ha]+') '+ASPW[it.type]+' Athena\'s '+NAME[it.b]+' ('+ord(hb)+', '+HW[hb]+') · '+it.orb.toFixed(1)+'° ⓘ</p><p class="read">'+text+'</p><div class="ck"><span class="tt">Try together</span><label class="pin"><input type="checkbox"><span>'+it.try+'</span></label></div>';
-      if(ph)cards.appendChild(c);else{const st=document.createElement("div");st.className="rpm-step";st.style.minHeight=(H-navH)+"px";st.appendChild(c);cards.appendChild(st);}});
-    const cardEls=[...cards.querySelectorAll(".rpm-card")],steps=ph?cardEls:[...cards.children];
-    let cur=-1;
-    function draw(idx){const{it,gp,gi,j}=all[idx];s.innerHTML="";
-      const size=ph?132:186,cA=ph?[76,70]:[100,98],cB=ph?[224,70]:[300,98];
-      const deg={together:"0°",sextile:"60°",square:"90°",trine:"120°"}[it.type];
-      const wa=sky(s,A,cA[0],cA[1],size,{labels:!ph,axes:false,ticks:!ph,r:false}),wb=sky(s,B,cB[0],cB[1],size,{labels:!ph,axes:false,ticks:!ph,r:false});
-      linkOnChart(wa,A,it.a,it.b,B.p[it.b][0],it.kind,YOU,THEM,deg,it.type);linkOnChart(wb,B,it.b,it.a,A.p[it.a][0],it.kind,THEM,YOU,deg,it.type);
-      txt(s,cA[0],cA[1]+size/2+(ph?9:13),"YOU · BEATRICE",{"font-size":ph?8:10,fill:MUTXT,"letter-spacing":".12em"});txt(s,cB[0],cB[1]+size/2+(ph?9:13),"ATHENA",{"font-size":ph?8:10,fill:MUTXT,"letter-spacing":".12em"});
-      now.innerHTML=ASPW[it.type]+', '+SHAPE[it.type];
-      stage.querySelector(".gname").textContent=String(gi+1).padStart(2,"0")+" · "+gp.t;
-      const left=all.length-1-idx;stage.querySelector(".count").textContent="Link "+(idx+1)+" of "+all.length+(left?" · "+left+" left":" · last one");
-      [...segs.children].forEach((b,k)=>{b.classList.toggle("done",k<idx);b.classList.toggle("on",k===idx);});
-      cardEls.forEach((c,k)=>c.classList.toggle("on",k===idx));}
-    // A card longer than the room under the full stage gets the compact stage; longer still, it scrolls like prose.
-    // No CSS snap: it pulled the reader to the next card mid-sentence. The page settles itself once scrolling stops,
-    // only when a card's start is near, and never while the reader is inside a card longer than the room.
-    let full=0,compact=false;
-    function room(){return H-navH-mobH;}
-    const yOf=e=>{let y=0,n=e;while(n&&n!==sc){y+=n.offsetTop;n=n.offsetParent;}return y;}; // layout units: the mock frame is scaled
-    const anchor=()=>ph?navH+mobH+stage.offsetHeight+12:navH;
-    function targets(){return steps.map(e=>{const t=yOf(e)-anchor();const h=ph?e.offsetHeight:0;const free=Math.max(0,h-(room()-stage.offsetHeight-24));return{t,end:t+free};});}
-    function pick(){const T=targets(),y=sc.scrollTop;let idx=0;T.forEach((x,k)=>{if(y>=x.t-(ph?60:(H-navH)/2))idx=k;});
-      if(idx!==cur){cur=idx;draw(idx);}
-      const d2=yOf(sc.querySelector('[data-chm="1"]'))-sc.scrollTop;const act=d2<=140?1:0;
-      if(rail)[...rail.children].forEach((b,k)=>b.classList.toggle("on",k===act));
-      if(mob){mob.querySelector(".cur").textContent=CH[act];mob.querySelector(".bar i").style.width=Math.round(sc.scrollTop/Math.max(1,sc.scrollHeight-sc.clientHeight)*100)+"%";mob.style.opacity=Math.min(1,sc.scrollTop/(H*.3));}}
-    // Like the snap the Owner liked in version 6, but by direction: a scroll that moved goes on to the next card's start
-    // (or a long card's end) that way; a nudge returns; far past the first or last card, the page scrolls freely.
-    let settling=false,timer=0,last=null;
-    function settle(){const T=targets(),y=sc.scrollTop;if(last===null)last=y;
-      if(T.some(x=>y>x.t+2&&y<x.end-2)){last=y;return;} // reading inside a long card: leave it alone
-      const P=[...new Set(T.flatMap(x=>[Math.round(x.t),Math.round(x.end)]))].sort((a,b)=>a-b);
-      const d=y-last,step=ph?room()*.5:(H-navH)*.6;let to;
-      if(Math.abs(d)<24)to=P.reduce((m,v)=>Math.abs(v-y)<Math.abs(m-y)?v:m,P[0]);
-      else{const C=P.filter(v=>d>0?v>last+2:v<last-2);if(!C.length){last=y;return;}to=C.reduce((m,v)=>Math.abs(v-y)<Math.abs(m-y)?v:m,C[0]);}
-      if(Math.abs(to-y)>step){last=y;return;} // beyond the walk's ends: free
-      last=to;if(Math.abs(to-y)<2)return;
-      settling=true;sc.scrollTo({top:to,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});}
-    function onEnd(){if(settling){settling=false;return;}settle();}
-    draw(0);cur=0;
-    requestAnimationFrame(()=>{full=stage.offsetHeight;
-      // the charts' size is chosen once for the screen, never per card, so nothing under the reader moves
-      if(!ph)stage.style.top=Math.max(24,(H-navH-full)/2)+"px";
-      if(ph){const hs=cardEls.map(c=>c.offsetHeight).sort((a,b)=>a-b);const med=hs[Math.floor(hs.length/2)];compact=med>room()-full-24;stage.classList.toggle("compact",compact);}
-      pick();});
-    sc.addEventListener("scroll",()=>{requestAnimationFrame(pick);if(!("onscrollend" in window)){clearTimeout(timer);timer=setTimeout(onEnd,160);}},{passive:true});
-    if("onscrollend" in window)sc.addEventListener("scrollend",onEnd);
-    return {sc,stage,cardEls,room,navH,mobH,get full(){return full;},get compact(){return compact;}};
-  }
-  // How each card fits at a size: under the full stage, under the compact one, or longer (it scrolls like prose).
-  function fitReport(p,ph){if(!ph)return "";const free=p.room()-p.stage.offsetHeight-24;const l=p.cardEls.filter(e=>e.offsetHeight>free).length;
-    return (p.compact?"charts in their small size on this screen; ":"charts at full size; ")+(l?l+" of "+p.cardEls.length+" cards are longer than the room: you read them freely, and the page settles only at the next card's start":"every card fits under the charts");}
-  let dtP=null;
-  function desktop(){const host=document.getElementById("walkDt");const sc=host.closest(".scaler");sc.dataset.w=1280;sc.dataset.h=760;host.style.width="1280px";host.style.height="760px";dtP=page(host,1280,760,false);fit();}
-  function phone(sz){const[W,H]=sz.split("x").map(Number);const sc=document.getElementById("phScaler"),scr=document.getElementById("phScreen");
-    scr.style.width=W+"px";scr.style.height=H+"px";sc.dataset.w=W+12;sc.dataset.h=H+12;fit();
-    const p=page(document.getElementById("walkPh"),W,H,true);
-    setTimeout(()=>{document.getElementById("phFit").textContent=W+" × "+H+": "+fitReport(p,true)+".";},120);}
-  let phSize="390x844";
-  document.querySelectorAll("[data-ph]").forEach(bt=>bt.onclick=()=>{document.querySelectorAll("[data-ph]").forEach(x=>x.setAttribute("aria-pressed",String(x===bt)));phSize=bt.dataset.ph;phone(phSize);});
-  const lt=document.getElementById("longText");if(lt)lt.onclick=()=>{LONG=!LONG;lt.setAttribute("aria-pressed",String(LONG));desktop();phone(phSize);};
+  // The engine's own aspect list for Thibault (calculateNatalChart(...).aspects): pair, type, orb, closing in.
+  TH.aspects=[["sun","mercury","conjunction",2.6,1],["sun","saturn","square",2.6,1],["sun","uranus","trine",5.3,1],["sun","pluto","opposition",3.3,1],["moon","venus","conjunction",5.3,0],["moon","uranus","square",2.6,1],["moon","neptune","square",1.6,1],["mercury","jupiter","trine",5.1,1],["mercury","saturn","square",0.1,1],["mercury","pluto","opposition",5.9,1],["venus","mars","trine",4,1],["saturn","pluto","square",5.8,0],["uranus","neptune","conjunction",1,0],["uranus","pluto","sextile",2.1,0],["neptune","pluto","sextile",3.1,0]];
+  // Thibault with no birth time: the engine at 12:00 with a 720-minute window. No rising sign, no houses; the Moon is a stretch.
+  const UN={asc:null,mc:null,p:{sun:[57.47],mercury:[60.28],venus:[14.22],mars:[130.22],jupiter:[185.04,0,1],saturn:[329.9],uranus:[291.99,0,1],neptune:[290.98,0,1],pluto:[234.04,0,1],moon:[21.26],chiron:[138.06],north_node:[253.14,0,1],south_node:[73.14,0,1]},band:[15.23,27.31]};
+  // The sky over London on 9 October 2026 at 13:00 local (skyAt, placeForZone("Europe/London")).
+  const NOW={asc:257.16,mc:199.49,p:{sun:[196.21,11],mercury:[221.06,12],venus:[217.73,12,1],mars:[126.57,9],jupiter:[141.06,9],saturn:[10.91,5,1],uranus:[65.36,7,1],neptune:[2.63,5,1],pluto:[303.08,3,1],moon:[182.12,11],chiron:[29.12,5,1],north_node:[327.26,3,1],south_node:[147.26,9,1]}};
+  // comfort.ts COMFORT, as the engine holds it.
+  const COMFORT={sun:[["Leo"],["Aquarius"]],moon:[["Cancer"],["Capricorn"]],mercury:[["Gemini","Virgo"],["Sagittarius","Pisces"]],venus:[["Taurus","Libra"],["Scorpio","Aries"]],mars:[["Aries","Scorpio"],["Libra","Taurus"]],jupiter:[["Sagittarius","Pisces"],["Gemini","Virgo"]],saturn:[["Capricorn","Aquarius"],["Cancer","Leo"]]};
+  const easeO=x=>1-Math.pow(1-x,3),easeIO=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+  const kOf=(t,a,b)=>Math.max(0,Math.min(1,(t-a)/(b-a)));
+  function svgIn(host,w,h,label){const s=el("svg",{viewBox:"0 0 "+w+" "+h,role:"img","aria-label":label||""});host.appendChild(s);return s;}
+  // The same drawing at the phone size and the desktop size, side by side. draw(svg,S,phone) may return a frame(t).
+  const SIZE={ph:358,dt:560};
+  function both(host,label,draw,o){o=o||{};host.classList.add("both");const fr=[];
+    [["ph","Phone · 390 wide",o.ph||SIZE.ph],["dt","Desktop",o.dt||SIZE.dt]].forEach(([k,cap,S])=>{const f=document.createElement("figure");f.className="dev "+k;
+      const W=o.w?o.w(S):S,H=o.h?o.h(S):S;const s=svgIn(f,W,H,label+" ("+cap.toLowerCase()+")");if(o.actual){s.style.width=W+"px";s.style.maxWidth="100%";}const fc=document.createElement("figcaption");fc.innerHTML=cap+' <span class="mono">· chart '+Math.round(o.chart?o.chart(S):S)+' px</span>';f.appendChild(fc);host.appendChild(f);
+      const fn=draw(s,S,k==="ph");if(fn)fr.push(fn);});
+    return t=>fr.forEach(f=>f(t));}
+  // Loops run only on screen; with reduced motion each shows its last frame and stays still.
+  const LOOPS=[];
+  function loop(host,T,frame,o){o=o||{};const L={host,T,frame,t0:null,once:!!o.once,done:false};LOOPS.push(L);
+    if(o.button!==false){const b=document.createElement("button");b.className="replay";b.type="button";b.textContent=o.once?"Play again":"Restart";b.onclick=()=>{L.t0=null;L.done=false;};host.appendChild(b);}
+    frame(reduce||L.once?T:0);return L;}
+  addEventListener("load",()=>{if(reduce)return;const live=new Set();
+    const io=new IntersectionObserver(es=>es.forEach(e=>{LOOPS.filter(L=>L.host===e.target).forEach(L=>e.isIntersecting?live.add(L):live.delete(L));}),{threshold:.15});
+    LOOPS.forEach(L=>io.observe(L.host));
+    (function tick(now){live.forEach(L=>{if(L.done)return;if(L.t0===null)L.t0=now;let t=(now-L.t0)/1000;if(L.once&&t>=L.T){t=L.T;L.done=true;}else t=t%L.T;L.frame(t);});requestAnimationFrame(tick);})(0);});
+  // The Moon's stretch when there is no birth time: the arc it could be on that day, on its own lane.
+  function moonBand(w,c,col){const ln=w.R.lanes[w.lane.moon];const[a,b]=c.band;
+    return el("path",{d:arcPath(w.cx,w.cy,ln,w.th(a),w.th(b)),fill:"none",stroke:col||MUTXT,"stroke-width":w.R.node*.95,"stroke-opacity":.22,"stroke-linecap":"round"},w.L.planets.parentNode.insertBefore(el("g",{}),w.L.planets));}
+  // The build, in the order the loading story draws it. P holds each phase's [start,end] in seconds.
+  const BUILD={signs:[0,1.2],names:[1.1,1.7],ticks:[1.5,2.2],planets:[2.2,4.2],lines:[4.2,5.4],turn:[5.6,7.4],horizon:[7.4,8.1],houses:[8.2,11.2],end:12.5};
+  function build(svg,c,cx,cy,S,P,o){o=o||{};P=P||BUILD;const timed=c.asc!=null&&!o.untimed;
+    const U=sky(svg,{asc:null,mc:null,p:c.p,aspects:c.aspects},cx,cy,S,{aspects:o.aspects!==false,labels:o.labels,ticks:o.ticks});
+    const T=timed?sky(svg,c,cx,cy,S,{aspects:o.aspects!==false,labels:o.labels,ticks:o.ticks}):null;
+    const band=!timed&&c.band?moonBand(U,c):null;
+    const fin={};for(const k in U.pos)fin[k]=U.pos[k];
+    const keys=Object.keys(c.p).sort((a,b)=>c.p[a][0]-c.p[b][0]);
+    return function(t){
+      for(let i=0;i<12;i++)U.signs[i].setAttribute("opacity",kOf(t,P.signs[0]+i*(P.signs[1]-P.signs[0])/12*.8,P.signs[0]+(i+2.4)*(P.signs[1]-P.signs[0])/12*.8));
+      U.L.signText.setAttribute("opacity",kOf(t,...P.names));U.L.circles.setAttribute("opacity",kOf(t,...P.names));
+      U.L.ticks.setAttribute("opacity",kOf(t,...P.ticks));
+      const turnK=timed?easeIO(kOf(t,...P.turn)):0,A=turnK*c.asc;
+      keys.forEach((k,i)=>{const d=(P.planets[1]-P.planets[0]),k0=P.planets[0]+i*d*.035,kk=easeO(kOf(t,k0,k0+d*.6));
+        const lon=c.p[k][0]*kk,[x,y]=pa(cx,cy,U.R.lanes[U.lane[k]],U.th(lon)),[fx,fy]=fin[k];
+        U.bodies[k].setAttribute("transform","translate("+(x-fx)+" "+(y-fy)+") rotate("+(-A)+" "+fx+" "+fy+")");U.bodies[k].setAttribute("opacity",kk>0?Math.min(1,kk*4):0);});
+      U.lines.forEach((l,i)=>{const d=P.lines[1]-P.lines[0],a=P.lines[0]+i*d/Math.max(1,U.lines.length)*.7;l.el.setAttribute("opacity",kOf(t,a,a+d*.3));});
+      if(band){const k=easeO(kOf(t,...(P.band||P.turn)));band.setAttribute("opacity",k);}
+      U.root.setAttribute("transform","rotate("+A+" "+cx+" "+cy+")");
+      if(!T)return;
+      const x=kOf(t,P.turn[1]-.05,P.turn[1]+.35);U.root.setAttribute("opacity",1-x);T.root.setAttribute("opacity",x);
+      const hz=kOf(t,...P.horizon);T.L.horizon.setAttribute("opacity",hz);
+      T.L.rising.setAttribute("opacity",hz);T.L.rising.setAttribute("transform","translate(0 "+(-(1-easeO(hz))*S*.03)+")");
+      const nH=o.single?12:6,d=(P.houses[1]-P.houses[0])/nH;
+      for(let h=1;h<=12;h++){const j=(h-1)%nH,a=P.houses[0]+j*d,k=kOf(t,a,a+d*1.6);
+        if(T.houseText[h])T.houseText[h].setAttribute("opacity",t>=a?1:0);
+        const on=t>=a&&k<1;T.hl[h].setAttribute("fill",on?BRASS:"#fff");T.hl[h].setAttribute("fill-opacity",on?.22*(1-k):(h%2?.012:.026));}};}
+  // A numbered pointer: a small brass-free dot and number set outside the chart, a hairline to the part.
+  function callout(svg,n,x0,y0,x1,y1,side){el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:MUTXT,"stroke-opacity":.6,"stroke-width":.8},svg);el("circle",{cx:x0,cy:y0,r:2,fill:MUTXT},svg);
+    const g=el("g",{},svg);el("circle",{cx:x1,cy:y1,r:9,fill:"#1a2130",stroke:MUTXT,"stroke-opacity":.5},g);txt(g,x1,y1+3.6,String(n),{"font-size":10.5,fill:FG,"font-family":"IBM Plex Mono"});}
+  // The teaching loops. Each one: a stage element, a caption element, the chart in both sizes.
+  const TEACH={
+  count(stage,cap){const f=both(stage.querySelector(".fig"),"The sky turns and the houses count",(svg,S)=>{const c=S/2,w=sky(svg,TH,c,c,S*.96,{only:[]});
+      return t=>{const k=t/8;const turn=k<.3?(1-easeO(k/.3))*-150:0;w.turn.setAttribute("transform","rotate("+turn+" "+c+" "+c+")");
+        const shown=k<.34?0:Math.min(12,Math.floor((k-.34)/.045)+1);
+        for(let h=1;h<=12;h++){const t_=w.houseText[h];t_.setAttribute("fill",h===1&&shown?BRASS:FG);t_.setAttribute("fill-opacity",h<=shown?(h===1?1:.85):.12);}
+        if(shown)lightHouse(w,1,BRASS,.14);else lightHouse(w,0);};});
+    loop(stage,8,t=>{f(t);const k=t/8,shown=k<.34?0:Math.min(12,Math.floor((k-.34)/.045)+1);
+      cap.textContent=k<.3?"The sky turns…":shown<12?"Cancer was rising for Thibault, so Cancer is his 1st house. Leo is his 2nd, Virgo his 3rd…":"Twelve signs, twelve houses, counted from his rising sign.";});},
+  each(stage,cap){const f=both(stage.querySelector(".fig"),"Each house lit in turn",(svg,S)=>{const c=S/2,w=sky(svg,TH,c,c,S*.96,{only:[],axes:false});
+      const mid=txt(svg,c,c-S*.005,"",{"font-size":S*.07,fill:FG,"font-family":"Newsreader, Georgia, serif"}),sub=txt(svg,c,c+S*.06,"",{"font-size":S*.033,fill:MUTXT,"letter-spacing":".12em"});
+      return t=>{const h=Math.floor(t/1.5)%12+1;lightHouse(w,h,BRASS,.22);for(let j=1;j<=12;j++)w.houseText[j].setAttribute("fill-opacity",j===h?1:.3);mid.textContent=HW[h];sub.textContent=ord(h).toUpperCase()+" HOUSE";};});
+    loop(stage,18,t=>{f(t);const h=Math.floor(t/1.5)%12+1;cap.textContent="The "+ord(h)+" ("+HW[h]+"): "+COVERS[h]+".";});},
+  charge(stage,cap){const ex=[[7,"saturn"],[4,"venus"],[2,"sun"]];
+    const f=both(stage.querySelector(".fig"),"The planet in charge of a house",(svg,S)=>{const c=S/2,w=sky(svg,TH,c,c,S*.96,{only:["saturn","venus","sun"],axes:false,nodeK:1.25});
+      const path=el("path",{fill:"none",stroke:BRASS,"stroke-width":Math.max(1.4,S*.004),"stroke-dasharray":"4 4"},svg);
+      return t=>{const i=Math.floor(t/3.4)%3,k=(t%3.4)/3.4;const[h,p]=ex[i];lightHouse(w,h,BRASS,.2);for(let j=1;j<=12;j++)w.houseText[j].setAttribute("fill-opacity",j===h||j===TH.p[p][1]?1:.3);
+        const[a,b]=pa(c,c,w.R.as+4,w.th((w.first+h-1)*30+15)),[x2,y2]=w.pos[p];path.setAttribute("d",`M${a} ${b} Q ${c} ${c} ${x2} ${y2}`);path.setAttribute("opacity",k<.18?0:Math.min(1,(k-.18)*4));w.dim(k>.3?[p]:[],.15);};});
+    loop(stage,10.2,t=>{f(t);const[h,p]=ex[Math.floor(t/3.4)%3];const sign=SIGNS[(Math.floor(TH.asc/30)+h-1)%12];
+      cap.textContent=sign+" is on his "+ord(h)+" ("+HW[h]+"). "+sign+"'s planet is "+NAME[p]+", and his "+NAME[p]+" sits in his "+ord(TH.p[p][1])+" ("+HW[TH.p[p][1]]+").";});},
+  venus(stage,cap){const si=n=>SIGNS.indexOf(n);
+    const f=both(stage.querySelector(".fig"),"Venus at home and least at ease",(svg,S)=>{const c=S/2,w=sky(svg,TH,c,c,S*.96,{only:[],axes:false});
+      const arc=(i,col)=>{const a0=w.th(i*30);return el("path",{d:wedge(c,c,w.R.so,w.R.si,a0,a0+30),fill:col,"fill-opacity":0},svg);};
+      const home=COMFORT.venus[0].map(n=>arc(si(n),"#3FA796")),ease=COMFORT.venus[1].map(n=>arc(si(n),"#D9668A"));
+      const vs=S*.15,im=el("image",{href:R.venus,width:vs,height:vs},svg),lab=txt(svg,c,c+S*.1,"",{"font-size":S*.036,"letter-spacing":".08em"});
+      const[px,py]=pa(c,c,w.R.lanes[0],w.th(TH.p.venus[0])),ps=w.R.node;
+      return t=>{const st=t<2.6?0:t<5.6?1:t<8.6?2:3;
+        home.forEach(p=>p.setAttribute("fill-opacity",st===1?.42:st>1?.12:0));ease.forEach((p,i)=>p.setAttribute("fill-opacity",st===2||(st===3&&COMFORT.venus[1][i]==="Aries")?.42:0));
+        const m=easeIO(kOf(t,8.6,9.6)),sz=vs+(ps-vs)*m,x=c+(px-c)*m,y=c-S*.03+(py-c+S*.03)*m;
+        im.setAttribute("x",x-sz/2);im.setAttribute("y",y-sz/2);im.setAttribute("width",sz);im.setAttribute("height",sz);
+        lab.textContent=["VENUS","AT HOME","LEAST AT EASE",""][st];lab.setAttribute("fill",[FG,"#3FA796","#D9668A",FG][st]);};});
+    loop(stage,12,t=>{f(t);const st=t<2.6?0:t<5.6?1:t<8.6?2:3;
+      cap.textContent=["Venus is how you love and get on with people.","In Taurus and Libra, Venus is at home. Love comes easily there.","In Scorpio and Aries, Venus is least at ease. Love is still strong; it just takes more effort.","Thibault's Venus is in Aries, so it's least at ease. Venus wants ease and peace; Aries wants a win."][st];});},
+  meet(stage,cap){const L=[["0°","together","touch","pluto","moon"],["60°","sextile","flow","mars","jupiter"],["90°","square","rub","mercury","uranus"],["120°","trine","flow","jupiter","sun"]];
+    const f=both(stage.querySelector(".fig"),"How two planets meet",(svg,S)=>{const g=el("g",{},svg);
+      return t=>{const i=Math.floor(t/3)%4;g.innerHTML="";const[deg,ty,k,a,b]=L[i];const r=S*.34;angleDial(g,S/2,S/2,r,a,b,A.p[a][0],B.p[b][0],k,deg,S*.06);};},{h:S=>S});
+    loop(stage,12,t=>{f(t);const[deg,ty]=L[Math.floor(t/3)%4];cap.textContent=deg+": "+{together:"the same spot. They act as one.",sextile:"one side of a hexagon. An easy angle.",square:"one side of a square. A sharp angle: they rub.",trine:"one side of a triangle. The easiest angle."}[ty];});}};
 
-  function fit(){document.querySelectorAll(".scaler").forEach(sc=>{const w=+sc.dataset.w,h=+sc.dataset.h,k=Math.min(1,sc.clientWidth/w);sc.firstElementChild.style.transform="scale("+k+")";sc.style.height=(h*k)+"px";});}
-  addEventListener("resize",fit);desktop();phone("390x844");
-})();
+const HOURS=[["00:00",267.99,{"sun":[56.99,6,0],"mercury":[59.19,6,0],"venus":[13.87,5,0],"mars":[129.96,9,0],"jupiter":[185.06,11,1],"saturn":[329.88,3,0],"uranus":[292,2,1],"neptune":[290.99,2,1],"pluto":[234.06,12,1],"moon":[15.23,5,0],"chiron":[138.03,9,0],"north_node":[253.17,1,1],"south_node":[73.17,7,1]}],["02:00",301.52,{"sun":[57.07,4,0],"mercury":[59.37,4,0],"venus":[13.93,3,0],"mars":[130,7,0],"jupiter":[185.05,9,1],"saturn":[329.89,1,0],"uranus":[292,12,1],"neptune":[290.99,12,1],"pluto":[234.06,10,1],"moon":[16.24,3,0],"chiron":[138.04,7,0],"north_node":[253.17,11,1],"south_node":[73.17,5,1]}],["04:00",0.29,{"sun":[57.15,2,0],"mercury":[59.55,2,0],"venus":[13.99,1,0],"mars":[130.04,5,0],"jupiter":[185.05,7,1],"saturn":[329.89,11,0],"uranus":[292,10,1],"neptune":[290.99,10,1],"pluto":[234.05,8,1],"moon":[17.24,1,0],"chiron":[138.04,5,0],"north_node":[253.16,9,1],"south_node":[73.16,3,1]}],["06:00",58.83,{"sun":[57.23,1,0],"mercury":[59.74,1,0],"venus":[14.05,12,0],"mars":[130.09,4,0],"jupiter":[185.05,6,1],"saturn":[329.89,10,0],"uranus":[292,9,1],"neptune":[290.98,9,1],"pluto":[234.05,7,1],"moon":[18.24,12,0],"chiron":[138.05,4,0],"north_node":[253.16,8,1],"south_node":[73.16,2,1]}],["08:00",92.23,{"sun":[57.31,11,0],"mercury":[59.92,11,0],"venus":[14.11,10,0],"mars":[130.13,2,0],"jupiter":[185.04,4,1],"saturn":[329.9,8,0],"uranus":[291.99,7,1],"neptune":[290.98,7,1],"pluto":[234.05,5,1],"moon":[19.25,10,0],"chiron":[138.05,2,0],"north_node":[253.15,6,1],"south_node":[73.15,12,1]}],["10:00",116.32,{"sun":[57.39,11,0],"mercury":[60.1,12,0],"venus":[14.16,10,0],"mars":[130.17,2,0],"jupiter":[185.04,4,1],"saturn":[329.9,8,0],"uranus":[291.99,7,1],"neptune":[290.98,7,1],"pluto":[234.05,5,1],"moon":[20.25,10,0],"chiron":[138.06,2,0],"north_node":[253.15,6,1],"south_node":[73.15,12,1]}],["12:00",137.89,{"sun":[57.47,10,0],"mercury":[60.28,11,0],"venus":[14.22,9,0],"mars":[130.22,1,0],"jupiter":[185.04,3,1],"saturn":[329.9,7,0],"uranus":[291.99,6,1],"neptune":[290.98,6,1],"pluto":[234.04,4,1],"moon":[21.26,9,0],"chiron":[138.06,1,0],"north_node":[253.14,5,1],"south_node":[73.14,11,1]}],["14:00",159.09,{"sun":[57.55,9,0],"mercury":[60.47,10,0],"venus":[14.28,8,0],"mars":[130.26,12,0],"jupiter":[185.03,2,1],"saturn":[329.91,6,0],"uranus":[291.99,5,1],"neptune":[290.98,5,1],"pluto":[234.04,3,1],"moon":[22.27,8,0],"chiron":[138.07,12,0],"north_node":[253.14,4,1],"south_node":[73.14,10,1]}],["16:00",180.44,{"sun":[57.63,8,0],"mercury":[60.65,9,0],"venus":[14.34,7,0],"mars":[130.3,11,0],"jupiter":[185.03,1,1],"saturn":[329.91,5,0],"uranus":[291.99,4,1],"neptune":[290.98,4,1],"pluto":[234.04,2,1],"moon":[23.28,7,0],"chiron":[138.07,11,0],"north_node":[253.14,3,1],"south_node":[73.14,9,1]}],["18:00",201.78,{"sun":[57.71,8,0],"mercury":[60.83,9,0],"venus":[14.4,7,0],"mars":[130.35,11,0],"jupiter":[185.03,1,1],"saturn":[329.91,5,0],"uranus":[291.99,4,1],"neptune":[290.98,4,1],"pluto":[234.04,2,1],"moon":[24.29,7,0],"chiron":[138.07,11,0],"north_node":[253.13,3,1],"south_node":[73.13,9,1]}],["20:00",222.98,{"sun":[57.79,7,0],"mercury":[61.01,8,0],"venus":[14.46,6,0],"mars":[130.39,10,0],"jupiter":[185.02,12,1],"saturn":[329.92,4,0],"uranus":[291.99,3,1],"neptune":[290.98,3,1],"pluto":[234.04,1,1],"moon":[25.3,6,0],"chiron":[138.08,10,0],"north_node":[253.13,2,1],"south_node":[73.13,8,1]}],["22:00",244.6,{"sun":[57.87,6,0],"mercury":[61.19,7,0],"venus":[14.52,5,0],"mars":[130.43,9,0],"jupiter":[185.02,11,1],"saturn":[329.92,3,0],"uranus":[291.98,2,1],"neptune":[290.98,2,1],"pluto":[234.03,12,1],"moon":[26.31,5,0],"chiron":[138.08,9,0],"north_node":[253.12,1,1],"south_node":[73.12,7,1]}]];
+(function(){const host=document.getElementById("anat");
+  [["Whole chart",(s)=>{const w=sky(s,TH,180,180,340,{only:[]});w.L.signText.setAttribute("opacity",.4);w.L.houseText.setAttribute("opacity",.3);
+     txt(s,30,170,"EAST",{"font-size":11,fill:MUTXT,"letter-spacing":".14em","font-family":"IBM Plex Mono"});txt(s,330,170,"WEST",{"font-size":11,fill:MUTXT,"letter-spacing":".14em","font-family":"IBM Plex Mono"});},"The flat line and the marker. EAST and WEST are page words, outside the chart."],
+   ["The marker, 8 times",(s)=>{const S=2800,r=S*.0142,mx=210,my=180;el("path",{d:"M"+(mx-140)+" "+(my)+" L"+(mx+120)+" "+my,stroke:MUT,"stroke-opacity":.3},s);
+     el("path",{d:"M"+mx+" "+(my-140)+" A 600 600 0 0 0 "+mx+" "+(my+140),fill:"none",stroke:MUT,"stroke-opacity":.5},s);
+     el("circle",{cx:mx,cy:my,r,fill:BG,stroke:FG,"stroke-width":S*.003},s);el("circle",{cx:mx,cy:my,r:r*.35,fill:FG},s);el("line",{x1:mx-r,y1:my,x2:mx-r-S*.02,y2:my,stroke:FG,"stroke-width":S*.003,"stroke-linecap":"round"},s);
+     txt(s,mx,my+r+26,"ring 0.0142 S · dot 35% · tail 0.02 S",{"font-size":11,fill:MUTXT,"font-family":"IBM Plex Mono"});txt(s,mx+60,my-r-24,"outer edge of the sign ring",{"font-size":11,fill:MUTXT,"font-family":"IBM Plex Mono"});},"At 560 px the marker is 8 px across. Here it is drawn 5 times bigger."]]
+  .forEach(([n,d,cap])=>{const f=document.createElement("figure");f.className="dev";const s=svgIn(f,360,360,n);d(s);f.insertAdjacentHTML("beforeend","<figcaption>"+cap+"</figcaption>");host.appendChild(f);});})();
+(function(){const cap=document.getElementById("dayCap");
+  const f=both(document.getElementById("day"),"Thibault's birth day, every two hours",(svg,S)=>{const c=S/2;const g=el("g",{},svg);
+    const charts=HOURS.map(([t,asc,p])=>{const gg=el("g",{opacity:0},g);const w=sky(gg,{asc,mc:0,p},c,c,S*.96,{axes:true});return gg;});
+    return t=>{const i=Math.floor(t/1.4)%12,k=(t%1.4)/1.4;charts.forEach((gg,j)=>gg.setAttribute("opacity",j===i?Math.min(1,k*5):0));};});
+  loop(document.getElementById("dayStage"),16.8,t=>{f(t);const[h,asc]=HOURS[Math.floor(t/1.4)%12];cap.textContent="18 May 1993, "+h+" in Brussels: "+SIGNS[Math.floor(asc/30)]+" rising, "+dm(asc)+".";});})();
+(function(){const host=document.getElementById("tiles");
+  [["Known birth time",TH,{only:[]},null,"Line and marker. Report, sample, landing page."],
+   ["Rising sign lit",TH,{only:[]},"lit","The marker brass and the 1st house lit, while the report talks about the rising sign."],
+   ["No birth time",UN,{},null,"No line, no marker, no houses. The Moon is a stretch, not a point."],
+   ["Small",TH,{labels:false,ticks:false,only:["sun","moon"]},null,"Small keeps the line and the marker: rising is one of the three things it shows."]]
+  .forEach(([n,c,o,lit,d])=>{const f=document.createElement("figure");f.className="tile";const s=svgIn(f,240,240,n);const w=sky(s,c,120,120,230,o);
+    if(c===UN)moonBand(w,UN);if(lit){lightHouse(w,1,BRASS,.18);w.L.rising.querySelectorAll("circle,line").forEach(e=>{e.getAttribute("fill")===FG&&e.setAttribute("fill",BRASS);e.getAttribute("stroke")===FG&&e.setAttribute("stroke",BRASS);});}
+    f.insertAdjacentHTML("beforeend","<figcaption><b>"+n+".</b> "+d+"</figcaption>");host.appendChild(f);});})();
+
 </script>
+</body></html>
