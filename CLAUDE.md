@@ -53,7 +53,7 @@ check. The lab runs from the admin panel: dry at every brain change, spot and re
 
 ## Process
 
-`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>` → locked spec + Decisions rows, merged to `main` the same session · `/plan <slugs>`
+`/ideate <topic>` → draft spec + HTML artifact, always, every screen at phone (390 px) and desktop side by side · `/lock <slug>` → locked spec + Decisions rows, merged to `main` the same session · `/plan <slugs>`
 → parallel-grouped plan, and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders, gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages, `/marketing` for social posts. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:

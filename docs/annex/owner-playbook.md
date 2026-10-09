@@ -19,16 +19,16 @@ at its close (ADR-195). Rules, not a diary: at most 60 lines, dated, nothing gue
   seamless": ease one into the next (report-loading-story, 2026-10-05). One typed date field beats pickers (Review 02/10).
 - **Name it, never "things".** "I hate when we do things": say transits, cycles, items (review-05-10); use the name the
   field already uses, "if it's mainstream to call it transits… let's call it that" (report-loading-story).
-- **Spans, not counts**: one bar per transit (review-05-10); no "44 in 100 people", no age in any text (09/10). **Prose is
-  fixed in the prompt, never with a new test** (review-05-10); one frame never twice ("has a say" at most once a report).
+- **Spans, not counts**: one bar per transit (review-05-10); no "44 in 100 people", no age as a number, no "what's real" (09/10).
+  **Prose is fixed in the prompt every writer reads, never by a check** (review-05-10, 09/10); one frame never twice.
 - **Never touch what he didn't ask about**: today's screen beside the proposal, only the asked part changed ("only change
   the buttons", 2026-10-06). **Buttons by weight** (ADR-333). **No spoilers**: a loading screen shows facts, never meanings.
 - **Right the first time** (Review 09/10): "why do I need to remind you… you already know by now what I like". Before a mock,
   re-read this file and his last review; planets as our renders, never symbols; a house always "(Nth, word)"; nothing set in
-  stone undone; a regression never twice (a test guards it). Explain a hard concept in his structure, then plainly.
-- **Reuse what we already draw; never redesign what is approved.** "I really love the outline of the earth and how you
-  take these visuals that we already have and… repurpose them… let's reuse it everywhere" (report-loading-story). The
-  hero: "please don't make this different"; Life's card is the Your cycles card (review-05-10). Keep what looks great.
+  stone undone; a regression never twice (a test guards it); phone and computer side by side; charts by the chart system.
+  Explain a hard concept in his structure, then plainly. **"Never is never really never"**: a default with its reason, not a ban.
+- **Reuse what we already draw; never redesign what is approved.** "…repurpose them… let's reuse it everywhere"
+  (report-loading-story); the hero "please don't make this different" (review-05-10); a liked part goes in the design system.
 - **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("nice" but
   "not wow", share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 

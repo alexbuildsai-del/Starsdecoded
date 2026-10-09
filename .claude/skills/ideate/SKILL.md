@@ -31,8 +31,11 @@ full text of its `.claude/agents/` file as the brief, the researcher on Opus
 and the verifier on Sonnet.
 
 The Owner decides visually. Every ideation publishes one HTML artifact that
-renders the proposal: mock screens for anything that touches the UI, a flow
-or structure diagram otherwise, options side by side when there are options.
+renders the proposal: mock screens for anything that touches the UI, each
+shown at phone width (390 px) and on desktop, side by side, never one alone
+(the Owner, 2026-10-09); a flow or structure diagram otherwise; options side
+by side when there are options. A chart is drawn by `docs/annex/chart-system.md`
+once it exists, never freehand.
 Publish it before asking any question and before proposing to lock; link it
 from the spec. An ideation without an artifact is not finished. Use the
 `artifact-design` skill; the `design` skill when the Owner wants to tweak
