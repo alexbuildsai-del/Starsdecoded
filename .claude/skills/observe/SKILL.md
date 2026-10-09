@@ -26,7 +26,9 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    reworded to the present-day habit under it ("grew up feeling alone" becomes "home may not feel like where you fit")
    and goes on to find its second source. Left out stays for what no rewording fixes: looks, synastry, Chiron's
    sign (read by house only), a transit, or no single placement.
-4. **Merge.** The same idea from another account joins its row; one account counts once, however many posts.
+4. **One placement, one row** (the Owner, 2026-10-09). A new idea for a placement that has a row: the same idea adds
+   its source; a facet that fits folds into the row's idea (30 words at most); one that pulls the other way never
+   enters, and goes to the annex's "Check" list with both sides' sources for the Owner. One account counts once.
 5. **Find the second source; never ask the Owner** (ADR-403). Spawn the `researcher` for another creator, an article
    or a book: a search result is a lead, not a source, and content farms never count. The `verifier` re-fetches each
    web source before it counts. Our doctrine counts when the planet's meaning and the house's or sign's in
