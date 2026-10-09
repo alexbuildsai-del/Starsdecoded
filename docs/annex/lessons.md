@@ -44,17 +44,17 @@ failure, escalation, sentinel finding and QA sev-1 to its card (agent-roster sco
 - R17 · R17-05, R17-19 · one card's API shape or refusal line was guessed or dropped by the screen another card of the same group built (a generic line for every 403; the Sales page's guessed routes) · - · -
 - R18 · R18-09, orchestrator · CSS copied from an artifact's grid (`place-items`) collapsed the stage to 32 px in Chromium; seen only on a real browser shot · - · -
 - R17 · R17-08, R17-18 · a shipped line stated what the round's own checks refuse: a price typed in a comment, a processor's role wider than its own wording · - · -
+- R19 · R19-50 · a test made its private schema on a second pool connection while a route's load-time query held the first, and Postgres left that connection on the old search path, so the test read and wrote public tables · - · -
+- R19 · R19-26, R19-42, R19-47 and others · builders left dev servers running (18 processes at the close) and stray logs in the tree, and ran `csp:write` on a stale build · - · -
+- R19 · R19-47 · a layout fix measured only the overlap it fixed (the name over the marker) and made another (the name over a body) · - · -
 
 ## Promoted
 The planner reads this section before it plans, and its rules bind the plan (ADR-195). The orchestrator checks the plan against
 this whole file before its first dispatch (ADR-265).
-- R13 · R13-12; R14 · R14-02, R14-13; R16 · R16-20; R17 · R17-15; R18 · R18-15, R18-24, R18-25 (each named in its report) · a change to a shared value or shape (a version pin, a body made optional, a new argument) left a caller outside the card's files on the old one (a test pin; the orrery's made-up Chiron; home's part-of-day chips; `GET /home`'s new `tz` moved the generated hook's arguments under four callers) · "Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller outside your files is named in your report, never left on the old shape." · `.claude/agents/builder.md`
+- R13 · R13-12; R14 · R14-02, R14-13; R16 · R16-20; R17 · R17-15; R18 · R18-15, R18-24, R18-25; R19 · R19-20 (the card field three prose readers kept as prose), R19-23, R19-29, R19-30 (each named in its report) · a change to a shared value or shape (a version pin, a body made optional, a new argument) left a caller outside the card's files on the old one (a test pin; the orrery's made-up Chiron; home's part-of-day chips; `GET /home`'s new `tz` moved the generated hook's arguments under four callers) · "Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller outside your files is named in your report, never left on the old shape." · `.claude/agents/builder.md`
 - R14 · R14-14; R17 · R17-13 (S1), R17-S1 (S3) · log redaction missed a shape: an error's deeper headers, then a new log field (`by`) and a route path segment holding a Clerk id (sentinel) · "A new log line or route path carries ids, types and counts, never a Clerk id, an email or a name the logger's redaction doesn't name." · `.claude/agents/builder.md`
 - R15 · R15-23 · a builder committed without a pathspec and took another builder's staged files into its commit · early: "Commit with a pathspec naming only your card's files (`git commit -- <paths>`); files another builder staged are not yours." · `.claude/agents/builder.md`
 - R13 · R13-01; R17 · planner · a container restart killed a builder before its commit (also the planner, twice, and R17's plan revision); work on disk survived · applied: builders commit as they go (R17's brief), the planner commits once, so a revision is re-sent whole · the round's brief
-- R13 · orchestrator · the tester's diff range began at its own last commit and skipped files that landed earlier in the group · applied in R13: the tester's files are `git diff <base>...HEAD` from the group's base commit, which its prompt names · `.claude/agents/tester.md`
 - R18 · R18 builders · a builder ran `pkill vite`, stopping other builders' dev servers mid-check · early: "Never pkill or killall a shared process (vite, node, vitest): stop only the PID you started." · `.claude/agents/builder.md`
-- R14 · orchestrator · about thirty pushes in one day spent Vercel's free 100 deployments, so the QA fix's preview could not build · applied: one push per parallel group and one per fix (ADR-234) · `.claude/skills/round/SKILL.md`, Push
-
 ## Retired
-None yet.
+- R13 tester diff range, R14 thirty pushes: five rounds clean; the fixes stay (the round skill's tester base, ADR-234).
