@@ -224,12 +224,7 @@ export const OBSERVATIONS: readonly Observation[] = [
       {
         idea: "You may find it hard to be seen for who you are, and you often do your best work out of sight",
         scene: "In a group project, you do the hard part quietly, and someone else presents it",
-        sources: [video("@the_innercosmos", "7636839710832233735"), doctrine("Sun; the 12th house")],
-      },
-      {
-        idea: "You tend to work out who you are and where you are going on your own, mostly in private",
-        scene: "Big life decisions get made on long walks alone, and people only hear about them once you are sure",
-        sources: [video("@the_innercosmos", "7687697686237154568"), doctrine("Sun; the 12th house")],
+        sources: [video("@the_innercosmos", "7636839710832233735"), doctrine("Sun; the 12th house"), video("@the_innercosmos", "7687697686237154568")],
       },
     ],
   },
@@ -396,12 +391,7 @@ export const OBSERVATIONS: readonly Observation[] = [
       {
         idea: "You tend to show love in the little things, day after day, and that steady care is what people notice",
         scene: "You remember how your partner takes their coffee, and it is ready before they ask",
-        sources: [inbox("@sarahmoodyofficial", 49), video("@the_innercosmos", "7631982498859224327")],
-      },
-      {
-        idea: "You tend to feel loved when someone shows up for you in small, everyday ways",
-        scene: "Your partner remembers you are out of milk and brings some home, and it means more than flowers",
-        sources: [video("@the_innercosmos", "7665056734293101842"), video("@the_innercosmos", "7631982498859224327"), doctrine("Venus; the 6th house")],
+        sources: [inbox("@sarahmoodyofficial", 49), video("@the_innercosmos", "7631982498859224327"), video("@the_innercosmos", "7665056734293101842"), doctrine("Venus; the 6th house")],
       },
     ],
   },
@@ -2287,12 +2277,7 @@ export const OBSERVATIONS: readonly Observation[] = [
       {
         idea: "You often notice the small things about the people you love, and you show love by improving things for them",
         scene: "You fix the wobbly shelf in your partner's flat before they even mention it",
-        sources: [inbox("@sarahmoodyofficial", 7), video("@the_innercosmos", "7635865866432679186")],
-      },
-      {
-        idea: "You may be drawn to partners you feel you can help or improve",
-        scene: "Early on, you are already planning how to sort out their messy flat and their CV",
-        sources: [video("@the_innercosmos", "7645683992129260808"), video("@the_innercosmos", "7635865866432679186"), doctrine("Venus; Virgo")],
+        sources: [inbox("@sarahmoodyofficial", 7), video("@the_innercosmos", "7635865866432679186"), video("@the_innercosmos", "7645683992129260808"), doctrine("Venus; Virgo")],
       },
     ],
   },
@@ -2316,12 +2301,7 @@ export const OBSERVATIONS: readonly Observation[] = [
       {
         idea: "You tend to see past what people show on the surface, and you keep your own feelings back until you trust someone",
         scene: "You know a date is nervous before they do, and you still tell them very little about yourself",
-        sources: [inbox("@sarahmoodyofficial", 9), video("@the_innercosmos", "7637971474736811271")],
-      },
-      {
-        idea: "Fear of being let down may keep you guarded, so you can feel alone even in a close relationship",
-        scene: "Your partner asks what is on your mind, and you say nothing, then wish they knew",
-        sources: [video("@the_innercosmos", "7650542126542982408"), video("@the_innercosmos", "7634201685237173511"), doctrine("Venus; Scorpio")],
+        sources: [inbox("@sarahmoodyofficial", 9), video("@the_innercosmos", "7637971474736811271"), video("@the_innercosmos", "7650542126542982408"), video("@the_innercosmos", "7634201685237173511"), doctrine("Venus; Scorpio")],
       },
     ],
   },
@@ -2420,14 +2400,9 @@ export const OBSERVATIONS: readonly Observation[] = [
     why: "your Mars, the planet of drive, is in Cancer, a feeling sign where it works through the heart",
     ideas: [
       {
-        idea: "You can't push yourself into something you don't care about, and you rarely fight unless it is personal",
+        idea: "You rarely fight unless it is personal, and then your words can cut deep because you know where it hurts",
         scene: "You put off a task for weeks, then do it in a night once you see who it will help",
-        sources: [video("@the_innercosmos", "7634906840723098888"), doctrine("Mars; Cancer")],
-      },
-      {
-        idea: "You rarely fight, but when you do, your words can cut deep because you know exactly where it hurts",
-        scene: "After weeks of letting things slide, one calm sentence from you ends the argument",
-        sources: [video("@the_innercosmos", "7629719711424515346"), video("@the_innercosmos", "7662856904208616712"), doctrine("Mars; Cancer")],
+        sources: [video("@the_innercosmos", "7634906840723098888"), doctrine("Mars; Cancer"), video("@the_innercosmos", "7629719711424515346"), video("@the_innercosmos", "7662856904208616712")],
       },
     ],
   },
