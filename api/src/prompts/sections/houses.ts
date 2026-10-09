@@ -74,7 +74,7 @@ function houseFacts(chart: NatalChartData): HouseFacts[] {
   const noticed = new Map<number, Noticed>();
   // A card shows only its first idea, so the table's order is the choice (ADR-404).
   for (const { observation, house } of observationsFor(chart)) {
-    if (house !== null && !noticed.has(house)) noticed.set(house, { idea: observation.idea, why: observation.why });
+    if (house !== null && !noticed.has(house)) noticed.set(house, { idea: observation.ideas[0].idea, why: observation.why });
   }
   return houseRulers(chart).map((r) => {
     const bodies = BODIES.filter((b) => chart.planets[b]?.house === r.house);

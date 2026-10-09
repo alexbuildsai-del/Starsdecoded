@@ -28,15 +28,17 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    sign (read by house only), a transit, or no single placement.
 4. **One placement, one row** (the Owner, 2026-10-09). A new idea for a placement that has a row: the same idea adds
    its source; a facet that fits folds into the row's idea (30 words at most); one that pulls the other way never
-   enters, and goes to the annex's "Check" list with both sides' sources for the Owner. One account counts once.
+   enters, and goes to the annex's "Check" list with both sides' sources for the Owner. Otherwise a new idea joins the
+   placement's `ideas`, each with its own sources; read them together, at most three, best-sourced first (the card
+   shows the first). One account counts once.
 5. **Find the second source; never ask the Owner** (ADR-403). Spawn the `researcher` for another creator, an article
    or a book: a search result is a lead, not a source, and content farms never count. The `verifier` re-fetches each
    web source before it counts. Our doctrine counts when the planet's meaning and the house's or sign's in
    `vocabulary.ts` carry the reason on their own, with no outside lore: written `doctrine("<planet>; <house or sign>")`.
-6. **Place.** Two independent sources, checked against the doctrine: a row in `OBSERVATIONS` with a stable kebab-case
-   id, at its place in the table's order (a card shows its first match), each source `{ who, where }`. One source: a row
+6. **Place.** Two independent sources, checked against the doctrine: an idea under its placement in `OBSERVATIONS`
+   (a new placement takes a stable kebab-case id at its place in the table's order), each source `{ who, where }`. One source: a row
    in the annex's waiting table with its key, source and leads. Left out: a row with its reason. Then a dated line in
-   the annex's Read log with the counts, and the annex's "In reports" list redone from the table, one line per row.
+   the annex's Read log with the counts, and the annex's "In reports" list redone from the table, one line per placement.
 7. **Check and ship.** The table is the brain and USER-FACING (R-5.5): the api typecheck and critical tier, `pnpm
    report:lab --dry --base r06`, and `observationsFor` printed for a fixture each new key matches, computed at run
    time. Commit both files on a branch with what entered and why; the pull request takes the usual gate (CLAUDE.md).

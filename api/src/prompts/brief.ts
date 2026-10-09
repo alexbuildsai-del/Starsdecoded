@@ -330,7 +330,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   const chironLine = chironHouse !== undefined ? [`CHIRON: in your ${ordinal(chironHouse)}`] : [];
 
   const observationLines = observationsFor(chart).map(({ observation: o, house }) =>
-    `- ${observationLabel(o.key, house)}: ${o.idea}. Why: ${o.why}.`);
+    `- ${observationLabel(o.key, house)}: ${o.ideas.map((i) => `${i.idea}. `).join("")}Why: ${o.why}.`);
   const observationBlock = observationLines.length ? [`OBSERVATIONS:`, ...observationLines] : [];
 
   // --- the text -------------------------------------------------------------
