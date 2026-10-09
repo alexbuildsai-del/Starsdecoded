@@ -179,8 +179,8 @@ const SETTLE_MS = 300;
  */
 const MASKED = ["input", "textarea", "[contenteditable]", "iframe"] as const;
 
-/** Stripe's test card, always approved (stripe-payments, Testers). A country and a postal code go in only if asked. */
-const TEST_CARD = { number: "4242 4242 4242 4242", cvc: "123", country: "PT", postal: "1000-001" };
+/** Stripe's test card, always approved (stripe-payments, Testers). */
+const TEST_CARD = { number: "4242 4242 4242 4242", cvc: "123" };
 
 // The Payment Element's names, the older card field's beside them, and the autofill hints both carry.
 const NUMBER = 'input[name="number"], input[name="cardnumber"], input[autocomplete="cc-number"]';
@@ -188,6 +188,19 @@ const EXPIRY = 'input[name="expiry"], input[name="exp-date"], input[autocomplete
 const CVC = 'input[name="cvc"], input[autocomplete="cc-csc"]';
 const COUNTRY = 'select[name="country"], select[autocomplete="billing country"]';
 const POSTAL = 'input[name="postalCode"], input[autocomplete="billing postal-code"]';
+
+/**
+ * A code Stripe takes for each country its card form asks a postal code for: in Stripe.js of 2026-10 the United States,
+ * Canada, Britain and Puerto Rico, and India for some accounts. Another country that asks gets the US code, and Pay then
+ * shows Stripe's own words for what it wanted.
+ */
+const POSTCODES: Readonly<Record<string, string>> = { US: "10001", PR: "00901", CA: "K1A 0B1", GB: "SW1A 1AA", IN: "110001" };
+// Stripe animates a billing field in or out for up to 0.7 s, so two counts a second apart that agree mean the row has
+// stopped moving; one still moving after six seconds is taken as it is.
+const REDRAW_MS = 1_000;
+const REDRAWN_MS = 6_000;
+// A postal field the row has settled on takes a tap at once; waiting longer only delays the reason it didn't.
+const POSTAL_MS = 10_000;
 
 /** A month three years on, so the test card never reads as expired. */
 function expiry(now: Date): string {
@@ -204,6 +217,19 @@ function describe(shows: Shown): string {
 
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message.split("\n")[0] : String(err);
+}
+
+/**
+ * Why a Playwright action kept waiting (a field hidden, disabled, covered or gone), from the call log its error carries:
+ * the step's reason keeps only its first 300 characters, which name the field and never the reason (R19-51).
+ */
+function waitedOn(err: unknown): string {
+  // A terminal gets the log dimmed with colour codes, which the step's reason would print as text.
+  const lines = err instanceof Error ? err.message.replace(/\u001b\[[\d;]*m/g, "").split("\n") : [];
+  const reasons = lines
+    .map((line) => line.trim().replace(/^-\s*/, "").replace(/^\d+ × /, ""))
+    .filter((line) => /element is not |outside of the viewport|intercepts pointer events|detached/.test(line));
+  return reasons.at(-1) ?? messageOf(err);
 }
 
 /** The container's memory in MB from its cgroup (v2, then v1), as a crash leaves it: a page killed for memory says nothing. */
@@ -448,6 +474,49 @@ export class ChromiumPage implements WalkPage {
     await field.pressSequentially(value, { delay: 25 });
   }
 
+  /**
+   * Stripe sets the card form's country from where it thinks the page is, and asks a postal code only for a few
+   * countries: the walk of 2026-10-09 met its US form, ZIP and all. Picking another country redraws that row under the
+   * walk's next tap (R19-51), so the walk keeps Stripe's country, waits for the row to stop moving, and types a code
+   * that fits that country, only into a postal field that shows. A row that moves under the tap all the same is read
+   * once more.
+   */
+  private async postalCode(frame: Frame): Promise<void> {
+    const shown = frame.locator(POSTAL).visible();
+    for (let pass = 1; ; pass += 1) {
+      if ((await this.settled(shown)) === 0) return;
+      const field = shown.first();
+      try {
+        await field.click({ timeout: POSTAL_MS });
+        // A second pass can meet the digits the first one left.
+        await field.clear({ timeout: POSTAL_MS });
+        await field.pressSequentially(await this.postcodeFor(frame), { delay: 25, timeout: POSTAL_MS });
+        return;
+      } catch (err) {
+        if (pass > 1) throw new Error(`Stripe's postal code field wouldn't take a code: ${waitedOn(err)}`);
+      }
+    }
+  }
+
+  /** How many of these the form shows once it stops redrawing. */
+  private async settled(fields: Locator): Promise<number> {
+    const end = Date.now() + REDRAWN_MS;
+    let before = await fields.count();
+    for (;;) {
+      await this.page.waitForTimeout(REDRAW_MS);
+      const now = await fields.count();
+      if (now === before || Date.now() > end) return now;
+      before = now;
+    }
+  }
+
+  /** A code for the country the form shows; with no country shown, the US code, which the older card field's ZIP takes. */
+  private async postcodeFor(frame: Frame): Promise<string> {
+    const country = frame.locator(COUNTRY).visible().first();
+    const code = (await country.count()) > 0 ? await country.inputValue({ timeout: POSTAL_MS }).catch(() => "") : "";
+    return POSTCODES[code.toUpperCase()] ?? POSTCODES.US;
+  }
+
   async pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
     const plan = PLANS.some((row) => row.id === item);
     const release = plan ? await this.holdSetupStart() : null;
@@ -475,11 +544,7 @@ export class ChromiumPage implements WalkPage {
       await this.type(frame, NUMBER, TEST_CARD.number);
       await this.type(frame, EXPIRY, expiry(new Date()));
       await this.type(frame, CVC, TEST_CARD.cvc);
-      // The fields of a euro session aren't written down: a country and a postal code go in only where the frame asks
-      // for them (Round start 4c).
-      const country = frame.locator(COUNTRY).first();
-      if (await country.isVisible().catch(() => false)) await country.selectOption(TEST_CARD.country).catch(() => undefined);
-      if (await frame.locator(POSTAL).first().isVisible().catch(() => false)) await this.type(frame, POSTAL, TEST_CARD.postal);
+      await this.postalCode(frame);
 
       await this.page.getByRole("button", { name: /^Pay\b/ }).click({ timeout: FIELDS_MS });
       try {
