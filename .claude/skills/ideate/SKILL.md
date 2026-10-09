@@ -14,7 +14,7 @@ touches, and any `docs/specs/draft/` file for the same topic. Check `docs/backlo
 and the Mailbox rows its *Waiting on Alex* list links for this topic.
 
 Outside evidence (a price, a vendor's limit, a standard, what a competitor
-does) goes to the `researcher` agent, on Opus, not into your own searching
+does) goes to the `researcher` agent, on Sonnet, not into your own searching
 (ADR-190). Give it the question, not the topic: one agent for a lookup, two to
 four in parallel for a comparison, never more.
 
@@ -27,7 +27,7 @@ verifier; say its claims are unverified.
 
 Spawn both with the Agent tool, `subagent_type` `researcher` and `verifier`.
 If a type is not registered in this session, spawn `general-purpose` with the
-full text of its `.claude/agents/` file as the brief, the researcher on Opus
+full text of its `.claude/agents/` file as the brief, the researcher on Sonnet
 and the verifier on Sonnet.
 
 The Owner decides visually. Every ideation publishes one HTML artifact that

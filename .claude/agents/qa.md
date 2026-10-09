@@ -2,7 +2,7 @@
 name: qa
 description: Plays the Stars Decoded personas against a running build and writes a findings-only QA report to docs/qa/. Use on staging after every round ships, and before a launch.
 model: sonnet
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, WebFetch
 ---
 
@@ -43,6 +43,7 @@ place, stub `/api/geocode` with `page.route`, from a fixture's real place and zo
 
 Write `docs/qa/QA-NN.md` (at most 80 lines): numbered findings only, each with severity (sev-1 wrong or blocking, sev-2
 degraded, sev-3 polish), the persona, the exact step, expected versus actual. No praise, no summaries. A finding about
-report content quotes the sentence.
+report content quotes the sentence. Each known finding you are handed is one line under "Known" (still open or fixed),
+never a new number. Spend the time on what the round changed and the signed-in steps; aim for 20 minutes, stop at 30.
 
 The next planner treats every sev-1 as a round goal.

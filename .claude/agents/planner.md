@@ -2,7 +2,7 @@
 name: planner
 description: Plans one build round for Stars Decoded. Reads the knowledge base and the Notion mailbox, writes docs/rounds/RNN-plan.md with task cards, raises questions before anything is built. Use at the start of a round or when asked to plan.
 model: opus
-effort: max
+effort: medium
 tools: Read, Grep, Glob, Bash, WebFetch, mcp__Notion__notion-fetch, mcp__Notion__notion-search, mcp__Notion__notion-create-pages, mcp__Notion__notion-update-page, mcp__Notion__notion-get-comments
 ---
 
@@ -23,10 +23,9 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    marked `blocking` come first. A locked spec is a goal; an open topic is not.
 2. **Task cards**, each at most 15 lines: a heading, then
    `Tier: opus | sonnet | haiku — <one reason>` (ADR-187), then objective,
-   files touched, masterfile and spec section refs, done-when. Opus for the big
-   items (the brain, security, payments, schema, anything unclear); Sonnet for
-   a card written well enough to follow as is (ADR-283). A done-when names a
-   test only for a step of the buyer flow the card changes or a bug that came
+   files touched, masterfile and spec section refs, done-when. Sonnet by default, for a card written well enough to
+   follow as is (ADR-283); Opus for the brain, security, payments, schema, anything unclear and any words a user reads;
+   Haiku for docs-only and mechanical edits (colours, spacing, renames, config), never user-facing words (ADR-420). A done-when names a test only for a step of the buyer flow the card changes or a bug that came
    back (ADR-273); otherwise typecheck and the critical tier. Cut cards so they
    touch disjoint files, in at most three parallel groups listed explicitly
    (ADR-283). A card never mixes prompt changes with UI changes.

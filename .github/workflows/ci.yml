@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request or a feature branch makes the older run pointless. main and production runs are
+# never cancelled, and each gets a group of its own, since a queued run is replaced by a newer queued one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production') && format('-{0}', github.sha) || '' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/production' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -36,31 +42,65 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # A change that touches only docs/, .claude/ or *.md builds and tests the same code as its parent, so the heavy
+      # steps are skipped and this job still reports success under the same name. The secret scan below still runs:
+      # a key pasted into a doc is as public as one pasted into code. If the changes cannot be read, everything runs.
+      - name: Read what changed
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            code=$(.github/scripts/changed-code.sh compare "$PR_BASE" "$PR_HEAD")
+          elif [ "$REF" = refs/heads/main ]; then
+            code=$(.github/scripts/changed-code.sh compare "$BEFORE" "$AFTER")
+          else
+            code=true
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            echo "Only docs/, .claude/ or *.md changed, so the build, tests and walk are skipped; the secret scan still runs." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: pnpm
 
       # The workspace uses pnpm's `catalog:` protocol, so npm cannot install
       # it. Always pnpm, everywhere.
-      - run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
 
       # One copy of React and react-query, or the app's hooks lose their provider (Review 02/10).
-      - run: pnpm check:copies
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm check:copies
 
       # `build` deliberately does not typecheck (Vercel runs it), so this is
       # the gate that keeps types honest across all projects.
-      - run: pnpm run typecheck
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm run typecheck
 
-      - run: pnpm run build:web
-      - run: pnpm run build:api
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm run build:web
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm run build:api
 
       # The walk runs on the schema every deploy starts on, made the same way.
       # The bootstrap's prompt step loads the model client, which will not
       # start without a key; this one is sent nowhere.
       - name: Bootstrap the walk's database
+        if: steps.changes.outputs.code != 'false'
         timeout-minutes: 5
         env:
           DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
@@ -72,6 +112,7 @@ jobs:
       # e2e is excluded: Playwright needs a running site and a browser, so it
       # runs against a deployed preview instead.
       - name: Test the critical tier
+        if: steps.changes.outputs.code != 'false'
         env:
           DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
           WALK_DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
@@ -80,14 +121,17 @@ jobs:
       # The Owner's critical flow with the site's sample people, end to end on that
       # database, with no Clerk, no network and no OpenAI (ADR-273).
       - name: Walk the buyer's flow
+        if: steps.changes.outputs.code != 'false'
         timeout-minutes: 5
         env:
           WALK_DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
         run: pnpm --filter @workspace/api-server exec tsx src/walk/buyer.walk.ts
 
-      - run: pnpm check:shipped
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm check:shipped
 
-      - run: pnpm audit --prod --audit-level high
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm audit --prod --audit-level high
 
       # Keyless (ADR-200): a release binary pinned by version and checksum, so
       # no Action, licence or token is involved. It runs even when a step above
