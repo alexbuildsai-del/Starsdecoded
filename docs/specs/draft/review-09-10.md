@@ -114,9 +114,10 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   site's Learn pages and behind each link's ⓘ in the walk.
 - **The walk** (the Owner chose B, no scenes): inside chapter 01 where `ChartsMeet` is today; **the page
   around it stays as it is** (the Owner, v7): nav, `ChapterRail` on a computer, its bar under the nav on a phone, the chapter's
-  divider, number and title. **Cards are as tall as their words** (never a full screen, no empty space); the page settles
-  on a card near the top (`y proximity`, never `mandatory`, so the reader can always leave the walk); the next card shows
-  dimmed. **Progress on the stage**: the group ("02 · Talking"), "Link 3 of 8 · 5 left", one notch per link. **Groups come from
+  divider, number and title. **Cards are as tall as their words** (no empty space). **No CSS snap** (proximity pulled mid-read, v7):
+  once a scroll ends, a small script moves exactly one card in the scroll's direction, a nudge returns, never inside a card
+  longer than the room, never past the first or last (the page scrolls on); a computer gives each card a screen beside the
+  charts. The phone picks the chart size once per screen, never per card. **Progress on the stage**: the group ("02 · Talking"), "Link 3 of 8 · 5 left", one notch per link. **Groups come from
   the charts, not the prompt** (question 2): each link joins the group of its faster planet (Moon, Mercury, Venus, Sun,
   Mars, Jupiter, Saturn: "Feelings and comfort", "Talking", "Affection", "Who you are", "Drive and friction", "Growing",
   "Limits and staying power"), outer-to-outer contacts last ("The times you were born into"); empty groups never show; the
@@ -164,7 +165,7 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
     every lit planet with its owner's ring and the other's as a guest; no third circle.
 
 ## Screens
-The artifact, version 7: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
+The artifact, version 8: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
 inside the report page at four phone sizes and on a computer, docs.
 
 ## Open questions (each with its default)
