@@ -223,8 +223,8 @@ async function readStarts(userId: string, since: Date, day: string): Promise<Rea
 
 /**
  * The QA account's day (reading 22), last in the writing chain: once it has started 6 reports in a UTC day, the next
- * hears its own line until midnight UTC. The rows count what it started, deploys and restarts included, or what this
- * process counted when that is more. On top go the starts that were open as the rows were asked for and those let through
+ * hears its own line until midnight UTC. The rows count the reports it started, deploys and restarts included; a rewrite
+ * in place is counted only by this process, so a restart forgets it (B-85). The higher of the two counts. On top go the starts that were open as the rows were asked for and those let through
  * since, added where the next is let through, with no wait between, so starts at once never pass the day together. Every
  * other account goes on untouched, and off staging nothing is asked. A count that can't be read lets the write through:
  * the route meets the same database next.
