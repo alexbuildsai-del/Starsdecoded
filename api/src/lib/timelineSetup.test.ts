@@ -11,7 +11,7 @@
  * The queue is one table every test file on the database shares, and a drain takes any due job of its kinds, so this
  * file keeps its jobs, and its testers, whose QA marks other files read, in a schema of its own, dropped after.
  */
-import { after, before, mock, test } from "node:test";
+import { after, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -42,6 +42,14 @@ delete process.env.CLERK_SECRET_KEY;
 delete process.env.RESEND_API_KEY;
 
 const D = await import("@workspace/db");
+// Made here, on the pool's only connection, before any module that queries as it loads: the routes do (adminRelease.ts
+// settles an interrupted release). A session that first reads its search path while CREATE SCHEMA commits can keep a
+// path without the schema, and its reads and writes of jobs and testers then reach public's tables.
+if (SCRATCH) {
+  await D.pool.query(`CREATE SCHEMA ${SCHEMA}`);
+  await D.pool.query(`CREATE TABLE ${SCHEMA}.jobs (LIKE public.jobs INCLUDING ALL)`);
+  await D.pool.query(`CREATE TABLE ${SCHEMA}.testers (LIKE public.testers INCLUDING ALL)`);
+}
 const { and, asc, eq, ne } = await import("drizzle-orm");
 const { PLAN_TICK } = await import("@workspace/commerce");
 const { installFakeModel } = await import("./testModel.js");
@@ -174,13 +182,6 @@ test("a start writes to the last day a card can open, six months on from its own
 const run = randomUUID().slice(0, 8);
 const seeded = { users: [] as string[], profiles: [] as string[] };
 const TICK_HASH = createHash("sha256").update(PLAN_TICK, "utf8").digest("hex");
-
-before(async () => {
-  if (!SCRATCH) return;
-  await D.pool.query(`CREATE SCHEMA ${SCHEMA}`);
-  await D.pool.query(`CREATE TABLE ${SCHEMA}.jobs (LIKE public.jobs INCLUDING ALL)`);
-  await D.pool.query(`CREATE TABLE ${SCHEMA}.testers (LIKE public.testers INCLUDING ALL)`);
-});
 
 interface Seeded {
   tag: string;
