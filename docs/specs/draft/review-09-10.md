@@ -112,21 +112,23 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   angle (together 0°, sextile 60°, square 90°, trine 120°, opposite 180°), each with its colour, a plain line, and the pair's
   own example where one exists. The Owner's model visual: saved in `docs/annex/liked-visuals.md`; it also goes on the
   site's Learn pages and behind each link's ⓘ in the walk.
-- **The walk** (the Owner chose B, no scenes): after the Overview, **one card a screen**: the page snaps and locks on each
-  (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`); a card fits the space under the stage. **Groups come from
+- **The walk** (the Owner chose B, no scenes): inside chapter 01 where `ChartsMeet` is today; **the page
+  around it stays as it is** (the Owner, v7): nav, `ChapterRail` on a computer, its bar under the nav on a phone, the chapter's
+  divider, number and title. **Cards are as tall as their words** (never a full screen, no empty space); the page settles
+  on a card near the top (`y proximity`, never `mandatory`, so the reader can always leave the walk); the next card shows
+  dimmed. **Progress on the stage**: the group ("02 · Talking"), "Link 3 of 8 · 5 left", one notch per link. **Groups come from
   the charts, not the prompt** (question 2): each link joins the group of its faster planet (Moon, Mercury, Venus, Sun,
   Mars, Jupiter, Saturn: "Feelings and comfort", "Talking", "Affection", "Who you are", "Drive and friction", "Growing",
   "Limits and staying power"), outer-to-outer contacts last ("The times you were born into"); empty groups never show; the
-  group name heads its first card. Sources index synastry planet pair by planet pair (search snippets only, 2026-10-09:
-  the hosts failed to resolve; unverified). **The link is shown on the two charts themselves** (the Owner, v5: no third
+  group name heads its first card (sources by planet pair; snippets only, unverified). **The link is shown on the two charts themselves** (the Owner, v5: no third
   circle): each named chart ("You · Beatrice", "Athena") lights its own planet with its owner's ring (yours blue, theirs
   lilac), dims the rest, and shows the other person's planet as a faint dashed guest at its true degree; the angle is drawn
   across the inner circle, where the chart draws aspects, in the link's glyph, with its degrees at the centre, and the
   angle's whole shape faint behind it (a triangle for a trine, a square, a hexagon for a sextile), named under the charts. This puts
   one planet of the other chart on a plate: supersedes ADR-97 in that part, at the Owner's ask. Each card: tag, a title in words, both
   planets with owner and "(Nth, word)", what the angle means, one everyday example by the child's age, Try together with
-  its tick box. Phone: stage on top (its charts at most a quarter of the screen's height), cards under it; a card longer than its space
-  scrolls before the next locks; checked at 360×640, 375×667, 390×844, 430×932. Computer: stage left, cards right. Closing stays. Same price, one credit.
+  its tick box. Phone: stage sticky under the chapter bar, cards under it; a card longer than the room under it shrinks the charts, and
+  longer still scrolls like prose (360×640, 375×667, 390×844, 430×932, and cards twice as long). Computer: stage left, cards right. Closing stays. Same price, one credit.
 
 ### 5. Observations, docs and the roadmap
 - Live: 22 ideas; waiting: 8 (listed on the Notion "Observations inbox" page, 2026-10-09); out: 18. Second sources need the
@@ -157,12 +159,13 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
    line between the charts; Scroll sits at the screen's bottom.
 9. No chart draws a body as a dot or a Unicode symbol (render fallback excepted), axes on a small chart, an MC line, brass on
    an unlit part, rim text off its arc, or a hex colour outside the tokens (grep and the probe).
-10. The walk snaps one card a screen at the four phone sizes and 1280 px; each link is drawn on both charts with its shape,
+10. At the four phone sizes and 1280 px the rail or chapter bar and the title stay, cards keep their own height, the
+    progress line counts right, a double-length card is readable whole; each link is drawn on both charts with its shape,
     every lit planet with its owner's ring and the other's as a guest; no third circle.
 
 ## Screens
-The artifact, version 6: the voice, the chart system (backbone, palette, states, do's and don'ts, parts), the primer and
-the house card, Did you know, the hero, how two planets meet, the walk at four phone sizes and on a computer, the docs.
+The artifact, version 7: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
+inside the report page at four phone sizes and on a computer, docs.
 
 ## Open questions (each with its default)
 Answered 2026-10-09: the walk (B) with no scenes and no third circle; Chiron, the nodes and R back on the cards; the hero
@@ -176,8 +179,7 @@ go to the efficiency session; phone and computer in every mock.
 - Every planet, sign or house named in any report comes with its meaning, why it matters and an everyday example (the Owner).
 - No share of people, "common" or "rare" for a placement (the Owner).
 - No age as a number in any report; a stage of life is fine; supersedes ADR-176's written age (the Owner).
-- Vague words ("what's real", "keep it real") leave the voice; the writer says the actual thing (the Owner).
-- Voice rules are defaults with reasons, not bans; hard lines only for safety (the Owner).
+- Vague words ("what's real") leave the voice; rules are defaults with reasons, hard lines only for safety (the Owner).
 - The voice is one block every writer imports, with the model passages, for every product and any future language; the
   bible shows it (the Owner asked; the mechanism Decided by Claude).
 - The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)".
@@ -186,15 +188,13 @@ go to the efficiency session; phone and computer in every mock.
 - The primer's four cards are short loops on the reader's chart; its table folds away; "The cool fact" goes.
 - One chart system (the landing wheel as backbone, seven states, reused parts), written in the annex and the bible; the
   loading stories and the ledger move onto it (the Owner; the details Decided by Claude).
-- No Did you know card in the Personal report's chapters; their ideas move into the prose; Sun and Moon as parents.
-- The writer uses observations in the sentence about their placement (the Owner).
+- No Did you know card in the Personal report's chapters; ideas and observations go in the prose at their placement.
 - Parent-and-child examples and scenes come by the child's age, under 1 included (Decided by Claude).
 - The pair hero: names stacked, each person's own chart beside them, no line (the Owner).
-- The walk: one card a screen with snap; the link drawn on both charts with the other's planet as a guest (supersedes
-  ADR-97 in part); owners named and ringed; How two planets meet before it and on the site (the Owner).
-- The landing wheel is the chart backbone, unchanged; one Ascendant marker; no MC line; no house drawings (the Owner).
-- Inside the product the chart is grey-blue, brass only for what is lit; the landing keeps its brass (the Owner; the
-  landing's exception Decided by Claude). Aspect lines only on the full chart, drawn as the site draws them.
+- The walk: inside chapter 01, the page's rail, bar and title kept; cards as tall as their words with a settling snap and a
+  progress line; each link drawn on both charts with the other's planet as a guest (supersedes ADR-97 in part) (the Owner).
+- The landing wheel is the backbone, unchanged; one Ascendant marker; no MC line; no house drawings; inside the product
+  grey-blue, brass only for what is lit (the Owner; the landing keeping brass Decided by Claude).
 - The primer and every chart caption use only ideas the prose and claims use (the Owner).
 - Every ideation mock shows phone and computer side by side (the Owner; CLAUDE.md and `/ideate`).
 - Pending: names with digits (yes); groups by the faster planet (yes); house drawings out of the loading story (yes).
