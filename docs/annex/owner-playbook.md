@@ -1,9 +1,7 @@
 # Owner playbook
 
-How the Owner decides. `/ideate` reads it before it proposes, to put forward what he would pick, to skip a question a rule
-already answers and to say which rule it followed, and at its close edits it with what the session taught (agent-roster
-scope 12, ADR-195). Rules, not a diary: at most 60 lines, each rule dated or tied to its document, nothing guessed, a repeat
-merged into the rule it repeats.
+How the Owner decides. `/ideate` reads it first to propose what he would pick and skip what a rule answers, and edits it
+at its close (ADR-195). Rules, not a diary: at most 60 lines, dated, nothing guessed, repeats merged.
 
 ## Took as proposed
 - **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12); "lock it" with Mixed's wording
@@ -42,8 +40,7 @@ merged into the rule it repeats.
   on the topic on every branch first: never re-ask what one settled, keep one product (release-one-findings, 2026-10-05).
 - **Decide what a rule answers, then show him** (Decided by Claude; the Mailbox keeps only his, R-12.3). What only he
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
-- **Testing is ours, never his** (2026-10-04): a walk after each deploy. **No secret on GitHub, ever** (2026-09-25).
-- **Think as the buyer, then decide**: options side by side with each side's view; he took gifting's B (2026-10-06).
+- **Testing is ours, never his** (2026-10-04); **no secret on GitHub, ever** (2026-09-25). **Think as the buyer, then decide**: options side by side with each side's view; he took gifting's B (2026-10-06).
 - **Evidence before a claim; the cause, not the message.** "Are you sure? Can you give me an example" (review-05-10). A
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
 - **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
