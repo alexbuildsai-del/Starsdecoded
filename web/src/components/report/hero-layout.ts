@@ -110,13 +110,15 @@ function labelRect(x: number, y: number, anchor: "start" | "end", w: number, h: 
   return { x: anchor === "start" ? x : x - w, y: y - h * 0.72, w, h };
 }
 
-export function layoutHero(input: HeroLayoutInput): HeroLayout {
-  const { cx, cy, ringRadius, frameDegree: asc, frameOn = "sign", labelWidth, labelHeight, outsideStep = OUTSIDE_STEP } = input;
+/** Where the bodies sit, which no label or name moves: the plate's own fields of `HeroLayoutInput`. */
+export type BodyPlacementInput = Pick<HeroLayoutInput, "cx" | "cy" | "ringRadius" | "frameDegree" | "frameOn" | "bodies" | "outsideStep">;
 
+export function placeBodies(input: BodyPlacementInput): PlacedBody[] {
+  const { cx, cy, ringRadius, frameDegree: asc, frameOn = "sign", outsideStep = OUTSIDE_STEP } = input;
   // The Sun is the one body allowed to leave the ring, and only to clear the
   // Moon. Everything else sits on it.
   const moon = input.bodies.find((b) => b.key === "moon");
-  const placed: PlacedBody[] = input.bodies.map((b) => {
+  return input.bodies.map((b) => {
     const t = heroTheta(b.absoluteDegree, asc, frameOn);
     const tight = b.key === "sun" && moon !== undefined
       && separation(b.absoluteDegree, moon.absoluteDegree) < CONJUNCTION_DEGREES;
@@ -124,7 +126,11 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
     const p = pointAt(cx, cy, radius, t);
     return { key: b.key, x: p.x, y: p.y, size: b.size, outside: tight };
   });
+}
 
+export function layoutHero(input: HeroLayoutInput): HeroLayout {
+  const { cx, cy, labelWidth, labelHeight } = input;
+  const placed = placeBodies(input);
   const discs = placed.map(discRect);
   const fixed = [...input.obstacles, ...discs];
   const blocks = input.horizonLabels ?? [];
@@ -164,66 +170,86 @@ export const MARKER_RADIUS = 13;
 export const MARKER_STROKE = 1.5;
 /** How far the marker reaches right of its centre, towards the name; its tick points the other way, outward. */
 export const MARKER_REACH = MARKER_RADIUS + MARKER_STROKE / 2;
-/** Clear air between the name and the rising marker, in px. */
+/** Clear air, in px, that the name keeps from the rising marker and from every body. */
 export const NAME_AIR = 8;
 
-/** A box on screen, in px, as `getBoundingClientRect` gives it. */
-export interface ScreenBox { left: number; top: number; width: number; height: number }
+export interface Size { width: number; height: number }
 
-export interface NameStandInput {
-  /** The plate's centre and its ring's radius, in plate units. */
+export interface NamePlaceInput {
+  /** The plate's centre and its ring's radius, in plate units, and the screen px one unit takes. */
   cx: number;
   cy: number;
   ringRadius: number;
-  /** The ring on screen; its width over its diameter in units is the plate's scale. */
-  ring: ScreenBox;
-  /** The name on screen, as wide as its widest line. */
-  name: ScreenBox;
-  /** The top of the eyebrow above the name, on screen. */
-  eyebrowTop: number;
-  /** The text of "Written on" on screen, when the report has a date. */
-  written: ScreenBox | null;
+  scale: number;
+  /**
+   * The name at each size it may take, largest first: its own rung of the ladder, then the rungs below. Each is
+   * measured as drawn at that size, since the face's widths do not scale in step with its size.
+   */
+  names: (Size & { size: number })[];
+  /** Each row's text width over the row's height, in px; no date on a report that has none. */
+  eyebrow: Size;
+  written: Size | null;
+  /** Px between the rows. */
+  gap: number;
+  /** The bodies as drawn, in plate units. */
+  bodies: PlacedBody[];
 }
 
-export interface NameStand {
-  /** Px from the line up to the name's bottom, and from the line down to the top of "Written on". */
-  clearance: number;
-  /** Screen px per plate unit, so the standing name can scroll with the plate and stay on its line. */
+export interface NamePlace {
+  size: number;
+  /** Px from the line up to the standing name and down to its date; null while the name is centred on the line. */
+  clearance: number | null;
   scale: number;
-  /** What the labels must avoid instead of the centred name plate, in plate units: the standing name, then its date. */
+  /** The rows where they sit, eyebrow, name and date, each with NAME_AIR around it, in plate units: what labels avoid. */
   obstacles: Rect[];
 }
 
+/** Px from a body's disc to a box, both in px from the plate's centre: below zero where they overlap. */
+function discGap(disc: { x: number; y: number; r: number }, box: Rect): number {
+  const dx = Math.max(box.x - disc.x, 0, disc.x - (box.x + box.w));
+  const dy = Math.max(box.y - disc.y, 0, disc.y - (box.y + box.h));
+  return Math.hypot(dx, dy) - disc.r;
+}
+
 /**
- * Where a plate that holds the name puts it. The name is centred on the horizon, which runs behind its halo; a name
- * wide enough to reach the rising marker would cover it, so it stands just above the line instead, and "Written on"
- * sits just below. Null when the name stays centred. Only the name's width decides, so standing never undoes itself.
+ * Where a plate that holds the name puts it, and at what size. The name is centred on the horizon, which runs behind
+ * its halo; a name wide enough to reach the rising marker would cover it, so it stands just above the line instead,
+ * its date just below. Wherever it sits, a body under the name or its date would be covered, so the name takes the
+ * ladder's next rung and is placed again: it stands only if it still reaches the marker. The largest size that keeps
+ * NAME_AIR from every body wins; failing that, the largest that covers none; failing that, the one that covers least.
+ * Only the name's widths and the bodies decide, so the choice holds once it is drawn. Null before the plate is laid out.
  */
-export function nameStand(input: NameStandInput): NameStand | null {
-  const scale = input.ring.width / (2 * input.ringRadius);
-  if (!(scale > 0)) return null;
+export function placeName(input: NamePlaceInput): NamePlace | null {
+  const { scale, eyebrow, written, gap } = input;
+  if (!(scale > 0) || input.names.length === 0) return null;
   const reach = MARKER_REACH * scale;
-  if (input.name.left >= input.ring.left + reach + NAME_AIR) return null;
+  const markerRight = -input.ringRadius * scale + reach;
   const clearance = reach + NAME_AIR;
-  const ringCentre = input.ring.left + input.ring.width / 2;
-  const block = input.name.top + input.name.height - input.eyebrowTop;
-  // A label may come no nearer the name or its date than the name comes to the marker.
+  const discs = input.bodies.map((b) => ({ x: (b.x - input.cx) * scale, y: (b.y - input.cy) * scale, r: (b.size / 2) * scale }));
   const air = NAME_AIR / scale;
-  const obstacles: Rect[] = [{
-    x: input.cx + (input.name.left - ringCentre) / scale - air,
-    y: input.cy - (clearance + block) / scale - air,
-    w: input.name.width / scale + 2 * air,
-    h: block / scale + 2 * air,
-  }];
-  if (input.written) {
-    obstacles.push({
-      x: input.cx - input.written.width / 2 / scale - air,
-      y: input.cy + clearance / scale - air,
-      w: input.written.width / scale + 2 * air,
-      h: input.written.height / scale + 2 * air,
-    });
-  }
-  return { clearance, scale, obstacles };
+  const row = (width: number, top: number, height: number): Rect => ({ x: -width / 2, y: top, w: width, h: height });
+  const options = input.names.map((name) => {
+    const stands = -name.width / 2 < markerRight + NAME_AIR;
+    // Px from the plate's centre, the line through it: the centred block is centred on the line, as the page sets it.
+    const nameTop = stands
+      ? -clearance - name.height
+      : -(eyebrow.height + gap + name.height + (written ? gap + written.height : 0)) / 2 + eyebrow.height + gap;
+    const rows = [
+      row(eyebrow.width, nameTop - gap - eyebrow.height, eyebrow.height),
+      row(name.width, nameTop, name.height),
+      ...(written ? [row(written.width, stands ? clearance : nameTop + name.height + gap, written.height)] : []),
+    ];
+    const place: NamePlace = {
+      size: name.size,
+      clearance: stands ? clearance : null,
+      scale,
+      obstacles: rows.map((r) => ({ x: input.cx + r.x / scale - air, y: input.cy + r.y / scale - air, w: r.w / scale + 2 * air, h: r.h / scale + 2 * air })),
+    };
+    const nearest = Math.min(Infinity, ...discs.flatMap((d) => rows.map((r) => discGap(d, r))));
+    return { place, nearest };
+  });
+  const least = options.reduce((best, o) => (o.nearest > best.nearest ? o : best));
+  return (options.find((o) => o.nearest >= NAME_AIR) ?? options.find((o) => o.nearest >= 0) ?? least).place;
 }
 
 export interface MoonArc {

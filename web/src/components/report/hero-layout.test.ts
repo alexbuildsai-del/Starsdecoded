@@ -13,8 +13,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart, type NatalChartData } from "@workspace/engine";
 import {
-  CONJUNCTION_DEGREES, MARKER_REACH, NAME_AIR, OUTSIDE_STEP, PHONE, SLIDE_STEP, ascendantValue, heroTheta, layoutHero, moonArc, nameStand,
-  overlaps, phoneStack, separation, shortDate, writtenOnText, type HeroLayout, type Rect,
+  CONJUNCTION_DEGREES, MARKER_REACH, NAME_AIR, OUTSIDE_STEP, PHONE, SLIDE_STEP, ascendantValue, heroTheta, layoutHero, moonArc, overlaps,
+  phoneStack, placeBodies, placeName, separation, shortDate, writtenOnText, type HeroLayout, type PlacedBody, type Rect,
 } from "./hero-layout";
 import { angleGlyphRadius } from "./AngleGlyph";
 import { norm360, opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
@@ -342,31 +342,63 @@ describe("the horizon labels (B-62)", () => {
 });
 
 describe("the name on the horizon", () => {
-  // The wide plate on a 1366 by 768 laptop: 660 units drawn 642 px tall, the ring 200 units, a 64 px name and its date.
+  // The wide plate on a 1366 by 768 laptop: 660 units drawn 642 px tall, the ring 200 units. The rows are the report's
+  // type as Chromium draws it: the eyebrow, the date, and "Oprah Winfrey" at 64, 48 and 40 px.
   const scale = 642 / 660;
-  const ring = { left: 683 - 200 * scale, top: 412 - 200 * scale, width: 400 * scale, height: 400 * scale };
-  const markerRight = ring.left + MARKER_REACH * scale;
-  const at = (left: number) => nameStand({
-    cx: 500, cy: 330, ringRadius: 200, ring,
-    name: { left, top: 300, width: 2 * (683 - left), height: 69 },
-    eyebrowTop: 276,
-    written: { left: 609, top: 400, width: 148, height: 15 },
+  const PLATE_AT = { cx: 500, cy: 330, ringRadius: 200, scale };
+  const ROWS = { eyebrow: { width: 130.2, height: 15 }, written: { width: 147.8, height: 16 }, gap: 10 };
+  const OPRAH = [{ size: 64, width: 408.63, height: 69.12 }, { size: 48, width: 298.73, height: 51.84 }, { size: 40, width: 245.73, height: 43.2 }];
+  const markerRight = -200 * scale + MARKER_REACH * scale;
+  const named = (width: number) => placeName({ ...PLATE_AT, ...ROWS, names: [{ size: 64, width, height: 69.12 }], bodies: [] });
+  const bodiesOf = (key: string) => {
+    const chart = fixtureChart(key);
+    return placeBodies({
+      cx: 500, cy: 330, ringRadius: 200, frameDegree: chart.angles!.ascendant.absoluteDegree, frameOn: "degree",
+      bodies: [
+        { key: "sun", absoluteDegree: chart.planets.sun.absoluteDegree, size: 120 },
+        { key: "moon", absoluteDegree: chart.planets.moon.absoluteDegree, size: 72 },
+      ],
+    });
+  };
+  // Px from a disc to a row, the row taken back out of its air.
+  const gapTo = (b: PlacedBody, r: Rect) => {
+    const air = NAME_AIR / scale;
+    const box = { x: r.x + air, y: r.y + air, w: r.w - 2 * air, h: r.h - 2 * air };
+    const dx = Math.max(box.x - b.x, 0, b.x - (box.x + box.w));
+    const dy = Math.max(box.y - b.y, 0, b.y - (box.y + box.h));
+    return (Math.hypot(dx, dy) - b.size / 2) * scale;
+  };
+
+  it("keeps a name centred, at its own size, while it clears the rising marker by NAME_AIR", () => {
+    const place = named(-2 * (markerRight + NAME_AIR))!;
+    expect(place.clearance).toBeNull();
+    expect(place.size).toBe(64);
+    expect(placeName({ ...PLATE_AT, ...ROWS, scale: 0, names: OPRAH, bodies: [] })).toBeNull();
   });
 
-  it("keeps a name centred while it clears the rising marker by NAME_AIR", () => {
-    expect(at(markerRight + NAME_AIR)).toBeNull();
-    expect(nameStand({ cx: 500, cy: 330, ringRadius: 200, ring: { ...ring, width: 0 }, name: ring, eyebrowTop: 0, written: null })).toBeNull();
-  });
-
-  it("stands a name that would reach the marker on the line, the name ending above the marker and its date below", () => {
-    const stand = at(markerRight + NAME_AIR - 0.5)!;
-    expect(stand.clearance).toBeCloseTo(MARKER_REACH * scale + NAME_AIR, 9);
-    expect(stand.scale).toBeCloseTo(scale, 9);
-    const [name, written] = stand.obstacles;
+  it("stands a name that would reach the marker on the line: NAME_AIR above the marker, its date as far below", () => {
+    const place = named(-2 * (markerRight + NAME_AIR) + 1)!;
+    expect(place.size).toBe(64);
+    expect(place.clearance).toBeCloseTo(MARKER_REACH * scale + NAME_AIR, 9);
+    expect(place.scale).toBeCloseTo(scale, 9);
+    const [, name, written] = place.obstacles;
     expect(name.y + name.h).toBeCloseTo(330 - MARKER_REACH, 9);
-    expect(name.h).toBeCloseTo((69 + 300 - 276 + 2 * NAME_AIR) / scale, 9);
     expect(written.y).toBeCloseTo(330 + MARKER_REACH, 9);
     expect(written.x + written.w / 2).toBeCloseTo(500, 9);
+  });
+
+  it("takes the rung below where standing would cover a body: Oprah Winfrey's Moon, just above her Ascendant", () => {
+    const bodies = bodiesOf("oprah-winfrey");
+    const moon = bodies.find((b) => b.key === "moon")!;
+    const standing = placeName({ ...PLATE_AT, ...ROWS, names: OPRAH.slice(0, 1), bodies })!;
+    expect(standing.clearance).not.toBeNull();
+    expect(Math.min(...standing.obstacles.map((r) => gapTo(moon, r)))).toBeLessThan(0);
+    const place = placeName({ ...PLATE_AT, ...ROWS, names: OPRAH, bodies })!;
+    // At 48 px the name no longer reaches the marker, so it is centred there, with NAME_AIR from every body.
+    expect(place.size).toBe(48);
+    expect(place.clearance).toBeNull();
+    expect(-OPRAH[1].width / 2).toBeGreaterThan(markerRight + NAME_AIR);
+    for (const b of bodies) for (const r of place.obstacles) expect(gapTo(b, r)).toBeGreaterThanOrEqual(NAME_AIR);
   });
 });
 

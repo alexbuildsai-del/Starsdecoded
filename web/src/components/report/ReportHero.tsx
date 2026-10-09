@@ -25,8 +25,8 @@
  * under 640 px, puts the ring on top at 82vw and the name under it, then the
  * legend, then the cue clear of the corner text (`phoneStack`). On a plate
  * that holds the name, a name wide enough to reach the rising marker would
- * cover it, so it stands just above the line instead, its date just below
- * (`nameStand`).
+ * cover it, so it stands just above the line instead, its date just below;
+ * where that would cover a body, it takes the ladder's next rung (`placeName`).
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
@@ -34,8 +34,8 @@ import { TriadRow } from "@/components/TriadRow";
 import { triadRowsOf, triadText } from "@/lib/triad-row";
 import { opposite, pointAt } from "@/components/chart/wheel-geometry";
 import {
-  MARKER_RADIUS, MARKER_STROKE, PHONE, ascendantValue, heroTheta, layoutHero, moonArc, nameStand, phoneStack, writtenOnText,
-  type NameStand, type Rect, type ScreenBox,
+  MARKER_RADIUS, MARKER_STROKE, PHONE, ascendantValue, heroTheta, layoutHero, moonArc, phoneStack, placeBodies, placeName, writtenOnText,
+  type NamePlace, type Rect,
 } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
@@ -63,9 +63,17 @@ const GLOW = "radial-gradient(circle closest-side, rgba(255,196,118,.46) 0%, rgb
 const GLOW_DIAMETERS = 3.2;
 
 /** The name's own ladder: it is page type, so it never scales with the plate. A phone gets a smaller rung of the same ladder. */
+const LADDER = { wide: [64, 48, 40], narrow: [44, 34, 28] } as const;
+
+/** A name's own rung and the rungs below it. */
+function rungsFrom(size: number, narrow: boolean): number[] {
+  const ladder: readonly number[] = narrow ? LADDER.narrow : LADDER.wide;
+  return ladder.slice(Math.max(0, ladder.indexOf(size)));
+}
+
 function nameLines(name: string, narrow: boolean): { lines: string[]; size: number } {
   const n = name.trim();
-  const [big, mid, small] = narrow ? [44, 34, 28] : [64, 48, 40];
+  const [big, mid, small] = narrow ? LADDER.narrow : LADDER.wide;
   if (n.length <= 14) return { lines: [n], size: big };
   if (n.length <= 26) return { lines: [n], size: mid };
   const words = n.split(/\s+/);
@@ -156,10 +164,11 @@ function WrittenOn({ text, textRef, style }: { text: string; textRef?: React.Ref
   return <p ref={textRef} className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]" style={style}>{text}</p>;
 }
 
-function sameStand(a: NameStand | null, b: NameStand | null): boolean {
+function samePlace(a: NamePlace | null, b: NamePlace | null): boolean {
   if (a === null || b === null) return a === b;
   const near = (x: number, y: number) => Math.abs(x - y) < 0.5;
-  return near(a.clearance, b.clearance) && a.obstacles.length === b.obstacles.length
+  return a.size === b.size && (a.clearance === null ? b.clearance === null : b.clearance !== null && near(a.clearance, b.clearance))
+    && a.obstacles.length === b.obstacles.length
     && a.obstacles.every((r, i) => near(r.x, b.obstacles[i].x) && near(r.y, b.obstacles[i].y) && near(r.w, b.obstacles[i].w) && near(r.h, b.obstacles[i].h));
 }
 
@@ -203,11 +212,12 @@ export function ReportHero({
   const h1Ref = useRef<HTMLHeadingElement>(null);
   const writtenRef = useRef<HTMLParagraphElement>(null);
   const [ring, setRing] = useState<Ring | null>(null);
-  const [stand, setStand] = useState<NameStand | null>(null);
+  const [place, setPlace] = useState<NamePlace | null>(null);
+  const clearance = phone ? null : place?.clearance ?? null;
   // The name's own offset before the scroll's: a standing name puts its bottom, not its middle, on the line, and
   // scrolls at the plate's rate, so the line and the marker never slide up under it.
-  const shift = stand && !phone ? `-100% - ${stand.clearance.toFixed(1)}px` : "-50%";
-  const nameRate = stand && !phone ? DIAGRAM_RATE * stand.scale : NAME_RATE;
+  const shift = clearance === null ? "-50%" : `-100% - ${clearance.toFixed(1)}px`;
+  const nameRate = clearance === null || !place ? NAME_RATE : DIAGRAM_RATE * place.scale;
 
   // The ring's place on screen, measured at rest and again on every resize,
   // so the ring of stars follows an address-bar collapse or a rotation.
@@ -309,37 +319,64 @@ export function ReportHero({
   const west = pointAt(cx, cy, R + horizonReach, angleOf(opposite(frame)));
   const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band, "degree") : null;
 
-  const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
+  const { lines: nameRows, size: rungSize } = nameLines(name, narrow);
+  const rungs = rungsFrom(rungSize, narrow);
+  // On the plate the name may take a rung below its own (`placeName`); the phone's sits under the ring and keeps its own.
+  const placed = phone || blind ? null : place;
+  const nameSize = placed && rungs.includes(placed.size) ? placed.size : rungSize;
+  const standing = placed?.clearance ?? null;
   // The name has already broken to its lines from its length; only the viewport's height can now cost the ring.
   const written = writtenOnText(writtenOn);
   const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize, dated: written !== null }) : null;
   const ascText = ascendantValue(asc);
 
-  // Whether the name stands on the line, measured before the first paint and again when its font arrives or the plate
-  // resizes. Only the name's width decides, and standing does not change it.
+  // The Sun is placed first, so it takes the room it needs.
+  const bodies = [
+    sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
+    moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
+  ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[];
+  const discs = placeBodies({ cx, cy, ringRadius: R, frameDegree: frame, frameOn: "degree", bodies });
+  const discKey = discs.map((d) => `${d.x.toFixed(1)},${d.y.toFixed(1)},${d.size}`).join(" ");
+
+  // Where the name sits and at what size, measured before the first paint and again when its font arrives or the plate
+  // resizes. Each size is measured on a hidden copy of the name, so what is drawn never changes what is measured.
   useLayoutEffect(() => {
     if (phone || blind) {
-      setStand(null);
+      setPlace(null);
       return undefined;
     }
     function measure() {
       const ringEl = ringRef.current;
       const h1 = h1Ref.current;
       const eyebrow = eyebrowRef.current;
-      if (!ringEl || !h1 || !eyebrow) return;
+      const block = nameRef.current;
+      if (!ringEl || !h1 || !eyebrow || !block) return;
       const ringBox = ringEl.getBoundingClientRect();
       if (ringBox.width < 2) return;
-      let writtenBox: ScreenBox | null = null;
-      if (writtenRef.current) {
-        // The text's own box: the line it sits on is as wide as the plate while the name is centred.
+      // A row's own text, since the row is as wide as the plate.
+      const textWidth = (el: Element) => {
         const range = document.createRange();
-        range.selectNodeContents(writtenRef.current);
-        writtenBox = range.getBoundingClientRect();
-      }
-      const next = nameStand({
-        cx, cy, ringRadius: R, ring: ringBox, name: h1.getBoundingClientRect(), eyebrowTop: eyebrow.getBoundingClientRect().top, written: writtenBox,
+        range.selectNodeContents(el);
+        return range.getBoundingClientRect().width;
+      };
+      const drawnAt = (size: number) => {
+        const copy = h1.cloneNode(true) as HTMLElement;
+        Object.assign(copy.style, { fontSize: `${size}px`, position: "absolute", visibility: "hidden", width: "max-content", left: "0", top: "0" });
+        h1.parentElement?.appendChild(copy);
+        const box = copy.getBoundingClientRect();
+        copy.remove();
+        return { size, width: box.width, height: box.height };
+      };
+      const date = writtenRef.current;
+      const next = placeName({
+        cx, cy, ringRadius: R, scale: ringBox.width / (2 * R),
+        names: rungs.map(drawnAt),
+        eyebrow: { width: textWidth(eyebrow), height: eyebrow.getBoundingClientRect().height },
+        written: date ? { width: textWidth(date), height: date.getBoundingClientRect().height } : null,
+        gap: Number.parseFloat(getComputedStyle(block).rowGap) || 0,
+        bodies: discs,
       });
-      setStand((prev) => (sameStand(prev, next) ? prev : next));
+      setPlace((prev) => (samePlace(prev, next) ? prev : next));
     }
     measure();
     const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
@@ -350,13 +387,13 @@ export function ReportHero({
       watch?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [phone, blind, cx, cy, R, name, written]);
-  const standing = phone || blind ? null : stand;
+    // `discs` is read through `discKey`, which changes only when a body moves.
+  }, [phone, blind, cx, cy, R, name, written, rungs.join(" "), discKey]);
 
-  // What a label may not cover: the name plate at the centre, or the standing name and its date. In plate units, like
-  // everything else here.
-  const obstacles: Rect[] = phone ? [] : standing ? standing.obstacles
-    : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }];
+  // What a label may not cover: the name plate at the centre, and the name's own rows where they sit, which on a short
+  // screen run past that plate. In plate units, like everything else here.
+  const plate: Rect = { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 };
+  const obstacles: Rect[] = phone ? [] : [...(standing !== null ? [] : [plate]), ...(placed?.obstacles ?? [])];
   // The two horizon labels as drawn below, east then west, with room for the widest value, "Sagittarius 29.99° · 1st
   // (self)": 31 characters of IBM Plex Mono at 0.6 em. The narrow tiers write them inward from the line's ends.
   const horizonLabels: Rect[] = blind ? [] : narrow
@@ -373,11 +410,7 @@ export function ReportHero({
     cx, cy, ringRadius: R,
     frameDegree: frame,
     frameOn: "degree",
-    // The Sun is placed first, so it takes the room it needs.
-    bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
-    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
+    bodies,
     // The widest value, "29.99° Sagittarius · 7th (partnership)": 38 characters at 11.5 px Plex Mono (6.9 px each), plus air.
     labelWidth: 276,
     labelHeight: 34,
@@ -520,7 +553,7 @@ export function ReportHero({
           </button>
         )}
         {!phone && (
-        <div ref={nameRef} className="rp-hname" style={standing ? { transform: `translateY(calc(${shift}))` } : undefined}>
+        <div ref={nameRef} className="rp-hname" style={standing !== null ? { transform: `translateY(calc(${shift}))` } : undefined}>
           <span ref={eyebrowRef} className="k">{PERSONAL_REPORT}</span>
           <div className="relative inline-block justify-self-center">
             {/* A halo fitted to the text box, so the ring reads through around it. */}
@@ -543,8 +576,8 @@ export function ReportHero({
             <WrittenOn
               text={written}
               textRef={writtenRef}
-              style={standing ? {
-                position: "absolute", left: "50%", top: `calc(100% + ${(2 * standing.clearance).toFixed(1)}px)`,
+              style={standing !== null ? {
+                position: "absolute", left: "50%", top: `calc(100% + ${(2 * standing).toFixed(1)}px)`,
                 transform: "translateX(-50%)", whiteSpace: "nowrap",
               } : undefined}
             />
