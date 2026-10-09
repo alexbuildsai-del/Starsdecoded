@@ -183,8 +183,7 @@ go to the efficiency session; phone and computer in every mock.
 - Vague words ("what's real") leave the voice; rules are defaults with reasons, hard lines only for safety (the Owner).
 - The voice is one block every writer imports, with the model passages, for every product and any future language; the
   bible shows it (the Owner asked; the mechanism Decided by Claude).
-- The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)".
-- "Does this sound like you?" never starts with "This week" (the Owner).
+- The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)"; no "This week".
 - The house card's planet row is restored and guarded by a critical test; a builder never removes what its plan doesn't name.
 - The primer's four cards are short loops on the reader's chart; its table folds away; "The cool fact" goes.
 - One chart system (the landing wheel as backbone, seven states, reused parts), written in the annex and the bible; the
