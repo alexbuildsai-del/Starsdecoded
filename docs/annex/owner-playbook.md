@@ -28,7 +28,7 @@ How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-1
   Explain a hard concept in his structure, then plainly. **"Never is never really never"**: a default with its reason, not a ban.
 - **Reuse what we already draw; never redesign what is approved** ("let's reuse it everywhere", report-loading-story; "don't
   make this different", 05-10): liked parts go in the design system and `liked-visuals.md`; a live part's words, colours and
-  order before a new one; three colours a screen; the landing wheel copied, never redrawn; no line drawings (09/10).
+  order before a new one; three colours a screen; what an ideation agreed is the model, older screens come to it, never the reverse (09/10).
 - **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("not wow",
   share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 

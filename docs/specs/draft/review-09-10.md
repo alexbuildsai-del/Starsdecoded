@@ -60,17 +60,17 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   reader's houses in turn); (4) "At home, or least at ease", in the words the writers, the brief and the claims already
   use (`vocabulary.ts:303-306`, `brief.ts` `comfortIn`, `evidence.ts:34`): Venus is how you love; in Taurus and Libra it is at
   home; in Aries and Scorpio least at ease; then the reader's Venus lands, with the why ("Venus wants ease and peace; Aries
-  goes first and wants to win"). **The primer shows no idea the prose and claims don't use.** The table folds behind "Where each planet is at home"; "The cool fact" goes.
-- **The Jupiter-in-4th fact** ("Could home bring help?") is read in the 4th house card.
+  goes first and wants to win"). **The primer shows no idea the prose and claims don't use.** The table folds behind "Where each planet is at home"; "The cool fact" goes; the Jupiter-in-4th fact is read in its card.
 
 ### 2b. The chart system (the Owner, v4: "settle it once and for all")
-- **The backbone is the landing page's wheel (`HorizonWheel.tsx`), kept exactly as it is** (the Owner: "don't rebuild
-  it"): the horizon flat with the rising degree at 9 o'clock and the chart turning under it (already decided); two curved
+- **The model is this ideation's wheel and its decisions** (the Owner, v10: not the landing page), saved as
+  `docs/annex/chart-model-review-09-10.html` (its `sky()` and `linkOnChart()`); every chart is brought to it, the landing's
+  `HorizonWheel` too (its look; its motion stays): the horizon flat with the rising degree at 9 o'clock and the chart turning under it (already decided); two curved
   lines on the rim following the circle, the sign outside and "4 · HOME" inside, never straight or spilling out; 5° ticks;
   renders at their true degree, crowding stepping inward; the aspect lines exactly as the site draws them (the engine's
   list and orbs, fainter when wide, dashed separating), on the full chart only; a teaching chart shows only the line its
   card is about. **Palette** (the Owner, v6): inside the product the frame is the muted grey-blue (`--muted-foreground`)
-  and brass marks only what the words are about (a lit house, sign, planet or line); the landing keeps its brass. Every other chart takes its format through `wheel-geometry.ts`; on a report chart Chiron and the
+  and brass marks only what the words are about (a lit house, sign, planet or line); on every chart, the landing's included. Every chart takes its format through `wheel-geometry.ts`; on a report chart Chiron and the
   nodes are always drawn.
 - **One Ascendant marker**, on the flat horizon. **No MC line** (the Owner, v6: nothing explains it): a chart draws the MC
   only beside the sentence that explains it, as a label, never the Ascendant's marker (`AngleGlyph`'s midheaven variant goes). Small charts (pair plates, the hero) draw no axes. Links between two people keep
@@ -84,7 +84,7 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   `HousePrimer`, `DawnClosing`, `TwoChartsLedger`, the pair page; loading `BuildStory` (dots), `PairStory` (hex),
   `DidYouKnow` (glyphs), `HouseObject` (goes); Timeline `Dial`, `AgeRing`; dashboard `CardSections`, `Orbit`, `TriadRow`;
   Ask `AskMark`; site `HouseRing`, `Placements`, `ReadTheWheel`, `SampleHead`, `TwoPlates`, `SkyScreen`, `Hero`, `Dawn`,
-  `Claims`, `SkyPage`, `LearnBirthTimePage`; the share card and the PDF. `HorizonWheel` is the model and stays. The
+  `Claims`, `SkyPage`, `LearnBirthTimePage`; the share card and the PDF. `HorizonWheel` follows the model too (its motion stays). The
   planner re-greps (`wheelRadii|NatalWheel|renderFor|<svg`) rather than trusting this list; a new chart only through it.
 - Reused parts, documented: the planet pill, the Ascendant marker, the link glyph and card, How two planets meet. **At most
   three colours a screen** (chapter colour, the content's one, greys); a new tag, label or icon enters this page first.
@@ -187,14 +187,14 @@ Everything else was answered in the Owner's nine looks (2026-10-09) and is writt
 - The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)"; no "This week".
 - The house card's planet row is restored and guarded by a critical test; a builder never removes what its plan doesn't name.
 - The primer's four cards are short loops on the reader's chart, using only ideas the prose and claims use; no "cool fact".
-- One chart system (the landing wheel as backbone, seven states, reused parts), written in the annex and the bible; the
+- One chart system (this ideation's wheel as the model, seven states, reused parts), written in the annex and the bible; the
   loading stories and the ledger move onto it (the Owner; the details Decided by Claude).
 - No Did you know card in the Personal report's chapters; ideas and observations go in the prose at their placement.
 - Parent-and-child examples and scenes come by the child's age, under 1 included (Decided by Claude).
 - The pair hero: names stacked, each person's own chart beside them, no line (the Owner).
 - The walk: inside chapter 01, the page's rail, bar and title kept; cards as tall as their words with a settling snap and a
   progress line; each link drawn on both charts with the other's planet as a guest (supersedes ADR-97 in part) (the Owner).
-- The landing wheel is the backbone, unchanged; one Ascendant marker; no MC line; no house drawings; inside the product
-  grey-blue, brass only for what is lit (the Owner; the landing keeping brass Decided by Claude).
+- This ideation's wheel is the model for every chart, the landing's included: one Ascendant marker, no MC line, no house
+  drawings, grey-blue with brass only for what is lit (the Owner).
 - Every ideation mock shows phone and computer side by side (the Owner; CLAUDE.md and `/ideate`).
 - Pending: names with digits (yes); groups by the faster planet (yes); house drawings out of the loading story (yes).
