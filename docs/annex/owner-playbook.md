@@ -43,8 +43,8 @@ How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-1
 - **Testing is ours, never his** (10-04); **no secret on GitHub** (09-25); **think as the buyer, then decide** (gifting B, 10-06).
 - **Evidence before a claim; the cause, not the message.** "Are you sure? Can you give me an example" (review-05-10). A
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
-- **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
-  live, never before it's real; no promise twice. Test a line against every way to buy: "you pay for credits" (walk-line).
+- **Words that can't go stale**: no price in the FAQ; a price only where read live; no promise twice; a line true for every
+  way to buy ("you pay for credits", walk-line).
 - **Astrology calls are ours; the bar is @the_innercosmos** (explain-like-a-friend): her level, possibilities, full tradition;
   the doctrine decides a method, never a question to him ("the doctrine should dictate", 09/10). Name what's special (a
   stellium, a retrograde pass) with placement, reason, scene: "I still go to search on TikTok" (08/10).
@@ -57,5 +57,4 @@ How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-1
   small label over a title that finishes it** (review-05-10); an idea shown on the charts it explains, no extra circle (09/10).
 
 ## His own lines, verbatim
-- "Continue without this for now." (R14) · "go" (R12) · "two friends talking over coffee" (ADR-185) · "lock it" (10-05)
-  · "Make it into your design guidelines. I really hate it." (10-06) · "Just add the bloody Gemini … degree" (10-05).
+- "Continue without this for now." (R14) · "go" (R12) · "two friends talking over coffee" (ADR-185) · "lock it" (10-05) · "Make it into your design guidelines. I really hate it." (10-06) · "Just add the bloody Gemini … degree" (10-05) · "Don't fuck it up." (09/10)
