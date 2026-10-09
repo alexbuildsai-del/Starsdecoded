@@ -2,7 +2,7 @@
 
 Ideation 2026-10-09 with the Owner, who asked for the Personal report to be "much more visual and interactive, with
 motion", with "explainer videos as you scroll", and to "go wild". Artifact: https://claude.ai/artifact/NQM6GSnEpZ6w7cKSsgMSis.
-Status: **draft**, version 6, two questions open. Shown on Audrey Hepburn's chart (the /sample fixture, 4 May 1929, 03:00,
+Status: **draft**, version 7, one question open. Shown on Audrey Hepburn's chart (the /sample fixture, 4 May 1929, 03:00,
 Ixelles), computed by `@workspace/engine`. Report lines are quoted from the stored sample run.
 Touches `review-09-10` (§2 the primer and §2b the chart system, a draft on `claude/cool-knuth-3qanic`), `natal-report-ui`,
 `report-loading-story` (the frame-by-time drawing), `explain-like-a-friend` (no Did you know card in chapters), `timeline`
@@ -55,8 +55,9 @@ Touches `review-09-10` (§2 the primer and §2b the chart system, a draft on `cl
 ### 4. The chart follows your reading (artifact #follow)
 - As you read, the chart lights what the line at the reading mark cites, from the citation numbers already in the prose.
 - **Computer**: the wheel at the top of the chapter's side column (ADR-24), in the chart system's Focus state.
-- **Phone**: question 1. Recommended: a thin strip under the chapter bar, the twelve houses in order, each planet at its
-  degree inside its house.
+- **Phone**: the same wheel under the chapter bar, at the size the Compatibility walk uses (at most a quarter of the
+  screen's height), with the words it lights beside it. A strip of houses was dropped: a second look for the chart breaks
+  the one-look rule (the Owner, 2026-10-01).
 
 ### 5. Drawn by the chart system (review-09-10 §2b)
 - Every chart is the landing page's wheel (`HorizonWheel.tsx`), copied, never redrawn: the flat horizon with the rising
@@ -73,7 +74,7 @@ Touches `review-09-10` (§2 the primer and §2b the chart system, a draft on `cl
   All from astronomy-engine, which the engine already uses. They feed drawings only, never the writer.
 
 ## Out of scope
-Each is its own ideation (artifact #later), and question 2 picks the next one.
+Each is its own ideation (artifact #later), and the open question picks the next one.
 - **Listen**, the report read aloud: OpenAI's speech takes 4,096 characters a request and returns no timings, browser
   voices differ by browser, and Kokoro's quantized model is a 92.4 MB download.
 - **Make my video**, a short video of your chart to share: way C (a video file per reader, rendered on our server).
@@ -94,21 +95,20 @@ Each is its own ideation (artifact #later), and question 2 picks the next one.
 9. Chart system: no body drawn as a dot or symbol (the glyph fallback for Chiron and the nodes excepted), no MC line, brass
    only on lit parts, at most three colours a screen. Grep and the probe check it.
 10. The three tools work from the reader's own chart, by touch, mouse and keyboard, and announce their readout.
-11. On a computer the side wheel lights what the line at the reading mark cites. On a phone, per question 1.
+11. The side wheel on a computer, and the wheel under the chapter bar on a phone, light what the line at the reading mark cites.
 12. At 390, 768 and 1440 px: no sideways scroll, nothing overlapping. Lighthouse and axe on the preview pass (ADR-192).
 13. Real chart data only: fixtures hold birth data, charts are computed at run time. The buyer walk is unchanged.
 
 ## Screens
-The artifact, version 6, each screen on a computer and a phone side by side: #watch (chapter 01's explainer, three start
-modes), #chapters (all ten, beside today's screen), #touch (the three tools), #follow (side column, strip, small wheel),
+The artifact, version 7, each screen on a computer and a phone side by side: #watch (chapter 01's explainer, three start
+modes), #chapters (all ten, beside today's screen), #touch (the three tools), #follow (the side column, the phone's wheel),
 #later (the three later ideas), #made (ways A, B and C), #rules, #questions, #sources.
 
 ## Open questions (each with its default)
-1. On a phone, how should the chart follow your reading? A, a thin strip under the chapter bar. B, a small wheel in a
-   taller chapter bar. C, not on phones. Default: A.
-2. Which later idea gets its own ideation next? A, Make my video. B, The sky kept moving. C, Listen. Default: A.
+1. Which later idea gets its own ideation next? A, Make my video. B, The sky kept moving. C, Listen. Default: A.
 
-Settled without a question: it plays when you reach it, from the Owner's own "as you scroll".
+Settled without a question: it plays when you reach it, from the Owner's own "as you scroll". On a phone the chart that
+follows your reading is the same wheel, by the one-look rule.
 
 ## Cross-spec points (for whoever locks review-09-10)
 - review-09-10 calls the primer cards "short loops" with no Pause. Here they play once with Pause and Replay: WCAG 2.2.2
@@ -130,7 +130,8 @@ Settled without a question: it plays when you reach it, from the Owner's own "as
 - Reduced motion shows the last frame with the transcript open. Every explainer has "What it shows" (Decided by Claude).
 - Look up in chapter 01, Your birth minute under primer card 1, Going backwards in each R planet's house card, computed
   in the browser by the engine (Decided by Claude).
-- On a computer the side column's wheel follows your reading (Decided by Claude). The phone waits on question 1.
+- The chart follows your reading: the side column's wheel on a computer, the same wheel under the chapter bar on a phone,
+  no strip (the one-look rule, Decided by Claude).
 - Drawn by review-09-10's chart system. A teaching chart's one aspect line is brass. New parts enter the chart-system page
   first (Decided by Claude).
 - No sound, no AI video and no video files in the report. Listen, Make my video and The sky kept moving each get their own
