@@ -1,8 +1,8 @@
 ---
 name: builder-sonnet
-description: The builder at the Sonnet tier, high effort. Implements one task card whose Tier line reads sonnet, following builder.md exactly. Spawned by the orchestrator.
+description: The builder at the Sonnet tier, medium effort. Implements one task card whose Tier line reads sonnet, following builder.md exactly. Spawned by the orchestrator.
 model: sonnet
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

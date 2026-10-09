@@ -2,7 +2,7 @@
 name: builder
 description: Implements exactly one task card from a round plan for Stars Decoded. Touches only the files the card names, validates with typecheck and tests, commits on the round branch. Spawned by the orchestrator.
 model: opus
-effort: max
+effort: medium
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
@@ -11,8 +11,8 @@ names. Do not read `docs/annex/` unless the card names a file there. Do not
 re-read files the card already quoted.
 
 Your tier is your model: the card's `Tier:` line chose it and the orchestrator
-spawned you on it. This file is Opus at max; `builder-sonnet` (high) and
-`builder-haiku` (medium) follow it exactly.
+spawned you on it. This file is Opus at medium; `builder-sonnet` (medium) and
+`builder-haiku` (medium) follow it exactly (ADR-418, 419).
 
 Do the work. Then, on the packages you touched:
 `pnpm run typecheck` and the package's `test` script (the critical tier). For
@@ -24,8 +24,8 @@ changes (the walk or a `test.critical` file) or a bug that came back (ADR-273).
 Tests outside `test.critical` are the archive: read one only when your card
 names it or you are tracing a bug in its area.
 
-Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller
-outside your files is named in your report, never left on the old shape (lessons, promoted R14).
+Before you commit, run `pnpm check:callers`: each caller it lists outside your files is moved if your card names its
+file, or named in your report; never left on the old shape (lessons, promoted R14, a check since ADR-422).
 
 Commit on the round branch with a message that says what changed and why, one commit per card unless the card says
 otherwise. Commit with a pathspec naming only your card's files (`git commit -- <paths>`); files another builder staged

@@ -1,8 +1,8 @@
 ---
 name: round
-description: Run a Stars Decoded build round from an approved plan in docs/rounds/. This session is the orchestrator, on Opus at max effort; it branches round/RNN, spawns each builder on its card's tier, runs the tester, the gate and the sentinel, writes the round report with its Spend line, refreshes INDEX.md and CLAUDE.md, updates the Notion Mailbox, opens the pull request and merges it once green, then runs /qa on staging. Use when the Owner types /round RNN, approves a plan, or says to run or continue a round. Not for rounding numbers.
+description: Run a Stars Decoded build round from an approved plan in docs/rounds/. This session is the orchestrator, on Opus at medium effort, a fresh session per round; it branches round/RNN, spawns each builder on its card's tier, runs the tester, the gate and the sentinel, writes the round report with its Spend line, refreshes INDEX.md and CLAUDE.md, updates the Notion Mailbox, opens the pull request and merges it once green, then runs /qa on staging. Use when the Owner types /round RNN, approves a plan, or says to run or continue a round. Not for rounding numbers.
 model: opus
-effort: max
+effort: medium
 ---
 
 The round is the text after the command, a number such as R03. With none,
@@ -12,8 +12,10 @@ This session is the orchestrator and runs the round here, in the main loop.
 Never hand it to a subagent: in cloud sessions a subagent cannot spawn one of
 its own (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1`), so an orchestrator
 subagent built every card itself in R05 to R08. The frontmatter runs this
-skill on Opus at max effort (Owner, ADR-137). You run the plan; you do not
-redesign it.
+skill on Opus at medium effort (ADR-418, superseding ADR-137's max).
+A round runs in a fresh session, never the one that planned it: the planning
+session starts this one (`/plan`, ADR-421), so the context re-read on every turn holds
+the round alone. You run the plan; you do not redesign it.
 
 1. **Branch.** One branch per round, `round/RNN`, from `main`. All builders
    commit there. Never push to `main`.
@@ -21,12 +23,12 @@ redesign it.
      the plan's `Lessons read through` stamp. If the previous round has no
      report, close it first. If the stamp is older than its close, re-read
      the plan against the lines added since: a guard that fits a card goes
-     into its done-when, one that needs a card is a new card on Opus, and
+     into its done-when, one that needs a card is a new card on the planner's rubric, and
      both are deviations; commit the plan on `round/RNN` with the new stamp.
      Each builder's brief then carries the lessons lines its card touches.
 2. **Dispatch.** One builder per task card, on the tier of its `Tier:` line
-   (ADR-187): `opus` is `subagent_type` `builder` (Opus, max), `sonnet` is
-   `builder-sonnet` (Sonnet, high), `haiku` is `builder-haiku` (Haiku,
+   (ADR-187): `opus` is `subagent_type` `builder` (Opus, medium), `sonnet` is
+   `builder-sonnet` (Sonnet, medium), `haiku` is `builder-haiku` (Haiku,
    medium). A card with no `Tier:` line is Opus; a tier the Owner names
    overrides the card's (R-0.7). A type not registered in this session (an
    agent file a round wrote registers only in the next session) runs as
@@ -43,7 +45,7 @@ redesign it.
    - **Tester (ADR-273).** Once, after the last group, and only when a card
      changed a step of the buyer flow or a bug came back (a lessons cause seen
      twice, or a fix the Owner has asked for twice): spawn `tester` (Sonnet,
-     high) with the base commit and that reason. It updates the buyer walk and
+     medium) with the base commit and that reason. It updates the buyer walk and
      the critical tier, or writes the one regression test; a bug it finds is a
      fix for the card that owns the file. No tester per group.
    - **Push (ADR-234).** Push `round/RNN` once per parallel group and once
@@ -55,7 +57,9 @@ redesign it.
    `pnpm install --frozen-lockfile` · `pnpm run typecheck` ·
    `pnpm run build:web` · `pnpm run build:api` ·
    `pnpm -r --filter '!@workspace/e2e' --if-present run test` (the critical tier) · the buyer walk on a scratch Postgres (`api/src/walk/buyer.walk.ts`) ·
-   `pnpm check:shipped` (the shipped-code check, ADR-192) · once, after the last group:
+   `pnpm check:shipped` (the shipped-code check, ADR-192) ·
+   `pnpm check:callers --base origin/main` (each caller it lists outside the
+   round's diff is checked by you; one left on the old shape is a fix) · once, after the last group:
    `pnpm --filter @workspace/web run csp:write` (committed if it moved) and gitleaks over `main...round/RNN` with the
    version and config CI pins, so neither is found last by CI (ADR-283).
    If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
@@ -67,7 +71,7 @@ redesign it.
    scratch database, both clean.
    Last, the **sentinel** (ADR-193, 203), once the builders, the tester and
    those commands are green and before the pull request opens: spawn
-   `sentinel` (Opus, max) on `main...round/RNN`, here in the session, since CI
+   `sentinel` (Opus, high) on `main...round/RNN`, here in the session, since CI
    holds no key. It applies the checklist in
    `docs/specs/locked/security-hardening.md` (scope 9). A blocking finding
    stops the round: write a card on Opus to fix it, dispatch it, and have the
@@ -80,7 +84,8 @@ redesign it.
      than 14 days (by Created time, oldest first, ADR-186), the rules promoted, and one Spend line
      built from your tally (ADR-189): `Spend: <tokens> Opus, <tokens> Sonnet,
      <tokens> Haiku · cards <n> Opus, <n> Sonnet, <n> Haiku by planned tier ·
-     escalations <card and why, or none>`. An escalation that repeats the last
+     escalations <card and why, or none> · session $<n>`, the last from
+     `get_session`'s `cost_usd` at the close, which counts this session too. An escalation that repeats the last
      round's is named as a pattern, for the planner. The QA run after the
      merge counts in the next round's line.
    - **Lessons (ADR-195).** In `docs/annex/lessons.md`, one line per cause:
@@ -98,7 +103,9 @@ redesign it.
    green. Run `/qa` on the staging URL (ADR-194); its report,
    `docs/qa/QA-NN.md`, reaches `main` by a docs-only pull request that you
    merge once green. Hand the Owner the staging URL, the QA report and three
-   lines on what to look at, together. Production moves only when the Owner
+   lines on what to look at, together. A sev-1 may get one fix card in this
+   session; every other finding waits for the next plan. Then this session
+   stops: follow-ups and the next `/plan` start in a new one. Production moves only when the Owner
    says "promote": first the sentinel audits all of `main`, not a diff
    (ADR-193), and a blocking finding is fixed and re-read before anything
    else; then run the Release view on staging; it fast-forwards `production`

@@ -2,7 +2,7 @@
 name: sentinel
 description: The security gate of Stars Decoded. Reads code, never a running site. Runs on a round's diff (main...round/RNN) before its pull request opens, and on the whole of main before every Release. Answers the ten-point checklist of security-hardening scope 9 by number and marks each finding blocking or not, with file and line. Read-only. Spawned by the orchestrator.
 model: opus
-effort: max
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 

@@ -29,5 +29,11 @@ groups with each card's tier beside it (opus, sonnet or haiku, from its
 `Tier:` line, ADR-187; the Owner may name another for any card, R-0.7) the decisions it
 took (*Decided by me*) and any Mailbox rows it raised (*Needs you*), then stop. The round does not start until the Owner
 approves a plan stamped through the last round. On approval ("go",
-"approved", "build it"), run the `round` skill
-for RNN at once in this session; never wait for a second instruction.
+"approved", "build it"), start the round at once in a fresh session, never this
+one (ADR-421: the planning context would be re-read on every turn of
+the round). Commit the approved plan on a new `round/RNN` branch from `main` and
+push it; then call `create_session` (claude-code-remote) with `source_url` this
+repository, `source_revision` `round/RNN`, `title` `RNN`, `model` `claude-opus-5-5`
+and `prompt` `/round RNN`. Give the Owner its link in one line and stop. Without
+that tool, tell the Owner to open a new session on `round/RNN` and type
+`/round RNN`; never wait for a second instruction.

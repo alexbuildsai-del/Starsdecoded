@@ -25,6 +25,7 @@
     "db:bootstrap": "./scripts/bootstrap-db.sh",
     "report:lab": "pnpm --filter @workspace/scripts run report:lab",
     "check:shipped": "pnpm --filter @workspace/scripts run check:shipped",
+    "check:callers": "pnpm --filter @workspace/scripts run check:callers",
     "check:copies": "pnpm --filter @workspace/scripts run check:copies"
   },
   "dependencies": {
