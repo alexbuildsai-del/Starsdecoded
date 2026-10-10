@@ -5,7 +5,7 @@ const label = { primary: "Get my report", secondary: "Read a sample", danger: "D
 
 // Hover, pressed and focus come from the real classes; the forced rows are for the page's eye only.
 const forced = {
-  hover: "bg-indigo-hover border-indigo-hover",
+  hover: "border-indigo-lt",
   focus: "outline-2 outline-offset-2 outline-solid outline-focus",
 };
 

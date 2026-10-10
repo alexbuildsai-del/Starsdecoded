@@ -60,7 +60,7 @@ function Inline({ text }: { text: string }) {
     <>
       {spans(text).map((s, i) =>
         s.code ? (
-          <code key={i} className="rounded bg-muted px-1 py-0.5 text-[0.85em]">
+          <code key={i} className="rounded-inner bg-raised px-1 py-0.5 font-mono text-data">
             {s.text}
           </code>
         ) : (

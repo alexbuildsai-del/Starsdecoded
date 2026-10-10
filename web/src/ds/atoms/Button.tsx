@@ -14,7 +14,7 @@ export const buttonStyles = cva(
   {
     variants: {
       variant: {
-        primary: "border-indigo-hover bg-indigo text-on-indigo hover:bg-indigo-hover",
+        primary: "border-indigo-hover bg-indigo text-on-indigo hover:border-indigo-lt",
         secondary: "border-control-edge bg-transparent text-paper hover:border-indigo-lt",
         danger: "border-error/55 bg-transparent text-error hover:border-error",
       },

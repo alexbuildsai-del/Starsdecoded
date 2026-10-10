@@ -25,11 +25,11 @@ Atom.
 - `asChild`: the look on a link.
 
 ## States
-Rest, hover (`indigo-hover` fill for primary, an `indigo-lt` edge for secondary), pressed (scale .97 in 150 ms; still under reduced motion), focus (2 px `focus` ring), busy. Avoid disabled; say what is missing instead.
+Rest, hover (an `indigo-lt` edge for primary and secondary; the fill stays `indigo`, since white on `indigo-hover` is 4.0:1), pressed (scale .97 in 150 ms; still under reduced motion), focus (2 px `focus` ring), busy. Avoid disabled; say what is missing instead.
 
 ## Access
 - 46 px tall; compact is 36 px seen with a 44 px tap area through an invisible margin. Keep 8 px between two compact buttons.
-- White on `indigo` is 4.9:1; the hover fill is lighter (see the report: 4.0:1). `paper` on ground 15.9:1; `error` on ground 8.7:1. Edge `control-edge` 3.3:1.
+- White on `indigo` is 4.9:1; hover keeps that fill and lightens only the edge. `paper` on ground 15.9:1; `error` on ground 8.7:1. Edge `control-edge` 3.3:1.
 - A busy button keeps its accessible name: the status word, announced as a status.
 - Works with the keyboard; focus always shows.
 

@@ -14,11 +14,6 @@
     "web/src/components/AccountMenu.tsx": {
       "textArb": 2
     },
-    "web/src/components/AspectChip.tsx": {
-      "textArb": 4,
-      "rawButton": 1,
-      "chartDraw": 2
-    },
     "web/src/components/BirthDateField.tsx": {
       "hex": 2,
       "textArb": 2
@@ -61,9 +56,6 @@
       "hex": 5,
       "textArb": 8
     },
-    "web/src/components/Mark.tsx": {
-      "hex": 1
-    },
     "web/src/components/MethodologyBox.tsx": {
       "textArb": 2
     },
@@ -74,9 +66,6 @@
     },
     "web/src/components/PrelaunchRibbon.tsx": {
       "textArb": 1
-    },
-    "web/src/components/SaveReportCta.tsx": {
-      "colorUtil": 2
     },
     "web/src/components/StagingRibbon.tsx": {
       "textArb": 2,
@@ -254,10 +243,6 @@
       "rawButton": 1,
       "chartDraw": 2
     },
-    "web/src/components/loading/ProgressBar.tsx": {
-      "hex": 3,
-      "textArb": 2
-    },
     "web/src/components/report/BalanceRail.tsx": {
       "rgb": 1,
       "textArb": 2
@@ -401,8 +386,7 @@
       "hex": 16,
       "textArb": 1,
       "roundedArb": 1,
-      "rawButton": 1,
-      "chartDraw": 7
+      "rawButton": 1
     },
     "web/src/components/timeline/Life.tsx": {
       "hex": 32,
@@ -480,8 +464,7 @@
       "rawButton": 2
     },
     "web/src/index.css": {
-      "hex": 31,
-      "rgb": 72
+      "rgb": 2
     },
     "web/src/lib/chapter-accent.ts": {
       "hex": 10
@@ -760,11 +743,8 @@
       "roundedArb": 1
     },
     "web/src/site/site.css": {
-      "hex": 33,
-      "rgb": 39
-    },
-    "web/src/types/chart.ts": {
-      "chartDraw": 2
+      "hex": 9,
+      "rgb": 9
     }
   }
 }
