@@ -24,6 +24,7 @@ import {
 } from "@workspace/api-client-react";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ds/organisms/Dialog";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/ds/organisms/Menu";
 import { useHome } from "@/hooks/useHome";
@@ -330,8 +331,7 @@ function ShareBody({ target, onClose, onBusy }: { target: ShareTarget; onClose: 
                   )}
                 >
                   <span className="min-w-0 truncate">{chip.value}</span>
-                  <button
-                    type="button"
+                  <TextButton
                     aria-label={`Remove ${chip.value}`}
                     disabled={sending}
                     onClick={(e) => {
@@ -339,10 +339,14 @@ function ShareBody({ target, onClose, onBusy }: { target: ShareTarget; onClose: 
                       setChips(chips.filter((_, i) => i !== index));
                       input.current?.focus();
                     }}
-                    className={cn("grid size-5 shrink-0 place-items-center rounded-full hover:bg-surface", FOCUS)}
+                    // A 20 px mark with a 44 px reach, as the Chip and Button give theirs.
+                    className={cn(
+                      "grid size-5 min-h-0 shrink-0 place-items-center rounded-full px-0 text-inherit hover:bg-surface hover:text-inherit after:-inset-3",
+                      FOCUS,
+                    )}
                   >
                     <X className="h-3 w-3" aria-hidden="true" />
-                  </button>
+                  </TextButton>
                 </span>
               );
             })}
