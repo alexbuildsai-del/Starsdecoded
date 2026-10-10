@@ -1,67 +1,7 @@
 {
   "files": {
-    "scripts/render-brand.mjs": {
-      "hex": 4,
-      "chartDraw": 1
-    },
-    "web/src/components/ErrorBoundary.tsx": {
-      "rawButton": 1
-    },
-    "web/src/components/loading/DidYouKnow.tsx": {
-      "rawButton": 1
-    },
-    "web/src/components/report/PairHero.tsx": {
-      "textArb": 1
-    },
     "web/src/components/report/ReportHero.tsx": {
-      "rgb": 3,
-      "chartDraw": 6
-    },
-    "web/src/components/report/hero-layout.ts": {
-      "chartDraw": 2
-    },
-    "web/src/components/share/ShareWindow.tsx": {
-      "rawButton": 1
-    },
-    "web/src/components/timeline/Waves.tsx": {
-      "rawButton": 1
-    },
-    "web/src/components/ui/toast.tsx": {
-      "colorUtil": 3
-    },
-    "web/src/index.css": {
-      "rgb": 2
-    },
-    "web/src/lib/chapter-accent.ts": {
-      "hex": 10
-    },
-    "web/src/lib/charts-meet.ts": {
-      "hex": 2
-    },
-    "web/src/lib/dial.ts": {
-      "chartDraw": 2
-    },
-    "web/src/lib/pair-story.ts": {
-      "chartDraw": 8
-    },
-    "web/src/pages/BirthFormPage.tsx": {
-      "rawButton": 1
-    },
-    "web/src/pages/ReportPage.tsx": {
-      "chartDraw": 3
-    },
-    "web/src/site/pages/SamplePage.tsx": {
-      "rawButton": 1
-    },
-    "web/src/site/sections/Inside.tsx": {
-      "rawButton": 1
-    },
-    "web/src/site/sections/TwoCharts.tsx": {
-      "rawButton": 1
-    },
-    "web/src/site/site.css": {
-      "hex": 9,
-      "rgb": 9
+      "rgb": 3
     }
   }
 }
