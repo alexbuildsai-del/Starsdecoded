@@ -20,8 +20,14 @@ import type {
 } from "@stripe/stripe-js";
 import { getCheckout, useCreateCheckout, type CheckoutStarted } from "@workspace/api-client-react";
 import type { CatalogueItemId } from "@workspace/commerce";
-import { StatusDots } from "@/components/StatusDots";
-import { Wordmark } from "@/components/Wordmark";
+import { tokens } from "@workspace/design";
+import { Button } from "@/ds/atoms/Button";
+import { Card } from "@/ds/molecules/Card";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { TopBar } from "@/ds/organisms/TopBar";
+import { Wordmark } from "@/ds/atoms/Wordmark";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import {
   CHECKOUT_LINES,
@@ -45,25 +51,26 @@ import { campaignSlug, pricedItems, useCheckoutOptions } from "@/lib/prices";
 import { refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
-// The tokens' own values (§9): Stripe draws its fields in a frame of its own, where our stylesheet cannot reach.
+// Stripe draws its fields in a frame of its own, where our stylesheet cannot reach, so it is handed the token values (§9).
+const c = tokens.color;
 const TOKEN = {
-  void: "#06080C",
-  surface: "#11161F",
-  line: "#242C3B",
-  paper: "#E8EBF2",
-  muted: "#9AA3B5",
-  placeholder: "#6E7789",
-  indigo: "#5C6BC0",
-  ok: "#6FBF8E",
-  warn: "#D99A5B",
-  danger: "#E14747",
+  void: c.void,
+  surface: c.surface,
+  edge: c["control-edge"],
+  paper: c.paper,
+  muted: c["paper-dim"],
+  placeholder: c["label-dim"],
+  indigo: c.indigo,
+  ok: c.teal,
+  warn: c.brass,
+  danger: c.back,
 } as const;
 
 const APPEARANCE: Appearance = {
   theme: "night",
   labels: "above",
   variables: {
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: tokens.fontFamily.body,
     // A phone zooms into any field under 16 px.
     fontSizeBase: "16px",
     colorPrimary: TOKEN.indigo,
@@ -80,11 +87,11 @@ const APPEARANCE: Appearance = {
     focusOutline: "none",
   },
   rules: {
-    ".Input": { border: `1px solid ${TOKEN.line}`, backgroundColor: TOKEN.void, boxShadow: "none" },
+    ".Input": { border: `1px solid ${TOKEN.edge}`, backgroundColor: TOKEN.void, boxShadow: "none" },
     ".Input:focus": { borderColor: TOKEN.indigo },
     ".Input--invalid": { borderColor: TOKEN.danger, boxShadow: "none" },
     ".Label": { color: TOKEN.muted, fontSize: "13px", fontWeight: "500" },
-    ".Tab": { border: `1px solid ${TOKEN.line}`, backgroundColor: TOKEN.surface, boxShadow: "none" },
+    ".Tab": { border: `1px solid ${TOKEN.edge}`, backgroundColor: TOKEN.surface, boxShadow: "none" },
     ".Tab:hover": { borderColor: TOKEN.muted },
     ".Tab--selected": { borderColor: TOKEN.indigo },
     ".Error": { fontSize: "13px" },
@@ -155,13 +162,12 @@ function refusalOf(error: { status?: number; data?: unknown }): StartError {
   };
 }
 
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-none tracking-[.14em] text-[#9AA3B5]";
-const MUTED = "text-[13px] leading-snug text-[#9AA3B5]";
+const MUTED = "text-small text-paper-dim";
 const LINK =
-  "rounded text-[#9FA8DA] underline underline-offset-2 hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "rounded-inner text-indigo-lt underline underline-offset-2 hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus";
 // The report's tick box (Checklist), in the control's indigo: one look for a box the reader ticks (§9).
 const TICK_BOX =
-  "peer m-0 h-5 w-5 cursor-pointer appearance-none rounded-[6px] border-[1.5px] border-[#6E7789] bg-transparent transition-colors hover:border-[#AEB6C6] checked:border-[#5C6BC0] checked:bg-[#5C6BC0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9FA8DA] disabled:cursor-default disabled:opacity-50";
+  "peer m-0 h-5 w-5 cursor-pointer appearance-none rounded-inner border-[1.5px] border-control-edge bg-transparent transition-colors hover:border-paper-dim checked:border-indigo checked:bg-indigo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default disabled:opacity-50";
 
 function NewTab() {
   return <span className="sr-only"> {CHECKOUT_LINES.newTab}</span>;
@@ -170,10 +176,10 @@ function NewTab() {
 /** The price a reader pays, read first; while a campaign runs the full price is drawn before it, struck (reading 6). */
 function Price({ view }: { view: CheckoutItemView }) {
   return (
-    <span className="flex shrink-0 items-baseline gap-2 font-numeric text-base leading-none text-[#E8EBF2]">
+    <span className="flex shrink-0 items-baseline gap-2 font-numeric text-prose leading-none text-paper">
       <span>{view.price}</span>
       {view.full && (
-        <s className="order-first text-[13px] text-[#7E889A]">
+        <s className="order-first text-small text-muted">
           <span className="sr-only">instead of </span>
           {view.full}
         </s>
@@ -185,7 +191,7 @@ function Price({ view }: { view: CheckoutItemView }) {
 function CampaignLine({ view }: { view: CheckoutItemView }) {
   const { order } = useEntryFormat();
   return view.campaign ? (
-    <span className="block text-[13px] leading-snug text-[#AEB6C6]">{campaignLine(view.campaign, order)}</span>
+    <span className="block text-small text-paper-dim">{campaignLine(view.campaign, order)}</span>
   ) : null;
 }
 
@@ -193,7 +199,7 @@ function BackLine({ returnTo, plan }: { returnTo: string; plan: boolean }) {
   const next = afterPaying(returnTo, plan);
   return (
     <p className={MUTED}>
-      {next.lead} <span className="text-[#E8EBF2]">{next.to}</span>
+      {next.lead} <span className="text-paper">{next.to}</span>
     </p>
   );
 }
@@ -407,17 +413,23 @@ export default function CheckoutPage() {
   const lineNow = payError ?? startError?.line ?? null;
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground">
-      <main className="mx-auto grid w-full max-w-[440px] gap-4 px-4 pb-12 pt-5 sm:pt-10">
-        <header className="flex items-center justify-between gap-3">
-          <Wordmark className="text-[17px]" />
-          <h1 className={EYEBROW}>{CHECKOUT_LINES.title}</h1>
-        </header>
+    <div className="min-h-[100dvh] bg-ground text-paper">
+      <TopBar
+        version="checkout"
+        widthClass="max-w-[440px]"
+        left={<Wordmark size={17} />}
+        right={
+          <h1 className="m-0">
+            <Eyebrow>{CHECKOUT_LINES.title}</Eyebrow>
+          </h1>
+        }
+      />
+      <main className="mx-auto grid w-full max-w-[440px] gap-4 px-4 pb-12 pt-5 sm:pt-8">
 
         {views.length === 1 ? (
-          <section aria-labelledby={itemId} className="grid gap-1.5 rounded-[10px] border border-[#242C3B] bg-[#11161F] p-4">
+          <Card aria-labelledby={itemId} className="gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 id={itemId} className="font-display text-base font-normal leading-tight text-[#E8EBF2]">
+              <h2 id={itemId} className="m-0 font-display text-card-title-sm text-paper">
                 {view.name}
               </h2>
               <Price view={view} />
@@ -425,7 +437,7 @@ export default function CheckoutPage() {
             <p className={MUTED}>{view.line}</p>
             <CampaignLine view={view} />
             <BackLine returnTo={returnTo} plan={view.plan} />
-          </section>
+          </Card>
         ) : (
           <fieldset className="grid gap-2" disabled={paying || replaced}>
             <legend className="sr-only">{view.plan ? CHECKOUT_LINES.choosePlan : CHECKOUT_LINES.chooseBundle}</legend>
@@ -433,8 +445,8 @@ export default function CheckoutPage() {
               <label
                 key={one.id}
                 className={cn(
-                  "grid cursor-pointer gap-1.5 rounded-[10px] border bg-[#11161F] p-4 transition-colors",
-                  one.id === selected ? "border-[#5C6BC0]" : "border-[#242C3B] hover:border-[#6E7789]",
+                  "grid cursor-pointer gap-1.5 rounded-card border bg-surface p-4 transition-colors",
+                  one.id === selected ? "border-indigo" : "border-line hover:border-control-edge",
                 )}
               >
                 <span className="flex items-center gap-3">
@@ -444,9 +456,9 @@ export default function CheckoutPage() {
                     value={one.id}
                     checked={one.id === selected}
                     onChange={() => choose(one.id)}
-                    className="h-4 w-4 shrink-0 accent-[#5C6BC0]"
+                    className="h-4 w-4 shrink-0 accent-indigo"
                   />
-                  <span className="font-display text-base leading-tight text-[#E8EBF2]">{one.name}</span>
+                  <span className="font-display text-card-title-sm text-paper">{one.name}</span>
                   <span className="ml-auto">
                     <Price view={one} />
                   </span>
@@ -478,9 +490,9 @@ export default function CheckoutPage() {
             <svg
               viewBox="0 0 24 24"
               aria-hidden
-              className="pointer-events-none absolute h-[13px] w-[13px] opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
+              className="pointer-events-none absolute h-[13px] w-[13px] opacity-0 transition-opacity duration-fast peer-checked:opacity-100"
               fill="none"
-              stroke="#06080C"
+              stroke={c["on-indigo"]}
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -488,7 +500,7 @@ export default function CheckoutPage() {
               <path d="M5 12l5 5 9-10" />
             </svg>
           </label>
-          <p className="text-[13.5px] leading-[1.5] text-[#AEB6C6]">
+          <p className="text-small text-paper-dim">
             <label htmlFor={tickId} className="cursor-pointer">
               {view.tick}
             </label>{" "}
@@ -502,9 +514,7 @@ export default function CheckoutPage() {
         {options.isError ? (
           <p role="alert" className={MUTED}>
             {CHECKOUT_LINES.optionsFailed}{" "}
-            <button type="button" onClick={() => void refetch()} className={LINK}>
-              {CHECKOUT_LINES.tryAgain}
-            </button>
+            <TextButton onClick={() => void refetch()}>{CHECKOUT_LINES.tryAgain}</TextButton>
           </p>
         ) : closed ? (
           <p role="status" className={MUTED}>
@@ -528,18 +538,16 @@ export default function CheckoutPage() {
             {fields === "failed" && (
               <p role="alert" className={MUTED}>
                 {CHECKOUT_LINES.stripeFailed}{" "}
-                <button type="button" onClick={() => window.location.reload()} className={LINK}>
-                  {CHECKOUT_LINES.tryAgain}
-                </button>
+                <TextButton onClick={() => window.location.reload()}>{CHECKOUT_LINES.tryAgain}</TextButton>
               </p>
             )}
             {/* Unticked or replaced, the wallets go with Pay: a wallet's own sheet would otherwise pay without the box. */}
             <div ref={expressBox} className={cn((!ticked || wallets === false || replaced) && "hidden")} />
             {ticked && wallets === true && fields === "ready" && !replaced && (
-              <p className="flex items-center gap-3 text-xs text-[#9AA3B5]">
-                <span aria-hidden className="h-px flex-1 bg-[#242C3B]" />
+              <p className="flex items-center gap-3 text-caption text-paper-dim">
+                <span aria-hidden className="h-px flex-1 bg-line" />
                 {CHECKOUT_LINES.orAnotherWay}
-                <span aria-hidden className="h-px flex-1 bg-[#242C3B]" />
+                <span aria-hidden className="h-px flex-1 bg-line" />
               </p>
             )}
             <div ref={paymentBox} />
@@ -547,26 +555,22 @@ export default function CheckoutPage() {
         )}
 
         <div className="grid gap-2">
-          <button
-            type="button"
+          <Button
+            full
             onClick={() => payNow.current()}
             disabled={!canPay}
-            className={cn(
-              "inline-flex h-11 w-full items-center justify-center rounded-[10px] bg-primary text-[13.5px] font-semibold text-white",
-              "transition duration-200 hover:brightness-110 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:scale-100",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              "disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100",
-            )}
+            busy={paying ? CHECKOUT_LINES.paying : undefined}
+            className="disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100"
           >
-            {paying ? <StatusDots label={CHECKOUT_LINES.paying} /> : payLabel(amountCents)}
-          </button>
+            {payLabel(amountCents)}
+          </Button>
           {/* MB-225 decided, ADR-361: the plan renews, said as plain text under Pay beside its box. */}
           {view.renewal && <p className={MUTED}>{view.renewal}</p>}
-          <p ref={errorLine} tabIndex={-1} role="alert" className="text-[13.5px] leading-snug text-[#E8EBF2] empty:hidden focus:outline-none">
+          <p ref={errorLine} tabIndex={-1} role="alert" className="text-small text-paper empty:hidden focus:outline-none">
             {lineNow}
           </p>
           {replaced && here && (
-            <p role="alert" className="text-[13.5px] leading-snug text-[#E8EBF2]">
+            <p role="alert" className="text-small text-paper">
               {CHECKOUT_LINES.replaced}{" "}
               {/* A whole new page, so the new checkout starts unticked under its own box. */}
               <a ref={newerCheckout} href={checkoutHref(here.item, returnTo)} className={LINK}>
@@ -576,14 +580,12 @@ export default function CheckoutPage() {
           )}
           {startError?.retry && !paying && (
             <p>
-              <button type="button" onClick={() => setStartError(null)} className={cn(LINK, "text-[13px]")}>
-                {CHECKOUT_LINES.tryAgain}
-              </button>
+              <TextButton onClick={() => setStartError(null)}>{CHECKOUT_LINES.tryAgain}</TextButton>
             </p>
           )}
         </div>
 
-        <footer className="grid gap-2 pt-2 text-center text-xs leading-relaxed text-[#9AA3B5]">
+        <footer className="grid gap-2 pt-2 text-center text-caption text-paper-dim">
           <p>
             {CHECKOUT_LINES.foot}{" "}
             <a href="/refunds" target="_blank" rel="noopener" className={LINK}>

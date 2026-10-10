@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth, useClerk, useUser } from "@clerk/react";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useMutationState, useQueryClient } from "@tanstack/react-query";
 import {
   useGetInvite,
@@ -38,11 +38,13 @@ import {
   type InvitePreview,
   type ProfileSummary,
 } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ds/atoms/Button";
+import { Eyebrow as KickerEyebrow } from "@/ds/atoms/Eyebrow";
+import { Card } from "@/ds/molecules/Card";
 import { ToastAction } from "@/components/ui/toast";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { ClerkStalled } from "@/components/ClerkStalled";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { HandBackDialog } from "@/components/dashboard/HandBackDialog";
 import { toast } from "@/hooks/use-toast";
@@ -70,7 +72,7 @@ function sameAddress(a: string, b: string): boolean {
 const OFFER_MS = 12_000;
 
 // The circle's teal for a shared seat, so the toast reads as being about the seat it names (the approved artifact).
-const SHARED_TOAST = "border-[#3FA796]";
+const SHARED_TOAST = "border-teal";
 
 /**
  * Said on the dashboard the claim opens, so the reader sees whose report it is beside its sharer's seat. Share yours
@@ -113,7 +115,7 @@ function ShareBackAction({ profileId, sharer }: { profileId: string; sharer: str
   return (
     <div className="grid gap-2">
       {back.isError && (
-        <p role="alert" className="text-sm text-[#E79AB2]">
+        <p role="alert" className="text-ui text-error">
           {(refused && back.error?.data?.message) || "We couldn't share yours. Try again in a minute."}
         </p>
       )}
@@ -261,12 +263,12 @@ export default function ClaimPage() {
   if (!token) {
     return (
       <Centered>
-        <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl mb-2">Missing invite token</h1>
-        <p className="text-muted-foreground text-sm mb-5">
+        <AlertTriangle className="h-8 w-8 text-brass mx-auto mb-3" />
+        <h1 className="font-display text-sheet-title mb-2">Missing invite token</h1>
+        <p className="text-paper-dim text-ui mb-5">
           This claim link is incomplete. Please use the link from your invitation.
         </p>
-        <Button variant="outline" onClick={() => navigate("/")}>Go home</Button>
+        <Button variant="secondary" onClick={() => navigate("/")}>Go home</Button>
       </Centered>
     );
   }
@@ -274,8 +276,7 @@ export default function ClaimPage() {
   if (inviteQ.isLoading) {
     return (
       <Centered>
-        <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-        <p className="text-muted-foreground">Loading your invitation…</p>
+        <p className="text-paper-dim"><StatusDots label="Loading your invitation…" /></p>
       </Centered>
     );
   }
@@ -283,12 +284,12 @@ export default function ClaimPage() {
   if (inviteQ.isError || !inviteQ.data) {
     return (
       <Centered>
-        <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl mb-2">Invite unavailable</h1>
-        <p className="text-muted-foreground text-sm mb-5">
+        <AlertTriangle className="h-8 w-8 text-brass mx-auto mb-3" />
+        <h1 className="font-display text-sheet-title mb-2">Invite unavailable</h1>
+        <p className="text-paper-dim text-ui mb-5">
           This link doesn't work. It may have expired or already been used.
         </p>
-        <Button variant="outline" onClick={() => navigate("/")}>Go home</Button>
+        <Button variant="secondary" onClick={() => navigate("/")}>Go home</Button>
       </Centered>
     );
   }
@@ -304,8 +305,7 @@ export default function ClaimPage() {
   if (claimed && isShare) {
     return (
       <Centered>
-        <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-        <p className="text-muted-foreground">Opening your dashboard…</p>
+        <p className="text-paper-dim"><StatusDots label="Opening your dashboard…" /></p>
       </Centered>
     );
   }
@@ -315,8 +315,7 @@ export default function ClaimPage() {
   if (claimed && kind === "send" && claimed.profileId === null) {
     return (
       <Centered>
-        <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-        <p className="text-muted-foreground">Opening your {COMPATIBILITY_REPORT}…</p>
+        <p className="text-paper-dim"><StatusDots label={`Opening your ${COMPATIBILITY_REPORT}…`} /></p>
       </Centered>
     );
   }
@@ -337,10 +336,7 @@ export default function ClaimPage() {
     if (!claimedProfile) {
       return (
         <Centered>
-          <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-          <p className="text-muted-foreground">
-            It's yours. {askSelf ? "Two questions" : "One question"} before you read…
-          </p>
+          <p className="text-paper-dim"><StatusDots label={`It's yours. ${askSelf ? "Two questions" : "One question"} before you read…`} /></p>
         </Centered>
       );
     }
@@ -348,8 +344,8 @@ export default function ClaimPage() {
     return (
       <Centered>
         {giver && <Eyebrow>From {giver}</Eyebrow>}
-        <h1 className="font-display text-2xl mb-2">It's yours</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="font-display text-sheet-title mb-2">It's yours</h1>
+        <p className="text-paper-dim text-ui">
           {blind
             ? "The report was written without your birth time. Add it and we update your rising sign and houses. The report keeps every word it can. We'll show you what changed."
             : "Check the birth time before you read: a corrected time updates your rising sign and houses, and we'll show you what changed."}
@@ -374,17 +370,17 @@ export default function ClaimPage() {
   if (inv.alreadyClaimed) {
     return (
       <Centered>
-        <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl mb-2">Already claimed</h1>
-        <p className="text-muted-foreground text-sm mb-5">
+        <AlertTriangle className="h-8 w-8 text-brass mx-auto mb-3" />
+        <h1 className="font-display text-sheet-title mb-2">Already claimed</h1>
+        <p className="text-paper-dim text-ui mb-5">
           {isGift ? "This gift has already been claimed. Its link no longer works." : "This link has already been used. It no longer works."}
         </p>
         {isSignedIn ? (
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button variant="secondary" onClick={() => navigate("/dashboard")}>
             Go to dashboard
           </Button>
         ) : (
-          <Button variant="outline" onClick={() => navigate("/")}>
+          <Button variant="secondary" onClick={() => navigate("/")}>
             Go home
           </Button>
         )}
@@ -439,13 +435,13 @@ export default function ClaimPage() {
     const retry = !status || status >= 500;
     return (
       <Centered>
-        <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl mb-2">{title}</h1>
-        <p className="text-muted-foreground text-sm mb-5 [overflow-wrap:anywhere]">{body}</p>
+        <AlertTriangle className="h-8 w-8 text-error mx-auto mb-3" />
+        <h1 className="font-display text-sheet-title mb-2">{title}</h1>
+        <p className="text-paper-dim text-ui mb-5 [overflow-wrap:anywhere]">{body}</p>
         <div className="flex gap-2 justify-center">
           {retry && (
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => {
                 attemptedRef.current = false;
                 claim.reset();
@@ -454,7 +450,7 @@ export default function ClaimPage() {
               Try again
             </Button>
           )}
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button variant="secondary" onClick={() => navigate("/dashboard")}>
             Go to dashboard
           </Button>
         </div>
@@ -478,8 +474,7 @@ export default function ClaimPage() {
 
   return (
     <Centered>
-      <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-      <p className="text-muted-foreground">Claiming your invitation…</p>
+      <p className="text-paper-dim"><StatusDots label="Claiming your invitation…" /></p>
     </Centered>
   );
 }
@@ -496,12 +491,12 @@ function SendPreview({
   return (
     <Centered>
       {giver && <Eyebrow>From {giver}</Eyebrow>}
-      <h1 className="font-display text-2xl mb-2">Your {pair ? COMPATIBILITY_REPORT : PERSONAL_REPORT}</h1>
-      <p className="text-muted-foreground text-sm mb-1">
+      <h1 className="font-display text-sheet-title mb-2">Your {pair ? COMPATIBILITY_REPORT : PERSONAL_REPORT}</h1>
+      <p className="text-paper-dim text-ui mb-1">
         {giver ?? "Someone"} had it written for {pair ? "the two of you" : "you"}.
       </p>
-      <p className="text-xs text-muted-foreground mb-5">
-        Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> {pair ? "to read it" : "and it's yours"}.
+      <p className="text-caption text-paper-dim mb-5">
+        Sign in with <span className="text-paper [overflow-wrap:anywhere]">{inv.email}</span> {pair ? "to read it" : "and it's yours"}.
       </p>
       <Button onClick={onSignIn} disabled={waiting} data-testid="button-claim-signin">Sign in to open it</Button>
     </Centered>
@@ -519,12 +514,12 @@ function SharePreview({
 }) {
   return (
     <Centered>
-      <h1 className="font-display text-2xl text-balance mb-2">{giver ?? "Someone"} shared their {PERSONAL_REPORT} with you</h1>
-      <p className="text-muted-foreground text-sm mb-1">
+      <h1 className="font-display text-sheet-title text-balance mb-2">{giver ?? "Someone"} shared their {PERSONAL_REPORT} with you</h1>
+      <p className="text-paper-dim text-ui mb-1">
         {giver ? `${giver} joins` : "They join"} your circle, and you can read the whole report.
       </p>
-      <p className="text-xs text-muted-foreground mb-5">
-        Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> to read it.
+      <p className="text-caption text-paper-dim mb-5">
+        Sign in with <span className="text-paper [overflow-wrap:anywhere]">{inv.email}</span> to read it.
       </p>
       <Button onClick={onSignIn} disabled={waiting} data-testid="button-claim-signin">Sign in to open it</Button>
     </Centered>
@@ -551,15 +546,15 @@ function GiftScreen({
   // MB-6 provisional: true wherever credits are enforced (ADR-138); where the soft pass held none, nothing moved, and writing is free there.
   const creditLine = "The gift is now a credit in your balance, to use on any report.";
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex items-center justify-center px-4 py-10">
+    <div className="min-h-[100dvh] bg-ground text-paper flex items-center justify-center px-4 py-10">
       <div className="max-w-md w-full flex flex-col items-center gap-5 text-center">
         <div className="w-full">
           <GiftCover giverName={giver} recipientName={inv.recipientName} note={inv.note} />
         </div>
-        <h1 className="font-display text-2xl mt-3">{giver ?? "Someone"} gave you a {PERSONAL_REPORT}</h1>
+        <h1 className="font-display text-sheet-title mt-3">{giver ?? "Someone"} gave you a {PERSONAL_REPORT}</h1>
         {claimed ? (
           <>
-            <p id="gift-credit" className="text-muted-foreground text-sm">{creditLine}</p>
+            <p id="gift-credit" className="text-paper-dim text-ui">{creditLine}</p>
             {/* The Claim button this replaces had focus; without a new target it would fall to the page. */}
             <Button autoFocus aria-describedby="gift-credit" onClick={onDashboard}>Go to my dashboard</Button>
           </>
@@ -568,8 +563,8 @@ function GiftScreen({
         ) : (
           <>
             {signedOut && (
-              <p className="text-xs text-muted-foreground">
-                Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> to claim it.
+              <p className="text-caption text-paper-dim">
+                Sign in with <span className="text-paper [overflow-wrap:anywhere]">{inv.email}</span> to claim it.
               </p>
             )}
             <Button onClick={onClaim} disabled={waiting} data-testid="button-claim-gift">
@@ -604,21 +599,21 @@ function ShareQuestion({
   const busy = sending !== null;
   return (
     <section aria-labelledby="gift-share-question" className="w-full grid gap-3">
-      {giverShares && <p className="text-sm">{giver ?? "Someone"} shared their report with you.</p>}
+      {giverShares && <p className="text-ui">{giver ?? "Someone"} shared their report with you.</p>}
       <h2
         id="gift-share-question"
         ref={heading}
         tabIndex={-1}
-        className="font-display text-xl text-balance focus:outline-none [overflow-wrap:anywhere]"
+        className="font-display text-card-title text-balance focus:outline-none [overflow-wrap:anywhere]"
       >
         {giverShares ? "Share yours back when it's ready?" : `Share your report with ${giver ?? "them"} when it's ready?`}
       </h2>
-      <p className="text-muted-foreground text-sm">
+      <p className="text-paper-dim text-ui">
         {`${giver ?? "They"} can then read your whole ${PERSONAL_REPORT}, with your birth date, time and place. You can stop sharing any time.`}
       </p>
       <div className="grid gap-2.5 mt-2">
         <Button
-          className="min-h-11 w-full"
+          full
           disabled={busy}
           aria-busy={sending === true}
           onClick={() => onAnswer(true)}
@@ -627,8 +622,8 @@ function ShareQuestion({
           {sending === true ? <StatusDots label="Claiming" /> : "Yes, share my report"}
         </Button>
         <Button
-          variant="outline"
-          className="min-h-11 w-full"
+          variant="secondary"
+          full
           disabled={busy}
           aria-busy={sending === false}
           onClick={() => onAnswer(false)}
@@ -657,23 +652,23 @@ function WrongAccount({
   const what = kind === "gift" ? "This gift was sent to" : kind === "share" ? "This report was shared with" : "This report was sent to";
   return (
     <Centered>
-      <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-      <h1 className="font-display text-2xl mb-2">Wrong account</h1>
-      <p className="text-sm mb-1 [overflow-wrap:anywhere]" data-testid="text-claim-account">
+      <AlertTriangle className="h-8 w-8 text-brass mx-auto mb-3" />
+      <h1 className="font-display text-sheet-title mb-2">Wrong account</h1>
+      <p className="text-ui mb-1 [overflow-wrap:anywhere]" data-testid="text-claim-account">
         {account ? (
           <>
-            You're signed in as <span className="text-foreground">{account}</span>.
+            You're signed in as <span className="text-paper">{account}</span>.
           </>
         ) : (
           "You're signed in with another account."
         )}
       </p>
-      <p className="text-muted-foreground text-sm mb-5 [overflow-wrap:anywhere]">
-        {what} <span className="text-foreground">{invited}</span>. Sign out, then sign in with that address.
+      <p className="text-paper-dim text-ui mb-5 [overflow-wrap:anywhere]">
+        {what} <span className="text-paper">{invited}</span>. Sign out, then sign in with that address.
       </p>
       <div className="flex flex-wrap gap-2 justify-center">
         <Button onClick={onSignOut} data-testid="button-claim-sign-out">Sign out</Button>
-        <Button variant="outline" onClick={onDashboard}>
+        <Button variant="secondary" onClick={onDashboard}>
           Go to dashboard
         </Button>
       </div>
@@ -725,9 +720,9 @@ function IsThisYou({
   return (
     <Centered>
       {giver && <Eyebrow>From {giver}</Eyebrow>}
-      <h1 ref={heading} tabIndex={-1} className="font-display text-2xl mb-2 focus:outline-none">Is this you?</h1>
-      {facts && <p className="text-sm mb-1">{facts}</p>}
-      <p className="text-muted-foreground text-sm mb-5">
+      <h1 ref={heading} tabIndex={-1} className="font-display text-sheet-title mb-2 focus:outline-none">Is this you?</h1>
+      {facts && <p className="text-ui mb-1">{facts}</p>}
+      <p className="text-paper-dim text-ui mb-5">
         You already have a chart marked as yours. Choose This is me to mark this one instead.
       </p>
       <div className="flex flex-wrap gap-2 justify-center">
@@ -735,7 +730,7 @@ function IsThisYou({
           This is me
         </Button>
         <Button
-          variant="outline"
+          variant="secondary"
           onClick={() => setHandBack({ profileId, giverFirstName: giver ?? profile?.giverName?.trim() ?? "" })}
           disabled={update.isPending}
         >
@@ -743,7 +738,7 @@ function IsThisYou({
         </Button>
       </div>
       {update.isError && (
-        <p role="alert" className="text-xs text-destructive mt-4">
+        <p role="alert" className="text-caption text-error mt-4">
           Your answer didn't save, so nothing changed. Try again.
         </p>
       )}
@@ -753,16 +748,16 @@ function IsThisYou({
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">{children}</p>;
+  return <KickerEyebrow kind="kicker" className="mb-3 block">{children}</KickerEyebrow>;
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[100dvh] bg-background bg-stars text-foreground flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center p-8 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
+    <div className="min-h-[100dvh] bg-ground bg-stars text-paper flex items-center justify-center px-4">
+      <Card as="div" variant="glass" large className="block w-full max-w-md p-8 text-center">
         {children}
-        <ClerkStalled className="mt-6 border-t border-border/60 pt-5" />
-      </div>
+        <ClerkStalled className="mt-6 border-t border-line pt-5" />
+      </Card>
     </div>
   );
 }

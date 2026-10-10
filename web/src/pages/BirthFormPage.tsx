@@ -1,11 +1,20 @@
 import { PERSONAL_REPORT } from "@/lib/product";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Link, useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Button } from "@/ds/atoms/Button";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { FIELD_LABEL, Input } from "@/ds/atoms/Input";
+import { Heading } from "@/ds/atoms/Heading";
+import { Text } from "@/ds/atoms/Text";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Wordmark } from "@/ds/atoms/Wordmark";
+import { BirthDateField, BirthTimeControl, PlaceField } from "@/ds/molecules/BirthFields";
+import { TopBar } from "@/ds/organisms/TopBar";
+import { AppPage } from "@/ds/templates/AppPage";
 import {
   useCreateReport,
   useListProfiles,
@@ -15,11 +24,7 @@ import {
   type ProfileSummary,
 } from "@workspace/api-client-react";
 import { offsetAtBirth } from "@workspace/engine";
-import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
-import { BirthDateField } from "@/components/BirthDateField";
-import { BirthTimeControl } from "@/components/BirthTimeControl";
-import { PlaceField } from "@/components/PlaceField";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 import { localDay } from "@/lib/date-entry";
 import { checkoutHref } from "@/lib/checkout-view";
@@ -173,183 +178,163 @@ export default function BirthFormPage() {
   // The reader's own day, so a birth today is allowed before UTC midnight and after it alike.
   const today = localDay(new Date());
 
-  return (
-    <div className="min-h-screen bg-background bg-stars flex flex-col">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
-          <button
-            onClick={() => navigate("/")}
-            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-sm font-label"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <Wordmark />
-        </div>
-      </nav>
+  const reduceMotion = useReducedMotion();
 
-      <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-10">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-lg"
-        >
-          <div className="text-center mb-10">
-            <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
-              {PERSONAL_REPORT}
-            </p>
-            <h1 className="font-display text-4xl leading-tight mb-3">
-              Enter your birth details
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Your birth time and place make your chart exact.
-            </p>
+  return (
+    <AppPage
+      header={
+        <TopBar
+          left={
+            <>
+              <TextButton onClick={() => navigate("/")}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </TextButton>
+              <Wordmark />
+            </>
+          }
+        />
+      }
+    >
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto w-full max-w-lg pt-12"
+      >
+        <div className="mb-10 text-center">
+          <Eyebrow kind="kicker" className="mb-3 block">{PERSONAL_REPORT}</Eyebrow>
+          <Heading style="page-title" className="mb-3">Enter your birth details</Heading>
+          <Text>Your birth time and place make your chart exact.</Text>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Input
+            id="name"
+            type="text"
+            label="Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameLeft(true)}
+            error={nameRule ?? undefined}
+            placeholder="First name or full name"
+            required
+          />
+
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <label htmlFor="birthDate" className={FIELD_LABEL}>
+                Birth Date
+              </label>
+              <BirthDateField
+                id="birthDate"
+                value={birthDate}
+                onChange={setBirthDate}
+                max={today}
+                // Where the time is not typed (a part of the day, or unknown), the place is next.
+                onComplete={() => focusById(TIME_ID) ?? focusById("birthPlace")}
+              />
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
-                Your Name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => setNameLeft(true)}
-                aria-invalid={nameRule ? true : undefined}
-                aria-describedby={nameRule ? "name-rule" : undefined}
-                placeholder="First name or full name"
-                className="bg-card border-border/60 text-foreground placeholder:text-muted-foreground/50 h-12 text-base"
-                required
-              />
-              {nameRule && (
-                <p id="name-rule" role="alert" className="text-xs text-destructive">
-                  {nameRule}
-                </p>
-              )}
-            </div>
+          {/* The three-way time with its live readout (ADR-33): the place comes after, so the readout waits for it. */}
+          <BirthTimeControl
+            value={birthTime}
+            onChange={setBirthTime}
+            birthDate={birthDate || undefined}
+            latitude={selectedPlace?.latitude}
+            longitude={selectedPlace?.longitude}
+            timezone={selectedPlace?.timezone}
+            country={selectedPlace?.country}
+            timeId={TIME_ID}
+            onTimeComplete={() => focusById("birthPlace")}
+          />
 
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="birthDate" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
-                  Birth Date
-                </Label>
-                <BirthDateField
-                  id="birthDate"
-                  value={birthDate}
-                  onChange={setBirthDate}
-                  max={today}
-                  // Where the time is not typed (a part of the day, or unknown), the place is next.
-                  onComplete={() => focusById(TIME_ID) ?? focusById("birthPlace")}
-                />
-              </div>
-            </div>
+          <PlaceField
+            id="birthPlace"
+            value={selectedPlace}
+            onChange={setSelectedPlace}
+            birthDate={birthDate}
+            birthTime={time?.birthTime}
+          />
 
-            {/* The three-way time with its live readout (ADR-33): the place comes after, so the readout waits for it. */}
-            <BirthTimeControl
-              value={birthTime}
-              onChange={setBirthTime}
-              birthDate={birthDate || undefined}
-              latitude={selectedPlace?.latitude}
-              longitude={selectedPlace?.longitude}
-              timezone={selectedPlace?.timezone}
-              country={selectedPlace?.country}
-              timeId={TIME_ID}
-              onTimeComplete={() => focusById("birthPlace")}
-            />
-
-            <PlaceField
-              id="birthPlace"
-              value={selectedPlace}
-              onChange={setSelectedPlace}
-              birthDate={birthDate}
-              birthTime={time?.birthTime}
-            />
-
-            {/* "This chart is for me" toggle */}
-            <button
-              type="button"
-              // MB-163 provisional
-              aria-pressed={isSelf}
-              onClick={() => setIsSelf((v) => !v)}
-              className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors text-left ${
-                isSelf
-                  ? "border-primary/40 bg-primary/8"
-                  : "border-border/40 bg-card/40 hover:border-border/60"
-              }`}
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                isSelf ? "bg-primary border-primary" : "border-muted-foreground/40 bg-transparent"
-              }`}>
-                {isSelf && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div>
-                <p className={`text-sm font-medium leading-tight ${isSelf ? "text-foreground" : "text-muted-foreground"}`}>
-                  This is my own chart
-                </p>
-                <p className="text-xs text-muted-foreground/70 mt-0.5 leading-tight">
-                  Saves this chart as yours on your profile
-                </p>
-              </div>
-            </button>
-
-            {ownChart && (
-              <p role="status" className="rounded-xl border border-primary/40 bg-primary/8 px-4 py-3 text-sm leading-snug">
-                These are your own birth details.
-                {ownReport && (
-                  <>
-                    {" "}
-                    <Link href={`/report/${ownReport.id}`} className="text-primary underline underline-offset-2">
-                      Open your report
-                    </Link>
-                  </>
-                )}
-              </p>
+          {/* "This chart is for me" toggle */}
+          <button
+            type="button"
+            // MB-163 provisional
+            aria-pressed={isSelf}
+            onClick={() => setIsSelf((v) => !v)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-card border px-4 py-3.5 text-left transition-colors duration-fast ease-[var(--ease)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+              isSelf ? "border-indigo-lt/40 bg-indigo/14" : "border-control-edge bg-surface hover:border-indigo-lt",
             )}
+          >
+            <div className={cn(
+              "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-inner border-2 transition-colors duration-fast",
+              isSelf ? "border-indigo bg-indigo" : "border-control-edge bg-transparent",
+            )}>
+              {isSelf && <Check className="h-3 w-3 text-on-indigo" />}
+            </div>
+            <div>
+              <p className={cn("m-0 text-ui font-medium leading-tight", isSelf ? "text-paper" : "text-paper-dim")}>
+                This is my own chart
+              </p>
+              <p className="m-0 mt-0.5 text-caption leading-tight text-paper-dim">
+                Saves this chart as yours on your profile
+              </p>
+            </div>
+          </button>
 
-            <Button
-              type="submit"
-              disabled={!canSubmit || createReport.isPending}
-              className="w-full gradient-primary text-white border-0 font-label font-semibold h-14 text-base"
-            >
-              {createReport.isPending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
+          {ownChart && (
+            <p role="status" className="rounded-card border border-indigo-lt/40 bg-indigo/14 px-4 py-3 text-ui leading-snug text-paper">
+              These are your own birth details.
+              {ownReport && (
                 <>
-                  {isSelf ? "Write my report" : "Write their report"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {" "}
+                  <Link href={`/report/${ownReport.id}`} className="text-indigo-lt underline underline-offset-2">
+                    Open your report
+                  </Link>
                 </>
               )}
-            </Button>
+            </p>
+          )}
 
-            {createReport.isError && (
-              <div role="alert" className="text-sm text-destructive text-center space-y-1">
-                {refusal ? (
-                  <>
-                    <p>{refusal}</p>
-                    {noCredit && (
-                      <Button asChild variant="outline" className="mt-2 font-label">
-                        <Link href={checkoutHref(null, "/chart")}>Get credits</Link>
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p>Something went wrong. Please try again.</p>
-                    <p className="text-xs opacity-80 font-numeric break-all">
-                      {createReport.error instanceof Error
-                        ? createReport.error.message
-                        : String(createReport.error)}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-          </form>
-        </motion.div>
-      </div>
-    </div>
+          <Button
+            type="submit"
+            full
+            disabled={!canSubmit || createReport.isPending}
+            busy={createReport.isPending ? "Writing" : undefined}
+            className="disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100"
+          >
+            {isSelf ? "Write my report" : "Write their report"}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+
+          {createReport.isError && (
+            <div role="alert" className="space-y-1 text-center text-small text-error">
+              {refusal ? (
+                <>
+                  <p>{refusal}</p>
+                  {noCredit && (
+                    <Button asChild variant="secondary" className="mt-2">
+                      <Link href={checkoutHref(null, "/chart")}>Get credits</Link>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p>Something went wrong. Please try again.</p>
+                  <p className="break-all font-numeric text-caption opacity-80">
+                    {createReport.error instanceof Error
+                      ? createReport.error.message
+                      : String(createReport.error)}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </form>
+      </motion.div>
+    </AppPage>
   );
 }

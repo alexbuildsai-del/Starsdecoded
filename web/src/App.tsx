@@ -21,6 +21,7 @@ import {
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
+import { tokens } from "@workspace/design";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
@@ -109,6 +110,8 @@ function stripBase(path: string): string {
     : path;
 }
 
+const c = tokens.color;
+
 const clerkAppearance = {
   theme: shadcn,
   cssLayerName: "clerk",
@@ -119,49 +122,51 @@ const clerkAppearance = {
     socialButtonsPlacement: "top" as const,
     socialButtonsVariant: "blockButton" as const,
   },
+  // The shadcn theme points every variable at the app's hsl triplets, which are not colours on their own; each one Clerk reads gets a real value.
   variables: {
-    colorPrimary: "hsl(234 48% 60%)",
-    colorForeground: "hsl(220 14% 96%)",
-    colorMutedForeground: "hsl(220 9% 70%)",
-    colorDanger: "hsl(0 72% 60%)",
-    colorBackground: "hsl(216 28% 9%)",
-    colorInput: "hsl(216 28% 12%)",
-    colorInputForeground: "hsl(220 14% 96%)",
-    colorNeutral: "hsl(220 14% 25%)",
-    fontFamily: "'Inter', system-ui, sans-serif",
+    colorPrimary: c.indigo,
+    colorPrimaryForeground: c["on-indigo"],
+    colorForeground: c.paper,
+    colorMuted: c.raised,
+    colorMutedForeground: c["paper-dim"],
+    colorDanger: c.error,
+    colorBackground: c.surface,
+    colorInput: c.raised,
+    colorInputForeground: c.paper,
+    colorNeutral: c["line-strong"],
+    colorRing: c.focus,
+    colorModalBackdrop: c.void,
+    fontFamily: tokens.fontFamily.body,
     borderRadius: "0.75rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
     cardBox:
-      "bg-[hsl(216_28%_9%)] border border-[hsl(220_14%_18%)] rounded-2xl w-[440px] max-w-full overflow-hidden shadow-2xl",
+      "bg-surface border border-line rounded-card w-[440px] max-w-full overflow-hidden shadow-raised",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle:
-      "font-[\"Newsreader\",serif] text-2xl text-[hsl(220_14%_96%)]",
-    headerSubtitle: "text-sm text-[hsl(220_9%_70%)]",
-    socialButtonsBlockButtonText: "text-[hsl(220_14%_96%)] font-medium",
-    formFieldLabel: "text-[hsl(220_14%_90%)] text-xs font-medium tracking-wide",
-    footerActionLink:
-      "text-[hsl(234_70%_72%)] hover:text-[hsl(234_70%_82%)] font-medium",
-    footerActionText: "text-[hsl(220_9%_70%)]",
-    dividerText: "text-[hsl(220_9%_60%)] text-xs uppercase tracking-wider",
-    identityPreviewEditButton: "text-[hsl(234_70%_72%)]",
-    formFieldSuccessText: "text-[hsl(150_60%_60%)]",
-    alertText: "text-[hsl(220_14%_96%)]",
+    headerTitle: "font-display text-2xl text-paper",
+    headerSubtitle: "text-sm text-paper-dim",
+    socialButtonsBlockButtonText: "text-paper font-medium",
+    formFieldLabel: "text-paper text-xs font-medium tracking-wide",
+    footerActionLink: "text-indigo-lt hover:text-paper font-medium",
+    footerActionText: "text-paper-dim",
+    dividerText: "text-paper-dim text-xs uppercase tracking-wider",
+    identityPreviewEditButton: "text-indigo-lt",
+    formFieldSuccessText: "text-teal",
+    alertText: "text-paper",
     logoBox: "flex justify-center mb-2",
     logoImage: "h-10 w-10",
     socialButtonsBlockButton:
-      "border border-[hsl(220_14%_22%)] hover:bg-[hsl(220_14%_14%)] transition-colors",
+      "border border-control-edge hover:bg-raised transition-colors",
     formButtonPrimary:
-      "bg-gradient-to-r from-[hsl(234_48%_60%)] to-[hsl(280_50%_60%)] hover:opacity-90 text-white font-semibold tracking-wide normal-case",
+      "bg-indigo hover:bg-indigo-hover text-on-indigo font-medium tracking-wide normal-case",
     formFieldInput:
-      "bg-[hsl(216_28%_12%)] border border-[hsl(220_14%_22%)] text-[hsl(220_14%_96%)] focus:border-[hsl(234_48%_60%)]",
+      "bg-raised border border-control-edge text-paper focus:border-indigo-lt",
     footerAction: "text-center",
-    dividerLine: "bg-[hsl(220_14%_22%)]",
-    alert: "bg-[hsl(216_28%_12%)] border border-[hsl(220_14%_22%)]",
-    otpCodeFieldInput:
-      "bg-[hsl(216_28%_12%)] border border-[hsl(220_14%_22%)] text-[hsl(220_14%_96%)]",
+    dividerLine: "bg-line",
+    alert: "bg-raised border border-line",
+    otpCodeFieldInput: "bg-raised border border-control-edge text-paper",
     formFieldRow: "space-y-1.5",
     main: "gap-5",
   },
