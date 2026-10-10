@@ -47,27 +47,27 @@ function CoverArt() {
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-x-0 top-0 h-auto w-full">
         <defs>
           <radialGradient id={id} cx="0.74" cy="0.32" r="0.8">
-            <stop offset="0" stopColor="#1B2340" />
-            <stop offset="0.55" stopColor="#0D1117" />
-            <stop offset="1" stopColor="#06080C" />
+            <stop offset="0" stopColor="var(--color-indigo)" stopOpacity="0.28" />
+            <stop offset="0.55" stopColor="var(--color-ground)" />
+            <stop offset="1" stopColor="var(--color-void)" />
           </radialGradient>
         </defs>
         <rect width={W} height={H} fill={`url(#${id})`} />
         {STARS.map((s, i) => (
-          <circle key={i} cx={s.cx.toFixed(1)} cy={s.cy.toFixed(1)} r={s.r} fill="#E8EBF2" opacity={s.o.toFixed(2)} />
+          <circle key={i} cx={s.cx.toFixed(1)} cy={s.cy.toFixed(1)} r={s.r} fill="var(--color-paper)" opacity={s.o.toFixed(2)} />
         ))}
         <g opacity="0.95">
-          <circle cx={MARK.cx} cy={MARK.cy} r={MARK.r} fill="none" stroke="#7C83D4" strokeWidth={MARK.ring} />
+          <circle cx={MARK.cx} cy={MARK.cy} r={MARK.r} fill="none" stroke="var(--color-indigo-lt)" strokeWidth={MARK.ring} />
           <line
             x1={MARK.cx - MARK.r}
             y1={MARK.cy}
             x2={MARK.cx + MARK.r}
             y2={MARK.cy}
-            stroke="#7C83D4"
+            stroke="var(--color-indigo-lt)"
             strokeWidth={MARK.line}
             strokeLinecap="round"
           />
-          <circle cx={MARK.cx - MARK.r} cy={MARK.cy} r={MARK.point} fill="#D4B06A" />
+          <circle cx={MARK.cx - MARK.r} cy={MARK.cy} r={MARK.point} fill="var(--color-brass)" />
         </g>
       </svg>
       {!artMissing && (
@@ -83,6 +83,7 @@ function CoverArt() {
   );
 }
 
+// The words scale with the cover itself (container width), so their sizes are clamps, not a type step.
 export function GiftCover({ giverName, recipientName, note, className }: GiftCoverProps) {
   const giver = giverName?.trim();
   const recipient = recipientName?.trim();
@@ -90,36 +91,36 @@ export function GiftCover({ giverName, recipientName, note, className }: GiftCov
   return (
     <div
       className={cn(
-        "@container relative isolate flex aspect-[1120/694] w-full flex-col rounded-xl text-left",
+        "@container relative isolate flex aspect-[1120/694] w-full flex-col rounded-card text-left",
         className,
       )}
     >
       {/* A long note makes the cover taller than the art; the void fills the rest, so the picture is never stretched or cropped. */}
-      <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden rounded-[inherit] bg-[#06080C]">
+      <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden rounded-card bg-void">
         <CoverArt />
       </div>
       <div className="flex flex-1 flex-col px-[6.7cqw] pb-[5cqw] pt-[8.5cqw]">
         {/* The mark's point sits at 61% across and its ring ends 42cqw down: the words stay left of it, the note below it. */}
         <div className="min-h-[35cqw] max-w-[51cqw]">
-          <p className="font-label text-[length:clamp(9.5px,2.2cqw,13px)] font-medium uppercase leading-[1.2] tracking-[0.27em] text-brass [overflow-wrap:anywhere]">
+          <p style={{ fontSize: "clamp(9.5px,2.2cqw,13px)" }} className="font-label font-medium uppercase leading-[1.2] tracking-[0.27em] text-brass [overflow-wrap:anywhere]">
             {giver ? `A gift from ${giver}` : "A gift"}
           </p>
-          <p className="mt-[7cqw] font-display text-[length:clamp(22px,7.3cqw,44px)] leading-[1.09] tracking-[-0.01em] text-foreground">
+          <p style={{ fontSize: "clamp(22px,7.3cqw,44px)" }} className="mt-[7cqw] font-display leading-[1.09] tracking-[-0.01em] text-paper">
             Your {PERSONAL_REPORT}
           </p>
           {recipient && (
-            <p className="mt-[1.8cqw] font-display text-[length:clamp(13px,3.7cqw,22px)] italic leading-[1.2] text-foreground/70 [overflow-wrap:anywhere]">
+            <p style={{ fontSize: "clamp(13px,3.7cqw,22px)" }} className="mt-[1.8cqw] font-display italic leading-[1.2] text-paper/70 [overflow-wrap:anywhere]">
               for {recipient}
             </p>
           )}
         </div>
         <div className="mt-auto pt-[4cqw]">
           {words && (
-            <p className="whitespace-pre-line text-[length:clamp(12px,2.5cqw,16px)] leading-[1.45] text-foreground/85 [overflow-wrap:anywhere]">
+            <p style={{ fontSize: "clamp(12px,2.5cqw,16px)" }} className="whitespace-pre-line leading-[1.45] text-paper/85 [overflow-wrap:anywhere]">
               “{words}”
             </p>
           )}
-          <p className="mt-[2cqw] font-label text-[length:clamp(9px,1.85cqw,11px)] uppercase tracking-[0.18em] text-muted-foreground">
+          <p style={{ fontSize: "clamp(9px,1.85cqw,11px)" }} className="mt-[2cqw] font-label uppercase tracking-[0.18em] text-muted">
             {PRODUCT}
           </p>
         </div>

@@ -1,15 +1,15 @@
 import { Show, useUser, useClerk } from "@clerk/react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ds/atoms/Button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { CircleUser, Eye, LogOut, User as UserIcon, LayoutDashboard, Orbit, Receipt, Shield } from "lucide-react";
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/ds/organisms/Menu";
+import { User as UserIcon } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTimelineAccess } from "@/lib/timeline-access";
 
@@ -34,75 +34,66 @@ export function AccountMenu() {
   return (
     <>
       <Show when="signed-out">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="font-label text-xs"
-          onClick={() => navigate("/sign-in")}
-        >
+        <Button size="compact" variant="secondary" onClick={() => navigate("/sign-in")}>
           Sign in
         </Button>
       </Show>
       <Show when="signed-in">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="font-label text-xs gap-2"
-            >
-              <UserIcon className="h-3.5 w-3.5" />
+        <Menu>
+          <MenuTrigger asChild>
+            <Button size="compact" variant="secondary">
+              <UserIcon />
               <span className="hidden sm:inline truncate max-w-[160px]">
                 {user?.primaryEmailAddress?.emailAddress ?? "Account"}
               </span>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-label text-[10px] tracking-wider uppercase text-muted-foreground">
+          </MenuTrigger>
+          <MenuContent align="end" className="w-56">
+            <MenuLabel>
               Signed in
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-              <LayoutDashboard className="h-4 w-4 mr-2" /> My reports
-            </DropdownMenuItem>
+            </MenuLabel>
+            <MenuItem onClick={() => navigate("/dashboard")}>
+              My reports
+            </MenuItem>
             {hasTimeline && (
-              <DropdownMenuItem onClick={() => navigate("/dashboard/timeline")}>
-                <Orbit className="h-4 w-4 mr-2" /> Timeline
-              </DropdownMenuItem>
+              <MenuItem onClick={() => navigate("/dashboard/timeline")}>
+                Timeline
+              </MenuItem>
             )}
-            <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
-              <CircleUser className="h-4 w-4 mr-2" /> Account
-            </DropdownMenuItem>
+            <MenuItem onClick={() => navigate("/dashboard/account")}>
+              Account
+            </MenuItem>
             {isAdmin && (
               <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="font-label text-[10px] tracking-wider uppercase text-muted-foreground">
+                <MenuSeparator />
+                <MenuLabel>
                   Admin
-                </DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate("/admin/prompts")}>
-                  <Shield className="h-4 w-4 mr-2" /> Prompts
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/admin/sales")}>
-                  <Receipt className="h-4 w-4 mr-2" /> Sales
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                </MenuLabel>
+                <MenuItem onClick={() => navigate("/admin/prompts")}>
+                  Prompts
+                </MenuItem>
+                <MenuItem onClick={() => navigate("/admin/sales")}>
+                  Sales
+                </MenuItem>
+                <MenuItem asChild>
                   <a href={`${basePath}/dashboard?visitor=new`} target="_blank" rel="noopener noreferrer">
-                    <Eye className="h-4 w-4 mr-2" /> See the dashboard as a new visitor
+                    See the dashboard as a new visitor
                   </a>
-                </DropdownMenuItem>
+                </MenuItem>
               </>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
+            <MenuSeparator />
+            <MenuItem
               onClick={() =>
                 signOut(() => navigate("/")).catch(() => {
                   /* swallow — user already signed out locally */
                 })
               }
             >
-              <LogOut className="h-4 w-4 mr-2" /> Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              Sign out
+            </MenuItem>
+          </MenuContent>
+        </Menu>
       </Show>
     </>
   );
