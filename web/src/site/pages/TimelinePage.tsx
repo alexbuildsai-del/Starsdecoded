@@ -24,20 +24,20 @@ function Questions({ items }: { items: readonly FaqItem[] }) {
         <h2 className="sd-eyebrow" id="questions-h">
           Questions
         </h2>
-        <div className="mt-6 max-w-[760px] border-t border-[color:var(--line-soft)]">
+        <div className="mt-6 max-w-[760px] border-t border-line-soft">
           {items.map((item) => {
             const more = item.link ? FAQ_LINK_LABELS[item.link] : undefined;
             return (
-              <details key={item.q} className="group border-b border-[color:var(--line-soft)]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md px-0.5 py-3.5 text-[15.5px] leading-snug text-[color:var(--paper)] [&::-webkit-details-marker]:hidden">
+              <details key={item.q} className="group border-b border-line-soft">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md px-0.5 py-3.5 text-prose leading-snug text-paper [&::-webkit-details-marker]:hidden">
                   {item.q}
                   <span
                     aria-hidden="true"
-                    className="size-2 flex-none -translate-y-[3px] rotate-45 border-b-[1.5px] border-r-[1.5px] border-[color:var(--sd-muted)] transition-transform duration-[250ms] ease-[cubic-bezier(.16,1,.3,1)] group-open:translate-y-[2px] group-open:-rotate-[135deg]"
+                    className="size-2 flex-none -translate-y-[3px] rotate-45 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform duration-[250ms] ease-[cubic-bezier(.16,1,.3,1)] group-open:translate-y-[2px] group-open:-rotate-[135deg]"
                   />
                 </summary>
                 <div className="grid justify-items-start gap-2 px-0.5 pb-4">
-                  <p className="max-w-[64ch] text-[14.5px] leading-[1.55] text-[color:var(--paper-dim)]">{item.a}</p>
+                  <p className="max-w-[64ch] text-ui leading-[1.55] text-paper-dim">{item.a}</p>
                   {item.link && more ? (
                     <Link className="sd-more mt-0 py-1.5" href={item.link}>
                       {more}

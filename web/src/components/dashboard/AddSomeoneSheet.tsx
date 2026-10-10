@@ -10,8 +10,9 @@
 import type { ReactNode } from "react";
 import { Mail, Plus } from "lucide-react";
 import { useGetCredits } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/ds/organisms/Sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -39,9 +40,9 @@ type Tone = "indigo" | "gift" | "pair";
 // The orbit's own marks: the dashed "+" of Add someone, the teal envelope of a
 // waiting gift (credit-loop), the violet of a pair (§9).
 const TONES: Record<Tone, { mark: string; edge: string }> = {
-  indigo: { mark: "border-[#9FA8DA]/60 text-[#9FA8DA]", edge: "border-border hover:border-[#9FA8DA]/55" },
-  gift: { mark: "border-[#3FA796]/70 text-[#3FA796]", edge: "border-[#3FA796]/45 hover:border-[#3FA796]/75" },
-  pair: { mark: "border-[#9575CD]/60 text-[#9575CD]", edge: "border-border hover:border-[#9575CD]/55" },
+  indigo: { mark: "border-indigo-lt/60 text-indigo-lt", edge: "border-line hover:border-indigo-lt/55" },
+  gift: { mark: "border-teal/70 text-teal", edge: "border-teal/45 hover:border-teal/75" },
+  pair: { mark: "border-violet/60 text-violet", edge: "border-line hover:border-violet/55" },
 };
 
 function Choice({
@@ -58,13 +59,12 @@ function Choice({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <TextButton
       onClick={onSelect}
       className={cn(
-        "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-card/60 p-3.5 text-left",
-        "transition duration-200 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-primary/[0.06] active:scale-[.99]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "grid min-h-0 w-full after:hidden grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-card border bg-surface p-3.5 text-left font-normal",
+        "transition duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-indigo-tint active:scale-[.99] motion-reduce:transition-none motion-reduce:active:scale-100",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus",
         TONES[tone].edge,
       )}
     >
@@ -75,11 +75,11 @@ function Choice({
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block font-display text-[17px] leading-[1.2]">{title}</span>
-        <span className="mt-0.5 block text-[12.5px] leading-[1.4] text-muted-foreground">{detail}</span>
+        <span className="block font-display text-card-title-sm text-paper">{title}</span>
+        <span className="mt-0.5 block text-caption text-muted">{detail}</span>
       </span>
-      <span className="font-numeric text-xs text-muted-foreground">1 credit</span>
-    </button>
+      <span className="font-numeric text-caption text-muted">1 credit</span>
+    </TextButton>
   );
 }
 
@@ -110,23 +110,18 @@ export function AddSomeoneSheet({ open, onClose, onSomeoneYouKnow, onGift, onTwo
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side={phone ? "bottom" : "right"}
-        className={cn(
-          "flex flex-col gap-5 overflow-y-auto",
-          phone ? "max-h-[90dvh] rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "w-full sm:max-w-md",
-        )}
+        className={cn("flex flex-col gap-5 overflow-y-auto", phone && "max-h-[92dvh]")}
       >
         <SheetHeader className="space-y-1.5 pr-8 text-left">
-          <SheetDescription className="font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]">
+          <SheetDescription className="font-label text-kicker uppercase text-indigo-lt">
             {line ? `Add someone · ${line}` : "Add someone"}
           </SheetDescription>
-          <SheetTitle className="font-display text-2xl font-normal leading-[1.1] tracking-[-0.02em]">
-            {atZero ? "No credits left" : "Who is it for?"}
-          </SheetTitle>
+          <SheetTitle>{atZero ? "No credits left" : "Who is it for?"}</SheetTitle>
         </SheetHeader>
         {atZero ? (
           <>
-            <p className="text-sm leading-[1.5] text-muted-foreground">Adding someone uses one credit.</p>
-            <Button size="lg" className="min-h-10 w-full font-label text-[13.5px]" onClick={choose(onGetCredits)}>
+            <p className="text-ui text-paper-dim">Adding someone uses one credit.</p>
+            <Button full onClick={choose(onGetCredits)}>
               Get credits
             </Button>
           </>

@@ -15,7 +15,7 @@ import {
   getListReportsQueryKey,
   useHandBackProfile,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +25,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useOpenerFocus } from "@/components/dashboard/RowMenu";
-import { CONSENT_BODY, CONSENT_BUTTON, CONSENT_CANCEL, CONSENT_SHEET, CONSENT_TITLE } from "@/components/dashboard/StopSharingDialog";
+} from "@/ds/organisms/Confirm";
+import { InlineError } from "@/ds/molecules/Alert";
 import { useToast } from "@/hooks/use-toast";
 import { HAND_BACK_TITLE, handBackLine } from "@/lib/pair-row";
 
@@ -45,7 +44,6 @@ export interface HandBackDialogProps {
 export function HandBackDialog({ target, onClose }: HandBackDialogProps) {
   const client = useQueryClient();
   const { toast } = useToast();
-  const focus = useOpenerFocus();
   // The last target stays drawn while the dialog closes, so its words do not vanish mid-fade.
   const kept = useRef<HandBackTarget | null>(target);
   if (target) kept.current = target;
@@ -83,18 +81,18 @@ export function HandBackDialog({ target, onClose }: HandBackDialogProps) {
   if (!shown) return null;
   return (
     <AlertDialog open={!!target} onOpenChange={(next) => !next && !handBack.isPending && onClose()}>
-      <AlertDialogContent className={CONSENT_SHEET} {...focus}>
-        <AlertDialogHeader className="text-left">
-          <AlertDialogTitle className={CONSENT_TITLE}>{HAND_BACK_TITLE}</AlertDialogTitle>
-          <AlertDialogDescription className={CONSENT_BODY}>{handBackLine(shown.giverFirstName)}</AlertDialogDescription>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{HAND_BACK_TITLE}</AlertDialogTitle>
+          <AlertDialogDescription>{handBackLine(shown.giverFirstName)}</AlertDialogDescription>
         </AlertDialogHeader>
         {failed && (
-          <p role="alert" className="text-sm text-[#E79AB2]">
+          <InlineError>
             We couldn't hand it back. Try again in a minute.
-          </p>
+          </InlineError>
         )}
-        <AlertDialogFooter className="flex-row flex-wrap justify-end gap-2 sm:space-x-0">
-          <AlertDialogCancel disabled={handBack.isPending} className={CONSENT_CANCEL}>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={handBack.isPending}>
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
@@ -103,7 +101,6 @@ export function HandBackDialog({ target, onClose }: HandBackDialogProps) {
               e.preventDefault();
               handBack.mutate({ id: shown.profileId });
             }}
-            className={CONSENT_BUTTON}
             data-testid="button-hand-back"
           >
             {handBack.isPending ? <StatusDots label="Handing it back" /> : "Hand it back"}

@@ -11,8 +11,6 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ChevronDown, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCreditsQueryKey,
@@ -23,10 +21,10 @@ import {
   useListReports,
   type ReportSummary,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
-import { useOpenerFocus } from "@/components/dashboard/RowMenu";
-import { Button } from "@/components/ui/button";
-import { DialogOverlay, DialogPortal } from "@/components/ui/dialog";
+import { Button } from "@/ds/atoms/Button";
+import { Select } from "@/ds/atoms/Select";
+import { InlineError } from "@/ds/molecules/Alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ds/organisms/Dialog";
 import { creditCount } from "@/lib/credits-view";
 import { MAKE_REPORT } from "@/lib/home-view";
 import { HOW_OPTIONS, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
@@ -34,7 +32,6 @@ import {
   enterPreselect, forgetSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type PairSelection,
 } from "@/lib/pair-selection";
 import { isNoCredit, refusalLine } from "@/lib/refusals";
-import { cn } from "@/lib/utils";
 
 export interface CompatibilityPickerProps {
   open: boolean;
@@ -52,21 +49,6 @@ export interface CompatibilityPickerProps {
   onGetCredits: () => void;
 }
 
-// A bottom sheet below 640 px, where the thumb is; a centred dialog above, as the Share window opens.
-const WINDOW = [
-  "fixed z-50 flex flex-col gap-4 overflow-y-auto border border-[#3A4560] bg-[#171D29] text-[#E8EBF2] outline-none duration-200",
-  "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-  "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
-  "max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[92dvh] max-sm:rounded-t-[20px] max-sm:px-[18px] max-sm:pb-[max(18px,env(safe-area-inset-bottom))] max-sm:pt-2.5 max-sm:shadow-[0_-18px_44px_rgba(0,0,0,.65)]",
-  "max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8",
-  "sm:left-1/2 sm:top-1/2 sm:max-h-[min(86dvh,720px)] sm:w-[calc(100%-2rem)] sm:max-w-[480px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-[18px] sm:shadow-lg",
-  "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
-].join(" ");
-
-const LABEL = "font-label text-[10.5px] font-medium uppercase tracking-[0.18em] text-[#9AA3B5]";
-const SELECT =
-  "h-11 w-full min-w-0 appearance-none truncate rounded-[10px] border border-[#3A4560] bg-[#0F141C] pl-3 pr-9 text-base text-[#E8EBF2] sm:text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
-const WIDE = "min-h-11 w-full font-label text-[13.5px]";
 const NEXT = "Next you'll see the two charts being put together while the report writes.";
 
 /** How the two know each other, one list: a lens, or Two people with its answer (ADR-68), as screen E asks it. */
@@ -88,18 +70,6 @@ function withKnows(current: Partial<PairSelection>, value: string): Partial<Pair
   return how ? { ...rest, lens: "people", how } : rest;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="grid min-w-0 gap-1.5">
-      <span className={LABEL}>{label}</span>
-      <span className="relative block min-w-0">
-        {children}
-        <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9AA3B5]" />
-      </span>
-    </label>
-  );
-}
-
 /** Outside the body, so a render never remounts the select and drops the keyboard's place in it. */
 function PersonSelect({ label, value, onChange, exclude, reports, own }: {
   label: string;
@@ -110,8 +80,7 @@ function PersonSelect({ label, value, onChange, exclude, reports, own }: {
   own: ReadonlySet<string>;
 }) {
   return (
-    <Field label={label}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} data-empty={!value} className={SELECT}>
+    <Select label={label} value={value} onChange={(e) => onChange(e.target.value)} data-empty={!value}>
         <option value="">Choose someone</option>
         {reports.map((r) => {
           const why = unpickable(r);
@@ -122,8 +91,7 @@ function PersonSelect({ label, value, onChange, exclude, reports, own }: {
             </option>
           );
         })}
-      </select>
-    </Field>
+    </Select>
   );
 }
 
@@ -223,64 +191,49 @@ function PickerBody({ reports: given, preselect, own, onGetCredits, onBusy }: {
 
   return (
     <>
-      <header className="flex items-start justify-between gap-3">
-        <DialogPrimitive.Title className="font-display text-[22px] font-normal leading-[1.15] tracking-[-0.01em]">
-          {MAKE_REPORT.newPair}
-        </DialogPrimitive.Title>
-        <DialogPrimitive.Close
-          disabled={busy}
-          aria-label="Close"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#3A4560] text-[#C9CEDA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-        >
-          <X className="h-4 w-4" aria-hidden="true" />
-        </DialogPrimitive.Close>
-      </header>
+      <DialogHeader>
+        <DialogTitle>{MAKE_REPORT.newPair}</DialogTitle>
+      </DialogHeader>
 
       <div className="grid gap-3">
         <PersonSelect label="First person" value={a} onChange={(v) => pick({ a: v })} exclude={b} reports={reports} own={own} />
         <PersonSelect label="Second person" value={b} onChange={(v) => pick({ b: v })} exclude={a} reports={reports} own={own} />
-        <Field label="How you know each other">
-          <select value={knowsOf(shown)} onChange={(e) => setPicked(withKnows(shown, e.target.value))} data-empty={!knowsOf(shown)} data-knows className={SELECT}>
-            <option value="">Choose one</option>
-            {KNOWS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </Field>
+        <Select label="How you know each other" value={knowsOf(shown)} onChange={(e) => setPicked(withKnows(shown, e.target.value))} data-empty={!knowsOf(shown)} data-knows>
+          <option value="">Choose one</option>
+          {KNOWS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </Select>
         {info?.asksParent && a && b && (
-          <Field label={PARENT_QUESTION}>
-            <select value={parent} onChange={(e) => pick({ parent: e.target.value === "B" ? "B" : "A" })} className={SELECT}>
-              <option value="A">{nameOf(a) || "First person"}</option>
-              <option value="B">{nameOf(b) || "Second person"}</option>
-            </select>
-          </Field>
+          <Select label={PARENT_QUESTION} value={parent} onChange={(e) => pick({ parent: e.target.value === "B" ? "B" : "A" })}>
+            <option value="A">{nameOf(a) || "First person"}</option>
+            <option value="B">{nameOf(b) || "Second person"}</option>
+          </Select>
         )}
       </div>
 
       <div className="grid gap-2">
         {busy ? (
           // ADR-130: under way, the control is a status with dots, never its idle verb.
-          <div className={cn(WIDE, "flex items-center justify-center rounded-md border border-primary/35 bg-primary/10 text-[#9FA8DA]")}>
-            <StatusDots label="Writing" />
-          </div>
+          <Button full busy="Writing" />
         ) : outOfCredits ? (
-          <Button variant="outline" onClick={onGetCredits} className={cn(WIDE, "[border-color:hsl(var(--primary)/0.6)] text-[#9FA8DA]")}>
+          <Button variant="secondary" full onClick={onGetCredits}>
             Get credits
           </Button>
         ) : (
-          <Button disabled={!ready} onClick={submit} className={WIDE}>
+          <Button full disabled={!ready} onClick={submit}>
             Make it
-            <span aria-hidden="true" className="text-white/60">·</span>
+            <span aria-hidden="true" className="text-on-indigo/60">·</span>
             <span className="font-numeric">1 credit</span>
           </Button>
         )}
-        <DialogPrimitive.Description className="text-[13px] leading-[1.45] text-[#9AA3B5]">
+        <DialogDescription className="text-small text-muted">
           {have ? `${have} ${NEXT}` : NEXT}
-        </DialogPrimitive.Description>
+        </DialogDescription>
         {create.isError && (
-          <p role="alert" className="text-[13px] leading-[1.45] text-[#E79AB2]">
+          <InlineError>
             {refusalLine(create.error) ?? "Could not start the report. Try again in a minute."}
-          </p>
+          </InlineError>
         )}
       </div>
     </>
@@ -288,30 +241,23 @@ function PickerBody({ reports: given, preselect, own, onGetCredits, onBusy }: {
 }
 
 export function CompatibilityPicker({ open, onClose, reports, preselect = null, own, onGetCredits }: CompatibilityPickerProps) {
-  const focus = useOpenerFocus();
   // A report half started must finish here, or its loading screen would never open.
   const [busy, setBusy] = useState(false);
   const mine = useMemo(() => own ?? new Set<string>(), [own]);
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(next) => !next && !busy && onClose()}>
-      <DialogPortal>
-        <DialogOverlay />
-        <DialogPrimitive.Content
-          className={WINDOW}
-          onOpenAutoFocus={(event) => {
-            focus.onOpenAutoFocus();
-            event.preventDefault();
-            // The first choice still to make takes the focus, never Make it, so a stray Enter spends nothing (R14-12).
-            const content = event.currentTarget as HTMLElement;
-            (content.querySelector<HTMLSelectElement>('select[data-empty="true"]') ?? content.querySelector<HTMLSelectElement>("select[data-knows]"))?.focus();
-          }}
-          onCloseAutoFocus={focus.onCloseAutoFocus}
-        >
-          <span aria-hidden="true" className="mx-auto h-1 w-10 shrink-0 rounded-full bg-[#3A4560] sm:hidden" />
-          <PickerBody reports={reports} preselect={preselect} own={mine} onGetCredits={onGetCredits} onBusy={setBusy} />
-        </DialogPrimitive.Content>
-      </DialogPortal>
-    </DialogPrimitive.Root>
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+      <DialogContent
+        className="overflow-y-auto"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          // The first choice still to make takes the focus, never Make it, so a stray Enter spends nothing (R14-12).
+          const content = event.currentTarget as HTMLElement;
+          (content.querySelector<HTMLSelectElement>('select[data-empty="true"]') ?? content.querySelector<HTMLSelectElement>("select[data-knows]"))?.focus();
+        }}
+      >
+        <PickerBody reports={reports} preselect={preselect} own={mine} onGetCredits={onGetCredits} onBusy={setBusy} />
+      </DialogContent>
+    </Dialog>
   );
 }
 

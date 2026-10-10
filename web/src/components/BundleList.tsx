@@ -13,6 +13,8 @@ import { CREDIT_LINE, type BundleId } from "@workspace/commerce";
 import { CreditDots } from "@/components/dashboard/CreditPill";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { bundleRows, type BundleMix, type BundleRow } from "@/lib/credits-view";
+import { Chip } from "@/ds/atoms/Chip";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { cn } from "@/lib/utils";
 
 export interface BundleListProps {
@@ -26,18 +28,17 @@ export interface BundleListProps {
 
 const ROWS = bundleRows();
 
-// Colours are the tokens' own values, since the list draws inside the site's token scope and in the app's sheets, which
-// are portalled outside it. The two kinds of report chip take the Review 01/10 artifact's colours.
+// The two kinds of report keep two edges, from the chapter hues, so a bundle's mix reads at a glance.
 const CHIP: Record<BundleMix["kind"], string> = {
-  personal: "border-[#2F4A7A] text-[#A9C6EE]",
-  compatibility: "border-[#4A3A6E] text-[#C7B4EE]",
+  personal: "border-chapter-2/70",
+  compatibility: "border-violet/70",
 };
 
 // The foot is a label in capitals, so the sentence's full stop gives way to the separator.
 const CREDIT_LABEL = CREDIT_LINE.replace(/\.$/, "");
 
-const STRUCK = "order-first whitespace-nowrap font-numeric text-[13px] leading-snug text-[#7E889A]";
-const FOOT = "font-numeric uppercase leading-relaxed tracking-[.1em] text-[#7E889A]";
+const STRUCK = "order-first whitespace-nowrap font-numeric text-small leading-snug text-muted";
+const FOOT = "font-numeric uppercase leading-relaxed tracking-[.1em] text-muted";
 
 function FootWords() {
   return (
@@ -51,7 +52,7 @@ function FootWords() {
 function Price({ row, compact, as: Tag = "p" }: { row: BundleRow; compact: boolean; as?: "p" | "span" }) {
   return (
     <Tag className="flex flex-col items-end gap-0.5 text-right">
-      <span className={cn("font-label font-medium leading-none text-[#F2F4F9]", compact ? "text-[22px]" : "text-[26px]")}>
+      <span className={cn("font-label font-medium leading-none text-paper", compact ? "text-card-title" : "text-stat")}>
         {row.price}
       </span>
       {row.campaign ? (
@@ -61,12 +62,12 @@ function Price({ row, compact, as: Tag = "p" }: { row: BundleRow; compact: boole
             <span className="sr-only">instead of </span>
             {row.campaign.full}
           </s>
-          <span className="whitespace-nowrap text-xs leading-snug text-[#AEB6C6]">{row.campaign.until}</span>
+          <span className="whitespace-nowrap text-caption leading-snug text-paper-dim">{row.campaign.until}</span>
         </>
       ) : (
         <>
           {row.singles && <s className={STRUCK}>{row.singles}</s>}
-          {row.save && <span className="whitespace-nowrap text-xs leading-snug text-[#3FA796]">{row.save}</span>}
+          {row.save && <span className="whitespace-nowrap text-caption leading-snug text-teal">{row.save}</span>}
         </>
       )}
     </Tag>
@@ -80,18 +81,13 @@ function Mixes({ row, className }: { row: BundleRow; className?: string }) {
         <Fragment key={mix.text}>
           {i > 0 &&
             (row.either ? (
-              <span className="text-xs text-[#7E889A]">or</span>
+              <span className="text-caption text-muted">or</span>
             ) : (
               <span className="sr-only">{" and "}</span>
             ))}
-          <span
-            className={cn(
-              "inline-flex items-center whitespace-nowrap rounded-full border px-[9px] py-1.5 font-label text-[11.5px] font-medium leading-none",
-              CHIP[mix.kind],
-            )}
-          >
+          <Chip quiet className={CHIP[mix.kind]}>
             {mix.text}
-          </span>
+          </Chip>
         </Fragment>
       ))}
     </p>
@@ -104,10 +100,10 @@ function Row({ row, compact, href }: { row: BundleRow; compact: boolean; href: s
   return (
     <li
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-center border-t border-[#242C3B] first:border-t-0",
+        "grid grid-cols-[minmax(0,1fr)_auto] items-center border-t border-line first:border-t-0",
         compact ? "gap-x-3 gap-y-2.5 px-4 py-3.5" : "gap-x-4 gap-y-1.5 px-[22px] py-5",
         href &&
-          "relative transition-colors duration-200 hover:bg-[rgba(92,107,192,.08)] has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset has-[a:focus-visible]:ring-ring",
+          "relative transition-colors duration-[var(--dur-fast)] hover:bg-indigo-tint has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-solid has-[a:focus-visible]:outline-focus motion-reduce:transition-none",
       )}
     >
       {/* A screen reader meets each bundle by its name, then its launch chip and its line, and the price before the
@@ -115,8 +111,8 @@ function Row({ row, compact, href }: { row: BundleRow; compact: boolean; href: s
       <div className="flex min-w-0 flex-col">
         <Name
           className={cn(
-            "mt-1.5 font-display font-normal leading-[1.2] tracking-[-0.01em] text-[#E8EBF2]",
-            compact ? "text-xl" : "text-2xl",
+            "mt-1.5 font-display font-normal text-paper",
+            compact ? "text-card-title" : "text-sheet-title",
           )}
         >
           {href ? (
@@ -132,13 +128,11 @@ function Row({ row, compact, href }: { row: BundleRow; compact: boolean; href: s
         <div className="order-first flex flex-wrap items-center gap-2">
           <CreditDots count={row.credits} />
           {row.launch && (
-            <span className="inline-flex items-center whitespace-nowrap rounded-full border border-[#5A4C2C] px-2 py-[5px] font-label text-[10px] font-medium uppercase leading-none tracking-[.14em] text-[#D4B06A]">
-              Launch price
-            </span>
+            <Chip tone="brass">Launch price</Chip>
           )}
         </div>
-        <p className="mt-1 text-[13px] leading-snug text-[#AEB6C6]">{row.line}</p>
-        {row.lead && <p className="mt-0.5 text-[13px] leading-snug text-[#AEB6C6]">{row.lead}</p>}
+        <p className="mt-1 text-small leading-snug text-paper-dim">{row.line}</p>
+        {row.lead && <p className="mt-0.5 text-small leading-snug text-paper-dim">{row.lead}</p>}
         {!compact && mixes}
       </div>
       <Price row={row} compact={compact} />
@@ -158,8 +152,8 @@ export function BundleList({ compact = false, prices = null, buy }: BundleListPr
   return (
     <div
       className={cn(
-        "overflow-hidden border border-[#242C3B] bg-[rgba(17,22,31,.62)]",
-        compact ? "rounded-[14px]" : "rounded-[18px]",
+        "overflow-hidden border border-line bg-surface-glass",
+        compact ? "rounded-card" : "rounded-sheet",
       )}
     >
       <ul>
@@ -167,7 +161,7 @@ export function BundleList({ compact = false, prices = null, buy }: BundleListPr
           <Row key={row.id} row={row} compact={compact} href={buy ? buy(row.id) : null} />
         ))}
       </ul>
-      <p className={cn("border-t border-[#242C3B]", FOOT, compact ? "px-4 py-3 text-[11px]" : "px-[22px] py-3.5 text-xs")}>
+      <p className={cn("border-t border-line", FOOT, compact ? "px-4 py-3 text-data-sm" : "px-[22px] py-3.5 text-data")}>
         <FootWords />
       </p>
     </div>
@@ -187,7 +181,7 @@ export type BundleButtonsProps = {
 );
 
 const BUTTON =
-  "grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-[12px] border border-[#242C3B] bg-[#11161F] px-3.5 py-3 text-left transition-colors duration-200 hover:border-[#5C6BC0] focus-visible:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[.99] motion-reduce:active:scale-100";
+  "grid min-h-[68px] px-3.5 after:hidden w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-card border border-line bg-surface py-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-indigo focus-visible:border-indigo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus active:scale-[.99] motion-reduce:transition-none motion-reduce:active:scale-100";
 
 /**
  * The first visit's three buttons (Review 05/10 §1): each bundle its own box of one width and height, its name and line
@@ -203,11 +197,11 @@ export function BundleButtons({ prices = null, lines, buy, onPick }: BundleButto
           const face: ReactNode = (
             <>
               <span className="grid min-w-0 gap-1">
-                <span className="font-display text-xl font-normal leading-[1.15] tracking-[-0.01em] text-[#E8EBF2]">
+                <span className="font-display text-card-title font-normal text-paper">
                   {buy && <span className="sr-only">Buy </span>}
                   {row.name}
                 </span>
-                <span className="text-[13px] leading-snug text-[#AEB6C6]">{lines[row.id]}</span>
+                <span className="text-small leading-snug text-paper-dim">{lines[row.id]}</span>
               </span>
               <Price row={row} compact as="span" />
             </>
@@ -219,15 +213,15 @@ export function BundleButtons({ prices = null, lines, buy, onPick }: BundleButto
                   {face}
                 </Link>
               ) : (
-                <button type="button" onClick={() => onPick?.(row.id)} className={BUTTON}>
+                <TextButton onClick={() => onPick?.(row.id)} className={BUTTON}>
                   {face}
-                </button>
+                </TextButton>
               )}
             </li>
           );
         })}
       </ul>
-      <p className={cn(FOOT, "text-[11px]")}>
+      <p className={cn(FOOT, "text-data-sm")}>
         <FootWords />
       </p>
     </div>

@@ -3,70 +3,49 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@clerk/themes/shadcn.css";
+/* Static: site.css, Clerk and inline styles read the tokens as variables Tailwind cannot see being used. */
+@import "@workspace/design/tokens.css" theme(static);
 @plugin "@tailwindcss/typography";
 
-/* Clerk input placeholder visibility on dark surfaces */
-.cl-formFieldInput::placeholder { color: hsl(220 9% 60%); opacity: 1; }
+.cl-formFieldInput::placeholder { color: var(--color-muted); opacity: 1; }
 
 @custom-variant dark (&:is(.dark *));
 
+/* shadcn's names, each onto its role in the design system. `muted` is left to the tokens: there it is the hint grey. */
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  --color-background: var(--color-ground);
+  --color-foreground: var(--color-paper);
+  --color-border: var(--color-line);
+  --color-input: var(--color-control-edge);
+  --color-ring: var(--color-focus);
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-card-border: hsl(var(--card-border));
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-paper);
+  --color-card-border: var(--color-line);
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-popover-border: hsl(var(--popover-border));
+  --color-popover: var(--color-raised);
+  --color-popover-foreground: var(--color-paper);
+  --color-popover-border: var(--color-line-strong);
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-border: var(--primary-border);
+  --color-primary: var(--color-indigo);
+  --color-primary-foreground: var(--color-on-indigo);
+  --color-primary-border: var(--color-indigo-hover);
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary-border: var(--secondary-border);
+  --color-secondary: var(--color-violet);
+  --color-secondary-foreground: var(--color-on-indigo);
+  --color-secondary-border: var(--color-violet);
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted-border: var(--muted-border);
+  --color-muted-foreground: var(--color-muted);
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent-border: var(--accent-border);
+  --color-accent: var(--color-violet);
+  --color-accent-foreground: var(--color-on-indigo);
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-destructive-border: var(--destructive-border);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: var(--color-void);
+  --color-destructive-border: var(--color-error);
 
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
-
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-primary-border: var(--sidebar-primary-border);
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-accent-border: var(--sidebar-accent-border);
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-
-  --color-brass: hsl(var(--brass));
-
-  --font-sans: var(--app-font-sans);
-  --font-serif: var(--app-font-serif);
-  --font-mono: var(--app-font-mono);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -74,150 +53,8 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ============================================================
-   STARS DECODED DESIGN SYSTEM — Dark editorial aesthetic
-   bg: #0D1117  primary: indigo-400  accent: violet-400
-   ============================================================ */
-
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-
-  /* Dark only — Stars Decoded is dark-theme exclusive */
-  --background: 216 28% 7%;          /* #0D1117 */
-  --foreground: 220 15% 92%;         /* near-white */
-  --border: 220 12% 18%;             /* subtle border */
-
-  --card: 220 20% 10%;               /* slightly lighter card */
-  --card-foreground: 220 15% 90%;
-  --card-border: 220 12% 18%;
-
-  --sidebar: 216 28% 7%;
-  --sidebar-foreground: 220 15% 90%;
-  --sidebar-border: 220 12% 18%;
-  --sidebar-primary: 234 48% 60%;
-  --sidebar-primary-foreground: 220 15% 96%;
-  --sidebar-accent: 263 42% 58%;
-  --sidebar-accent-foreground: 220 15% 96%;
-  --sidebar-ring: 234 48% 60%;
-
-  --popover: 220 20% 10%;
-  --popover-foreground: 220 15% 90%;
-  --popover-border: 220 12% 20%;
-
-  /* Indigo primary */
-  --primary: 234 48% 60%;            /* #5C6BC0 */
-  --primary-foreground: 220 15% 96%;
-
-  /* Violet secondary */
-  --secondary: 263 42% 58%;          /* soft violet */
-  --secondary-foreground: 220 15% 96%;
-
-  --muted: 220 18% 14%;
-  --muted-foreground: 220 12% 55%;
-
-  --accent: 263 42% 58%;
-  --accent-foreground: 220 15% 96%;
-
-  --destructive: 0 72% 58%;
-  --destructive-foreground: 0 0% 98%;
-
-  --input: 220 12% 22%;
-  --ring: 234 48% 60%;
-
-  --chart-1: 234 48% 60%;
-  --chart-2: 263 42% 58%;
-  --chart-3: 316 60% 65%;
-  --chart-4: 195 70% 55%;
-  --chart-5: 43 80% 62%;
-
-  --app-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --app-font-serif: 'Newsreader', Georgia, serif;
-  --app-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --radius: .375rem;
-
-  /* Measured chart geometry, never a control. */
-  --brass: 41 54% 62%;
-
-  /* Timeline's intense tone, the one token Timeline adds (ADR-207). A hex, not a triplet, because no Tailwind colour
-     reads it, and global, because the dial draws on the site, in the app and on the dashboard alike. */
-  --sd-rose: #C46B78;
-
-  --shadow-2xs: 0px 1px 0px 0px rgba(0,0,0,.4);
-  --shadow-xs: 0px 2px 4px 0px rgba(0,0,0,.35);
-  --shadow-sm: 0px 2px 8px 0px rgba(0,0,0,.4), 0px 1px 2px -1px rgba(0,0,0,.3);
-  --shadow: 0px 4px 12px 0px rgba(0,0,0,.45), 0px 2px 4px -1px rgba(0,0,0,.3);
-  --shadow-md: 0px 6px 20px 0px rgba(0,0,0,.5), 0px 2px 6px -1px rgba(0,0,0,.3);
-  --shadow-lg: 0px 12px 30px 0px rgba(0,0,0,.55), 0px 4px 8px -1px rgba(0,0,0,.35);
-  --shadow-xl: 0px 20px 40px 0px rgba(0,0,0,.6), 0px 8px 12px -1px rgba(0,0,0,.4);
-  --shadow-2xl: 0px 28px 56px 0px rgba(0,0,0,.65);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + 9) / alpha);
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + 9) / alpha);
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + 9) / alpha);
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + 9) / alpha);
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l - 8) / alpha);
-}
-
-/* Dark mode mirrors root — this is a dark-only app */
-.dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-
-  --background: 216 28% 7%;
-  --foreground: 220 15% 92%;
-  --border: 220 12% 18%;
-  --card: 220 20% 10%;
-  --card-foreground: 220 15% 90%;
-  --card-border: 220 12% 18%;
-  --sidebar: 216 28% 7%;
-  --sidebar-foreground: 220 15% 90%;
-  --sidebar-border: 220 12% 18%;
-  --sidebar-primary: 234 48% 60%;
-  --sidebar-primary-foreground: 220 15% 96%;
-  --sidebar-accent: 263 42% 58%;
-  --sidebar-accent-foreground: 220 15% 96%;
-  --sidebar-ring: 234 48% 60%;
-  --popover: 220 20% 10%;
-  --popover-foreground: 220 15% 90%;
-  --popover-border: 220 12% 20%;
-  --primary: 234 48% 60%;
-  --primary-foreground: 220 15% 96%;
-  --secondary: 263 42% 58%;
-  --secondary-foreground: 220 15% 96%;
-  --muted: 220 18% 14%;
-  --muted-foreground: 220 12% 55%;
-  --accent: 263 42% 58%;
-  --accent-foreground: 220 15% 96%;
-  --destructive: 0 72% 58%;
-  --destructive-foreground: 0 0% 98%;
-  --input: 220 12% 22%;
-  --ring: 234 48% 60%;
-  --chart-1: 234 48% 60%;
-  --chart-2: 263 42% 58%;
-  --chart-3: 316 60% 65%;
-  --chart-4: 195 70% 55%;
-  --chart-5: 43 80% 62%;
-  --brass: 41 54% 62%;
-
-  --shadow-2xs: 0px 1px 0px 0px rgba(0,0,0,.4);
-  --shadow-xs: 0px 2px 4px 0px rgba(0,0,0,.35);
-  --shadow-sm: 0px 2px 8px 0px rgba(0,0,0,.4), 0px 1px 2px -1px rgba(0,0,0,.3);
-  --shadow: 0px 4px 12px 0px rgba(0,0,0,.45), 0px 2px 4px -1px rgba(0,0,0,.3);
-  --shadow-md: 0px 6px 20px 0px rgba(0,0,0,.5), 0px 2px 6px -1px rgba(0,0,0,.3);
-  --shadow-lg: 0px 12px 30px 0px rgba(0,0,0,.55), 0px 4px 8px -1px rgba(0,0,0,.35);
-  --shadow-xl: 0px 20px 40px 0px rgba(0,0,0,.6), 0px 8px 12px -1px rgba(0,0,0,.4);
-  --shadow-2xl: 0px 28px 56px 0px rgba(0,0,0,.65);
 }
 
 @layer base {
@@ -232,15 +69,15 @@
     font-feature-settings: "cv11", "ss01";
   }
   h1, h2, h3 {
-    font-family: 'Newsreader', Georgia, serif;
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 }
 
-/* Observatory budgets motion; reduced motion is a real state, not a nicety.
-   Report components refine this with their own snap-to-end behaviour. */
+/* Reduced motion is a real state: everything lands on its final frame at once. The opening screen keeps its cross-fade,
+   the one move that tells the reader the report has opened (Motion group, M33). */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *:not(.rp-open), *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -248,48 +85,22 @@
   }
 }
 
-/* Stars Decoded custom utilities */
 @layer utilities {
-  .font-display { font-family: 'Newsreader', Georgia, serif; }
-  .font-label { font-family: 'Space Grotesk', ui-monospace, sans-serif; }
-
   /* Every degree, orb, latitude and longitude. */
   .font-numeric {
-    font-family: var(--app-font-mono);
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
 
-  /* Star field background */
   .bg-stars {
     background-image:
-      radial-gradient(circle at 20% 30%, rgba(92,107,192,0.15) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(159,168,218,0.1) 0%, transparent 50%),
+      radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-indigo) 15%, transparent) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--color-indigo-lt) 10%, transparent) 0%, transparent 50%),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Ccircle cx='50' cy='80' r='0.8' fill='%23ffffff' opacity='0.6'/%3E%3Ccircle cx='150' cy='30' r='0.5' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='280' cy='120' r='1' fill='%23ffffff' opacity='0.5'/%3E%3Ccircle cx='360' cy='50' r='0.6' fill='%23ffffff' opacity='0.35'/%3E%3Ccircle cx='90' cy='200' r='0.7' fill='%23ffffff' opacity='0.45'/%3E%3Ccircle cx='200' cy='180' r='0.5' fill='%23ffffff' opacity='0.3'/%3E%3Ccircle cx='320' cy='250' r='0.8' fill='%23ffffff' opacity='0.5'/%3E%3Ccircle cx='60' cy='340' r='0.6' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='170' cy='310' r='1.1' fill='%23ffffff' opacity='0.55'/%3E%3Ccircle cx='250' cy='370' r='0.5' fill='%23ffffff' opacity='0.35'/%3E%3Ccircle cx='390' cy='300' r='0.7' fill='%23ffffff' opacity='0.45'/%3E%3Ccircle cx='120' cy='130' r='0.9' fill='%23c5cae9' opacity='0.5'/%3E%3Ccircle cx='310' cy='170' r='0.6' fill='%23c5cae9' opacity='0.4'/%3E%3Ccircle cx='380' cy='380' r='0.8' fill='%23c5cae9' opacity='0.45'/%3E%3C/svg%3E");
   }
 
-  .glow-primary {
-    box-shadow: 0 0 40px rgba(92, 107, 192, 0.25);
-  }
-
-  .glow-text {
-    text-shadow: 0 0 30px rgba(159, 168, 218, 0.4);
-  }
-
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(234 48% 60%) 0%, hsl(263 42% 58%) 100%);
-  }
-
-  .gradient-text {
-    background: linear-gradient(135deg, #9FA8DA 0%, #7C83D4 50%, #B39DDB 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Planet wheel ring */
-  .chart-ring {
-    border: 1px solid rgba(92, 107, 192, 0.3);
-    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-indigo) 0%, var(--color-violet) 100%);
   }
 
   input[type="search"]::-webkit-search-cancel-button {
@@ -297,90 +108,24 @@
   }
 
   /* A time on Timeline is easy, mixed or intense, never a score (ADR-207). The class only sets --sd-tone, so it can sit on
-     a card or a planet's group and colour just the dot, bar or disc that reads the variable, never the words beside it.
-     Easy is the Closing's teal and mixed the grey both Timeline artifacts draw. */
-  .sd-tone-easy { --sd-tone: #3FA796; }
-  .sd-tone-mixed { --sd-tone: #AEB6C6; }
-  .sd-tone-intense { --sd-tone: var(--sd-rose); }
-
-  .no-default-hover-elevate {}
-  .no-default-active-elevate {}
-
-  .toggle-elevate::before,
-  .toggle-elevate-2::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: -1;
-  }
-
-  .toggle-elevate.toggle-elevated::before {
-    background-color: var(--elevate-2);
-  }
-
-  .border.toggle-elevate::before {
-    inset: -1px;
-  }
-
-  .hover-elevate:not(.no-default-hover-elevate),
-  .active-elevate:not(.no-default-active-elevate),
-  .hover-elevate-2:not(.no-default-hover-elevate),
-  .active-elevate-2:not(.no-default-active-elevate) {
-    position: relative;
-    z-index: 0;
-  }
-
-  .hover-elevate:not(.no-default-hover-elevate)::after,
-  .active-elevate:not(.no-default-active-elevate)::after,
-  .hover-elevate-2:not(.no-default-hover-elevate)::after,
-  .active-elevate-2:not(.no-default-active-elevate)::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: 999;
-  }
-
-  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-1);
-  }
-
-  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate-2:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-2);
-  }
-
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate-2:not(.no-active-interaction-elevate)::after {
-    inset: -1px;
-  }
+     a card or a planet's group and colour just the dot, bar or disc that reads the variable, never the words beside it. */
+  .sd-tone-easy { --sd-tone: var(--color-teal); }
+  .sd-tone-mixed { --sd-tone: var(--color-paper-dim); }
+  .sd-tone-intense { --sd-tone: var(--color-rose); }
 }
 
-
-/* ============================================================
-   The report page, as the locked Observatory artifact draws it. Values are the
-   artifact's own so the two can be compared side by side; --accent is the one
-   moving part and is set by the page as the reader crosses chapters.
-   ============================================================ */
+/* The report page, as the locked Observatory artifact draws it, on the tokens. --accent is the one moving part, set by
+   the page as the reader crosses chapters; the short names stay because the report's components read them. */
 @layer components {
   /* The evidence card is portalled to <body>, so it carries the tokens too. */
   .rp-root, .rp-card {
-    --void: #06080C; --ground: #0D1117; --surface: #11161F; --raised: #171D29;
-    --line: #242C3B; --line-soft: #1A202C;
-    --paper: #E8EBF2; --paper-dim: #AEB6C6; --muted: #6E7789;
-    --indigo: #5C6BC0; --indigo-lt: #9FA8DA; --violet: #9575CD;
-    --sky: #D4B06A; --sky-dim: #8A7343;
-    --serif: 'Newsreader', Georgia, serif;
-    --label: 'Space Grotesk', ui-monospace, monospace;
-    --mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --ease: cubic-bezier(.16, 1, .3, 1);
-    --accent: #5C6BC0;
+    --void: var(--color-void); --ground: var(--color-ground); --surface: var(--color-surface); --raised: var(--color-raised);
+    --line: var(--color-line); --line-soft: var(--color-line-soft);
+    --paper: var(--color-paper); --paper-dim: var(--color-paper-dim); --muted: var(--color-label-dim);
+    --indigo: var(--color-indigo); --indigo-lt: var(--color-indigo-lt); --violet: var(--color-violet);
+    --sky: var(--color-brass); --sky-dim: var(--color-brass-dim);
+    --serif: var(--font-display); --label: var(--font-label); --mono: var(--font-mono);
+    --accent: var(--color-indigo);
   }
   .rp-root { background: var(--void); color: var(--paper); }
 
@@ -391,7 +136,7 @@
   .rp-sky .b1 { width: 62%; aspect-ratio: 1; left: -14%; top: -18%; }
   .rp-sky .b2 { width: 54%; aspect-ratio: 1; right: -16%; top: 26%; }
   .rp-sky .b3 { width: 70%; aspect-ratio: 1; left: 12%; bottom: -38%; }
-  .rp-sky .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,8,12,.18), rgba(6,8,12,.72)); }
+  .rp-sky .veil { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--color-void) 18%, transparent), color-mix(in srgb, var(--color-void) 72%, transparent)); }
   .rp-grain::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E"); }
 
@@ -399,10 +144,10 @@
   .rp-hero { position: relative; height: calc(100svh - 3.5rem); min-height: 520px; margin-top: 3.5rem; z-index: 2; }
   /* The hero owns its sky (ADR-59): R04's radial gradient, and its own starfield and ring of stars mounted inside it. */
   .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px;
-    background: radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%); }
+    background: radial-gradient(120% 92% at 50% 38%, var(--color-raised) 0%, var(--color-ground) 56%, var(--color-void) 100%); }
   /* Behind the plate and the corner chrome, above the gradient: the hero layer is its own stacking context. */
   .rp-sky.hero { position: absolute; inset: 0; z-index: -1; background: transparent; }
-  .rp-sky.hero .veil { background: linear-gradient(180deg, rgba(6,8,12,0), rgba(6,8,12,.35)); }
+  .rp-sky.hero .veil { background: linear-gradient(180deg, color-mix(in srgb, var(--color-void) 0%, transparent), color-mix(in srgb, var(--color-void) 35%, transparent)); }
   .rp-hplate { position: relative; width: 100%; height: 100%; min-height: 0; display: grid; place-items: center; }
   .rp-hplate > svg { display: block; width: 100%; height: 100%; max-height: min(100%, 760px); }
   /* A narrow screen stacks ring, legend and cue as one centred column; nothing stretches to fill. */
@@ -419,19 +164,21 @@
   /* The name is page type, not a drawing: it keeps the report's heading face and size at any screen. */
   .rp-hname { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center;
     pointer-events: none; display: grid; gap: 10px; padding: 0 24px; }
-  .rp-hname .k { font-family: var(--label); font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
+  .rp-hname .k { font-family: var(--label); font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
   .rp-hname h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 3.6vw, 48px); line-height: 1.08;
-    letter-spacing: -.02em; color: #F2F4F9; text-wrap: balance; margin: 0; }
+    letter-spacing: -.02em; color: var(--paper); text-wrap: balance; margin: 0; }
+  /* The pair hero's two names share a row, so they scale with the screen between the page title's size and the hero's. */
+  .rp-pair-name { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4.2vw, 52px); line-height: 1.08; }
   .rp-legend { display: grid; gap: 7px; width: 100%; }
   .rp-legend .lr { display: flex; align-items: center; gap: 9px; }
-  .rp-legend .k { font-family: var(--label); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); width: 52px; flex: none; }
-  .rp-legend .v { font-family: var(--mono); font-size: 11.5px; color: rgba(232,235,242,.9); font-variant-numeric: tabular-nums; }
+  .rp-legend .k { font-family: var(--label); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); width: 52px; flex: none; }
+  .rp-legend .v { font-family: var(--mono); font-size: 11.5px; color: color-mix(in srgb, var(--color-paper) 90%, transparent); font-variant-numeric: tabular-nums; }
   .rp-legend img { width: 22px; height: 22px; flex: none; display: block; }
   .rp-ascdot { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid var(--sky); display: grid; place-items: center; }
   .rp-ascdot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sky); }
 
   .rp-hud { position: fixed; inset: 3.5rem 0 0; z-index: 2; pointer-events: none; padding: 16px;
-    font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--sky);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--sky);
     display: flex; flex-direction: column; justify-content: space-between; opacity: .62; }
   .rp-hud .r { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
   .rp-hud .r.b { align-items: flex-end; }
@@ -439,8 +186,8 @@
   .rp-hud .col.e { justify-items: end; text-align: right; }
   .rp-hud .d { opacity: .62; }
   .rp-hud .live { display: inline-flex; align-items: center; gap: 6px; }
-  .rp-hud .live i { width: 5px; height: 5px; border-radius: 50%; background: var(--sky); display: block; animation: rp-pulse 2.4s var(--ease) infinite; }
-  @keyframes rp-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+  .rp-hud .live i { width: 5px; height: 5px; border-radius: 50%; background: var(--sky); display: block; animation: sd-live 2s var(--ease) infinite; }
+  @keyframes sd-live { 50% { opacity: .25; } }
   .rp-hud .fr { position: absolute; inset: 12px; border: 1px solid currentColor; opacity: .18; border-radius: 6px; }
   .rp-hud .br { position: absolute; width: 14px; height: 14px; border-color: currentColor; opacity: .7; }
   .rp-hud .br.tl { top: 12px; left: 12px; border-top: 1px solid; border-left: 1px solid; }
@@ -451,7 +198,7 @@
   .rp-hud .tick.l { top: 50%; left: 12px; width: 12px; height: 1px; }
   .rp-hud .tick.r { top: 50%; right: 12px; width: 12px; height: 1px; }
   @media (max-width: 900px) {
-    .rp-hud { font-size: 9px; letter-spacing: .1em; padding: 12px; }
+    .rp-hud { font-size: 11px; letter-spacing: .06em; padding: 12px; }
     .rp-hud .fr, .rp-hud .br.tl, .rp-hud .br.bl { left: 10px; } .rp-hud .fr, .rp-hud .br.tr, .rp-hud .br.brr { right: 10px; }
     .rp-hud .fr, .rp-hud .br.tl, .rp-hud .br.tr { top: 10px; } .rp-hud .fr, .rp-hud .br.bl, .rp-hud .br.brr { bottom: 10px; }
     .rp-hud .wide-only { display: none; }
@@ -465,44 +212,44 @@
     background: none; border: 0; cursor: pointer; color: var(--sky); font-family: var(--label); font-size: 13px; letter-spacing: .34em;
     text-transform: uppercase; animation: rp-breathe 2.8s var(--ease) infinite; }
   .rp-cue button:focus-visible { outline: 1px solid var(--sky); outline-offset: 4px; border-radius: 4px; }
-  .rp-cue i { position: relative; width: 2px; height: 56px; display: block; overflow: hidden; background: rgba(212,176,106,.22); border-radius: 1px; }
+  .rp-cue i { position: relative; width: 2px; height: 56px; display: block; overflow: hidden; background: color-mix(in srgb, var(--color-brass) 22%, transparent); border-radius: 1px; }
   .rp-cue i::after { content: ""; position: absolute; left: 0; top: -12px; width: 2px; height: 12px; border-radius: 1px;
     background: linear-gradient(transparent, var(--sky)); animation: rp-fall 2.8s var(--ease) infinite; }
-  @keyframes rp-breathe { 0%, 100% { opacity: .55; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 16px rgba(212,176,106,.6); } }
+  @keyframes rp-breathe { 0%, 100% { opacity: .55; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 16px color-mix(in srgb, var(--color-brass) 60%, transparent); } }
   @keyframes rp-fall { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(70px); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .rp-cue button { animation: none; opacity: .8; } .rp-cue i::after { animation: none; top: 22px; opacity: .8; } }
 
   /* --- chapters --- */
-  .rp-body { position: relative; z-index: 2; background: linear-gradient(180deg, rgba(6,8,12,0), rgba(6,8,12,.35) 240px); }
+  .rp-body { position: relative; z-index: 2; background: linear-gradient(180deg, color-mix(in srgb, var(--color-void) 0%, transparent), color-mix(in srgb, var(--color-void) 35%, transparent) 240px); }
   .rp-chapter { position: relative; padding: 0 32px 64px; max-width: 880px; margin-inline: auto; }
   .rp-div { position: relative; height: 120px; display: flex; align-items: center; justify-content: center; max-width: 880px; margin-inline: auto; padding: 0 32px; }
   .rp-div .ln { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .55; }
-  .rp-div .mk { position: absolute; font-family: var(--label); font-size: 9.5px; letter-spacing: .3em; text-transform: uppercase;
+  .rp-div .mk { position: absolute; font-family: var(--label); font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
     color: var(--accent); background: var(--void); padding: 0 12px; transition: color .9s linear; }
   @media (max-width: 560px) { .rp-chapter { padding: 0 20px 52px; } .rp-div { padding: 0 20px; } }
   .rp-head { position: relative; padding-top: 6px; margin-bottom: 22px; }
   .rp-bignum { position: absolute; right: 0; top: -28px; font-family: var(--serif); font-weight: 300; font-size: 120px; line-height: 1;
-    color: rgba(232,235,242,.045); pointer-events: none; user-select: none; }
-  .rp-eye { font-family: var(--label); font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--accent); transition: color .9s linear; }
+    color: color-mix(in srgb, var(--color-paper) 4.5%, transparent); pointer-events: none; user-select: none; }
+  .rp-eye { font-family: var(--label); font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--accent); transition: color .9s linear; }
   .rp-head h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(27px, 4vw, 40px); line-height: 1.08; margin-top: 8px; letter-spacing: -.02em; text-wrap: balance; }
   .rp-rule { height: 1px; background: linear-gradient(90deg, var(--accent), transparent); margin-top: 16px; opacity: .6; }
   .rp-lede { font-family: var(--serif); font-weight: 400; font-size: 18.5px; line-height: 1.5; margin-top: 16px; max-width: 52ch; }
 
-  .rp-prose { font-size: 15px; line-height: 1.74; color: rgba(232,235,242,.88); max-width: 64ch; }
+  .rp-prose { font-size: 15px; line-height: 1.74; color: color-mix(in srgb, var(--color-paper) 88%, transparent); max-width: 64ch; }
   .rp-prose p + p { margin-top: 15px; }
   .rp-lblk { margin-top: 24px; max-width: 64ch; }
   .rp-lblk > .rp-lab { display: block; margin-bottom: 7px; }
-  .rp-lab { font-family: var(--label); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); transition: color .9s linear; }
+  .rp-lab { font-family: var(--label); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); transition: color .9s linear; }
   /* Upright, by the pass-two lock: the closing and the pull quotes are read, not sighed. */
   .rp-pull { margin-top: 26px; max-width: 58ch; font-family: var(--serif); font-style: normal; font-size: 18px; line-height: 1.5;
     color: var(--accent); border-top: 1px solid var(--line-soft); padding-top: 18px; transition: color .9s linear; }
-  .rp-box { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 17px 19px; margin-top: 15px; max-width: 64ch; }
+  .rp-box { border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--color-surface) 72%, transparent); padding: 17px 19px; margin-top: 15px; max-width: 64ch; }
   .rp-box h3 { font-family: var(--serif); font-weight: 400; font-size: 18px; letter-spacing: -.02em; }
-  .rp-box .tn { font-size: 14.5px; line-height: 1.65; color: rgba(232,235,242,.84); margin-top: 7px; }
+  .rp-box .tn { font-size: 14.5px; line-height: 1.65; color: color-mix(in srgb, var(--color-paper) 84%, transparent); margin-top: 7px; }
   .rp-box .iv { margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--line-soft); font-size: 14px; line-height: 1.6; color: var(--accent); transition: color .9s linear; }
   .rp-actions { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line-soft); max-width: 64ch; }
   .rp-actions ul { display: grid; gap: 8px; margin-top: 8px; }
-  .rp-actions li { position: relative; padding-left: 16px; font-size: 14px; line-height: 1.55; color: rgba(232,235,242,.84); }
+  .rp-actions li { position: relative; padding-left: 16px; font-size: 14px; line-height: 1.55; color: color-mix(in srgb, var(--color-paper) 84%, transparent); }
   .rp-actions li::before { content: "·"; position: absolute; left: 2px; color: var(--accent); }
   .rp-actions .why { color: var(--paper-dim); }
   .rp-cols { display: grid; gap: 22px; }
@@ -518,7 +265,7 @@
   }
 
   /* Kept in sentence case: it reads "4th house · Virgo", not a label shouting. */
-  .rp-kicker { font-family: var(--label); font-size: 10.5px; letter-spacing: .12em; color: var(--sky); }
+  .rp-kicker { font-family: var(--label); font-size: 11px; letter-spacing: .12em; color: var(--sky); }
 
   /* --- the closing: dawn in the viewport's top right corner, --p set from the section's position.
      The Sun and its light live on the fixed layer, under the chapter body and over the sky, so only the
@@ -532,7 +279,7 @@
   .rp-dawn .sun img { display: block; width: 100%; height: 100%; }
   .rp-dawn .warm {
     position: fixed; inset: 3.5rem 0 0; z-index: 1; pointer-events: none; opacity: calc(var(--p) * .85);
-    background: radial-gradient(120% 90% at 92% 2%, rgba(226,164,86,.30) 0%, rgba(184,120,70,.14) 34%, rgba(6,8,12,0) 68%);
+    background: radial-gradient(120% 90% at 92% 2%, color-mix(in srgb, var(--color-brass) 30%, transparent) 0%, color-mix(in srgb, var(--color-brass-dim) 14%, transparent) 34%, color-mix(in srgb, var(--color-void) 0%, transparent) 68%);
   }
   .rp-dawn.off .sun, .rp-dawn.off .warm { display: none; }
   .rp-dawn > .body { position: relative; z-index: 2; }
@@ -544,25 +291,22 @@
 
   /* --- skeletons: a chapter still writing looks like it (ADR-47) --- */
   .rp-skel { display: grid; gap: 12px; max-width: 64ch; animation: rp-breath 3.2s var(--ease) infinite; }
-  .rp-skel i { display: block; height: 13px; border-radius: 7px; background: rgba(232,235,242,.07); position: relative; overflow: hidden; }
+  .rp-skel i { display: block; height: 13px; border-radius: 7px; background: color-mix(in srgb, var(--color-paper) 7%, transparent); position: relative; overflow: hidden; }
   .rp-skel i::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(232,235,242,.12), transparent); animation: rp-sweep 2.6s linear infinite; }
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-paper) 12%, transparent), transparent); animation: rp-sweep 2.6s linear infinite; }
   .rp-skel i:nth-child(2) { width: 92%; } .rp-skel i:nth-child(3) { width: 96%; } .rp-skel i:nth-child(4) { width: 78%; } .rp-skel i:nth-child(5) { width: 58%; }
-  .rp-skel .cap { font-family: var(--label); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .rp-skel .cap { font-family: var(--label); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   @keyframes rp-sweep { to { transform: translateX(100%); } }
   @keyframes rp-breath { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .rp-skel { animation: none; } .rp-skel i::after { animation: none; display: none; } }
 
   /* --- the opening overlay: the story, one percentage, one label, the door (ADR-47) --- */
   .rp-open { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 3.5rem 16px 24px;
-    background: rgba(6,8,12,.55); transition: opacity .35s var(--ease), visibility .35s; }
+    background: color-mix(in srgb, var(--color-void) 55%, transparent); transition: opacity var(--dur-base) var(--ease), visibility var(--dur-base); }
   .rp-open.away { opacity: 0; visibility: hidden; pointer-events: none; }
   .rp-open .pct { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 28px; color: var(--paper); line-height: 1; }
-  .rp-open .lab { font-family: var(--label); font-size: 10.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
-  .rp-open .door { display: grid; justify-items: center; gap: 8px; margin-top: 4px; animation: rp-rise .7s var(--ease) both; }
-  .rp-open .door button { font-family: var(--label); font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--paper);
-    background: rgba(92,107,192,.22); border: 1px solid rgba(92,107,192,.55); border-radius: 999px; padding: 12px 22px; min-height: 44px; cursor: pointer; }
-  .rp-open .door button:hover, .rp-open .door button:focus-visible { background: var(--indigo); outline: none; }
+  .rp-open .lab { font-family: var(--label); font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
+  .rp-open .door { display: grid; justify-items: center; gap: 8px; margin-top: 4px; animation: rp-rise var(--dur-slow) var(--ease) both; }
   .rp-open .door small { font-size: 12.5px; color: var(--paper-dim); }
   .rp-open .fail { font-size: 14px; color: var(--paper-dim); text-align: center; max-width: 44ch; }
   /* --- the loading grid (ADR-351): every slot at its share of the frame's height, the same on every device --- */
@@ -570,92 +314,92 @@
   .lf-wrap { height: 100%; display: flex; flex-direction: column; align-items: center; }
   .lf { position: relative; flex: 1 1 0; min-height: 0; width: 100%; max-width: 1000px; container-type: size; overflow-x: clip; padding: 0 16px; }
   .lf > * { position: absolute; left: 16px; right: 16px; margin: 0; text-align: center; min-width: 0; }
-  .lf-counter { top: 5%; height: 3%; display: flex; align-items: center; justify-content: flex-start; text-align: left; font-family: var(--label); font-size: min(11px, 2.2cqh);
-    letter-spacing: .24em; text-transform: uppercase; color: hsl(var(--brass)); white-space: nowrap; overflow: hidden; }
-  .lf-title { top: 8%; height: 8%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-family: var(--serif); font-weight: 400;
-    font-size: min(26px, 3.4cqh); line-height: 1.15; color: var(--paper); overflow: hidden; }
+  .lf-counter { top: 5%; height: 3%; display: flex; align-items: center; justify-content: flex-start; text-align: left; font-family: var(--font-label); font-size: min(11px, 2.2cqh);
+    letter-spacing: .24em; text-transform: uppercase; color: var(--color-brass); white-space: nowrap; overflow: hidden; }
+  .lf-title { top: 8%; height: 8%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-family: var(--font-display); font-weight: 400;
+    font-size: min(26px, 3.4cqh); line-height: 1.15; color: var(--color-paper); overflow: hidden; }
   .lf-title, .lf-subtitle { overflow-wrap: anywhere; text-align: left; }
   .lf-subtitle { top: 16%; height: 6%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: min(15px, 2.2cqh); line-height: 1.3;
-    color: var(--paper-dim); overflow: hidden; }
+    color: var(--color-paper-dim); overflow: hidden; }
   .lf-stage { top: 24%; height: 42%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .lf-stage > * { max-width: 100%; max-height: 100%; }
   .lf-stage > svg { width: 100%; height: 100%; }
   .lf-detail { top: 68%; height: 16%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden;
-    font-size: 14px; color: var(--paper-dim); }
+    font-size: 14px; color: var(--color-paper-dim); }
   .lf-pct { top: 86%; height: 4%; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; overflow: hidden; }
   .lf-pct .pct { font-size: min(18px, 3.4cqh); }
-  .lf-pct .lab { font-size: 10px; letter-spacing: .2em; }
-  .lf-door { top: 91%; height: 6%; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; column-gap: 14px; row-gap: 4px; overflow: visible; animation: rp-rise .7s var(--ease) both; }
+  .lf-pct .lab { font-size: 11px; letter-spacing: .2em; }
+  .lf-door { top: 91%; height: 6%; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; column-gap: 14px; row-gap: 4px; overflow: visible; animation: rp-rise var(--dur-slow) var(--ease) both; }
   .lf-door .door { display: contents; animation: none; }
   .lf-door .door small { align-self: center; }
   /* Under the button the small line needs about 22px more than the door's share holds, so a short narrow frame drops it. */
   @container (max-width: 560px) and (max-height: 760px) { .lf-door .door small { display: none; } }
   @keyframes rp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .rp-open { transition: none; } .rp-open .door, .lf-door { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .rp-open .door, .lf-door { animation: none; } }
 
   /* --- the marks of a horizon pass: a revised sentence and an added paragraph (ADR-35) --- */
   .rp-rev { background: none; color: inherit; border-bottom: 1.5px solid var(--sky); cursor: pointer; padding: 0; font: inherit; text-align: inherit; }
-  .rp-rev .tag { font-family: var(--label); font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--sky); margin-left: 4px; vertical-align: super; }
-  .rp-rev:hover, .rp-rev.open { background: rgba(212,176,106,.12); }
+  .rp-rev .tag { font-family: var(--label); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--sky); margin-left: 4px; vertical-align: super; }
+  .rp-rev:hover, .rp-rev.open { background: color-mix(in srgb, var(--color-brass) 12%, transparent); }
   .rp-added { position: relative; border-left: 2px solid var(--sky); padding-left: 14px; margin-top: 15px; }
-  .rp-added .kick { display: block; font-family: var(--label); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); margin-bottom: 6px; }
+  .rp-added .kick { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); margin-bottom: 6px; }
   .rp-card .before { font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.5; color: var(--paper-dim); text-decoration: line-through; }
   .rp-card .now { font-family: var(--serif); font-size: 14px; line-height: 1.5; margin-top: 6px; padding-bottom: 11px; border-bottom: 1px solid var(--line-soft); }
   .rp-card .chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 11px; }
-  .rp-card .chip { font-family: var(--label); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+  .rp-card .chip { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
     border: 1px solid var(--line); color: var(--paper-dim); }
-  .rp-card .chip.angle, .rp-card .chip.lot { color: var(--sky); border-color: rgba(212,176,106,.4); }
-  .rp-ledger { border: 1px solid rgba(212,176,106,.32); border-radius: 14px; background: rgba(17,22,31,.72); padding: 17px 19px; margin: 0 auto 28px; max-width: 880px; }
+  .rp-card .chip.angle, .rp-card .chip.lot { color: var(--sky); border-color: color-mix(in srgb, var(--color-brass) 40%, transparent); }
+  .rp-ledger { border: 1px solid color-mix(in srgb, var(--color-brass) 32%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--color-surface) 72%, transparent); padding: 17px 19px; margin: 0 auto 28px; max-width: 880px; }
   .rp-ledger .row { display: flex; flex-wrap: wrap; gap: 8px 22px; font-family: var(--mono); font-size: 12px; color: var(--paper-dim); font-variant-numeric: tabular-nums; }
   .rp-ledger .row b { color: var(--paper); font-weight: 500; }
-  .rp-ledger .toggle { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--label); font-size: 10px; letter-spacing: .2em;
+  .rp-ledger .toggle { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--label); font-size: 11px; letter-spacing: .2em;
     text-transform: uppercase; color: var(--sky); background: none; border: 0; cursor: pointer; padding: 0; min-height: 32px; }
   .rp-root.marks-off .rp-rev { border-bottom: 0; cursor: text; } .rp-root.marks-off .rp-rev .tag { display: none; }
   .rp-root.marks-off .rp-added { border-left: 0; padding-left: 0; } .rp-root.marks-off .rp-added .kick { display: none; }
 
   /* --- the link cards under the two charts (ADR-43, ADR-97) --- */
-  .rp-link { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 15px 17px; }
+  .rp-link { border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--color-surface) 72%, transparent); padding: 15px 17px; }
   .rp-link h4 { font-family: var(--serif); font-weight: 400; font-size: 17px; letter-spacing: -.02em; margin-top: 6px; }
-  .rp-link p { font-size: 14px; line-height: 1.6; color: rgba(232,235,242,.84); margin-top: 7px; }
+  .rp-link p { font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-paper) 84%, transparent); margin-top: 7px; }
 
   /* --- chapter rail and the phone bar --- */
   .rp-rail { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 6; display: grid; gap: 9px; }
   .rp-rail button { display: flex; align-items: center; gap: 9px; color: var(--muted); font-family: var(--label);
-    font-size: 9px; letter-spacing: .16em; text-transform: uppercase; background: none; border: 0; padding: 2px 0; cursor: pointer; }
-  .rp-rail button i { width: 16px; height: 2px; background: var(--line); border-radius: 2px; display: block; transition: width .3s var(--ease), background .3s; }
-  .rp-rail button span { opacity: 0; transition: opacity .25s; white-space: nowrap; }
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase; background: none; border: 0; padding: 2px 0; cursor: pointer; }
+  .rp-rail button i { width: 16px; height: 2px; background: var(--line); border-radius: 2px; display: block; transition: width var(--dur-base) var(--ease), background var(--dur-base) var(--ease); }
+  .rp-rail button span { opacity: 0; transition: opacity var(--dur-base) var(--ease); white-space: nowrap; }
   .rp-rail:hover button span, .rp-rail:focus-within button span { opacity: 1; }
   .rp-rail button.on { color: var(--paper); }
   .rp-rail button.on i { width: 30px; background: var(--accent); }
   .rp-rail button.on span { opacity: 1; }
   .rp-mobbar { display: none; position: fixed; left: 0; right: 0; top: 3.5rem; z-index: 6; padding: 9px 16px; gap: 10px; align-items: center;
-    background: rgba(6,8,12,.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft); transition: opacity .3s; }
-  .rp-mobbar .cur { font-family: var(--label); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+    background: color-mix(in srgb, var(--color-void) 86%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft); transition: opacity var(--dur-base) var(--ease); }
+  .rp-mobbar .cur { font-family: var(--label); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
   .rp-mobbar .bar { flex: 1; height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
   .rp-mobbar .bar i { display: block; height: 100%; background: var(--accent); width: 0; }
   @media (max-width: 960px) { .rp-rail { display: none; } .rp-mobbar { display: flex; } }
 
   /* --- citations --- */
-  .rp-cite { font-family: var(--label); font-size: 9.5px; font-weight: 600; color: var(--indigo-lt);
-    background: rgba(92,107,192,.16); border: 1px solid rgba(92,107,192,.3); border-radius: 4px;
+  .rp-cite { font-family: var(--label); font-size: 11px; font-weight: 600; color: var(--indigo-lt);
+    background: color-mix(in srgb, var(--color-indigo) 16%, transparent); border: 1px solid color-mix(in srgb, var(--color-indigo) 30%, transparent); border-radius: 4px;
     padding: 1px 3.5px; margin-left: 2px; cursor: pointer; vertical-align: super; line-height: 1; }
-  .rp-cite:hover, .rp-cite.open { background: var(--indigo); color: #fff; }
-  mark.rp-claimed { background: none; color: inherit; border-bottom: 1px solid rgba(92,107,192,.26); }
+  .rp-cite:hover, .rp-cite.open { background: var(--indigo); color: var(--color-on-indigo); }
+  mark.rp-claimed { background: none; color: inherit; border-bottom: 1px solid color-mix(in srgb, var(--color-indigo) 26%, transparent); }
   .rp-card { position: fixed; z-index: 200; width: min(344px, calc(100vw - 32px)); background: var(--raised);
-    border: 1px solid var(--line); border-radius: 13px; box-shadow: 0 18px 44px rgba(0,0,0,.65); padding: 15px 16px; color: var(--paper); }
+    border: 1px solid var(--line); border-radius: 13px; box-shadow: var(--shadow-raised); padding: 15px 16px; color: var(--paper); }
   .rp-card .q { font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.5; padding-bottom: 11px; border-bottom: 1px solid var(--line-soft); }
   .rp-card .ev { display: grid; gap: 3px; padding-top: 11px; }
   .rp-card .ev + .ev { margin-top: 9px; border-top: 1px solid var(--line-soft); }
   .rp-card .ev .t { display: flex; gap: 8px; align-items: baseline; }
-  .rp-card .ev .k { font-family: var(--label); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; flex: none; }
-  .rp-card .ev .k.placement { color: var(--indigo-lt); } .rp-card .ev .k.aspect { color: #63A8C4; } .rp-card .ev .k.ruler { color: var(--sky); }
-  .rp-card .ev .k.sect { color: var(--violet); } .rp-card .ev .k.lot { color: #7FB08B; }
+  .rp-card .ev .k { font-family: var(--label); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; flex: none; }
+  .rp-card .ev .k.placement { color: var(--indigo-lt); } .rp-card .ev .k.aspect { color: var(--color-line-easy); } .rp-card .ev .k.ruler { color: var(--sky); }
+  .rp-card .ev .k.sect { color: var(--violet); } .rp-card .ev .k.lot { color: var(--color-element-earth); }
   /* An angle is measured geometry, so it takes the brass. */
   .rp-card .ev .k.angle { color: var(--sky); }
   .rp-card .ev .l { font-size: 13px; font-weight: 500; }
   .rp-card .ev .w { font-size: 12.5px; color: var(--paper-dim); line-height: 1.5; }
   .rp-card .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
-    font-family: var(--label); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--paper-dim); }
+    font-family: var(--label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--paper-dim); }
   @media (max-width: 720px), (pointer: coarse) {
     .rp-card { left: 0 !important; right: 0; bottom: 0 !important; top: auto !important; width: 100%; max-height: 70vh; overflow-y: auto;
       border-radius: 16px 16px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
@@ -665,17 +409,13 @@
 @media print {
   .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue, .rp-open, .rp-skel { display: none !important; }
   .rp-dawn .sun, .rp-dawn .warm { display: none !important; }
-  .rp-rev { border-bottom: 1.5px solid #8A7343; } .rp-added { border-left-color: #8A7343; } .rp-ledger { border-color: #8A7343; }
+  .rp-rev { border-bottom: 1.5px solid var(--color-brass-dim); } .rp-added { border-left-color: var(--color-brass-dim); } .rp-ledger { border-color: var(--color-brass-dim); }
   .rp-hero { height: auto; min-height: 0; }
   .rp-root, .rp-body { background: white; color: black; }
   .rp-prose, .rp-box .tn, .rp-lede, .rp-head h2, .rp-actions li, .rp-legend .v { color: black; }
   /* Paper has one column and no sticky anything. */
   .rp-two { display: block; }
   .rp-two > .side { position: static; margin-top: 18px; }
-}
-
-/* Print styles for PDF export */
-@media print {
   .no-print { display: none !important; }
   .print-page-break { page-break-before: always; }
   .print-expand { display: block !important; }

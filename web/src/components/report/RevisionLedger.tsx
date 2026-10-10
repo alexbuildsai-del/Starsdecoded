@@ -4,6 +4,7 @@
  * and the toggle "Show what changed", on at first visit and remembered per
  * browser. The counts are the report's own; nothing is recounted here.
  */
+import { TextButton } from "@/ds/atoms/TextButton";
 import type { ChartData, HorizonPass, Interpretation } from "@/types/chart";
 
 // MB-43 provisional: one localStorage key per report, no consent gate, as the explorer hint.
@@ -50,7 +51,7 @@ export function RevisionLedger({
 
   return (
     <aside className="rp-ledger" aria-label="What your birth time changed">
-      <p className="font-label text-[10px] tracking-[0.24em] uppercase text-brass/85">Birth time added · {date}</p>
+      <p className="font-label text-kicker uppercase text-brass">Birth time added · {date}</p>
       <div className="row mt-3">
         {asc && <span>Rising <b>{asc.degree.toFixed(1)}° {asc.sign}</b></span>}
         {mc && <span>Midheaven <b>{mc.degree.toFixed(1)}° {mc.sign}</b></span>}
@@ -62,17 +63,17 @@ export function RevisionLedger({
       </div>
       {perChapter.length > 0 && (
         <div className="row mt-2">
-          <span className="text-[var(--muted)]">Per chapter</span>
+          <span className="text-muted">Per chapter</span>
           {perChapter.map((line) => <span key={line}>{line}</span>)}
         </div>
       )}
       <div className="row mt-2">
         <span>Old version <b>saved</b> · compare any time</span>
       </div>
-      <button type="button" className="toggle no-print" aria-pressed={shown} onClick={() => onToggle(!shown)}>
-        <span aria-hidden className={`inline-block h-3 w-3 rounded-sm border border-brass ${shown ? "bg-brass" : ""}`} />
-        Show what changed
-      </button>
+      <TextButton className="mt-3 gap-2 text-brass no-print" aria-pressed={shown} onClick={() => onToggle(!shown)}>
+        <span aria-hidden className={`inline-block size-3 rounded-inner border border-brass ${shown ? "bg-brass" : ""}`} />
+        <span className="font-label text-label uppercase">Show what changed</span>
+      </TextButton>
     </aside>
   );
 }

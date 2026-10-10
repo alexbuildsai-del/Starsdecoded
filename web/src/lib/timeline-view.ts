@@ -7,6 +7,7 @@
  * English month names and never a clock time.
  */
 import type { Tone } from "@workspace/engine";
+import type { Tone as DotTone } from "@/ds/atoms/ToneDot";
 import type { DateOrder } from "@/lib/date-entry";
 
 /** One contact as its card shows it, the strings built by `contactView` for one reader's day and date order. */
@@ -51,6 +52,12 @@ export const TONE_MEANINGS: Readonly<Record<Tone, string>> = {
 export function toneClass(tone: Tone): string {
   return `sd-tone-${tone}`;
 }
+
+/** ToneDot's name for each tone id; the ids stay intense, mixed and easy (MB-188). */
+export const DOT_TONE: Readonly<Record<Tone, DotTone>> = { intense: "heavy", mixed: "mixed", easy: "light" };
+
+/** The tone's fill for a bar or a stretch, written whole so Tailwind sees every class. */
+export const TONE_FILL: Readonly<Record<Tone, string>> = { intense: "bg-rose", mixed: "bg-paper-dim", easy: "bg-teal" };
 
 /** What a tap on a contact or a cycle opens: its reading. The letter's link says the same (Timeline's weekly letter). */
 export const READ_LINE = "Read more";

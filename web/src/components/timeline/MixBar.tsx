@@ -5,15 +5,15 @@
  * score (reading 17). A quiet day draws no bar; the words around it say so.
  */
 import type { Tone } from "@workspace/engine";
-import { mixLabel, mixOf, toneClass } from "@/lib/timeline-view";
+import { TONE_FILL, mixLabel, mixOf } from "@/lib/timeline-view";
 
 export function MixBar({ tones }: { tones: readonly Tone[] }) {
   const mix = mixOf(tones);
   if (mix.length === 0) return null;
   return (
-    <div role="img" aria-label={mixLabel(tones)} className="flex h-2 w-full min-w-0 gap-[3px] overflow-hidden rounded-[4px]">
+    <div role="img" aria-label={mixLabel(tones)} className="flex h-2 w-full min-w-0 gap-[3px] overflow-hidden rounded-inner">
       {mix.map(({ tone, count }) => (
-        <span key={tone} className={`${toneClass(tone)} block h-full min-w-0 bg-[var(--sd-tone)]`} style={{ flex: `${count} 1 0%` }} />
+        <span key={tone} className={`${TONE_FILL[tone]} block h-full min-w-0`} style={{ flex: `${count} 1 0%` }} />
       ))}
     </div>
   );

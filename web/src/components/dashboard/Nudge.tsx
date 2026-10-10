@@ -12,12 +12,11 @@ export interface NudgeProps {
   nudge: NudgeData;
 }
 
-// The tokens' own paper and paper-dim, since a nudge draws on the dashboard, outside the report's token scope.
 export function Nudge({ nudge }: NudgeProps) {
   return (
-    <p className="grid gap-0.5 text-[13px] leading-[1.45]">
-      <span className="text-[#E8EBF2]">{nudge.line}</span>
-      <span className="text-[#AEB6C6]">{nudge.detail}</span>
+    <p className="grid gap-0.5 text-small">
+      <span className="text-paper">{nudge.line}</span>
+      <span className="text-paper-dim">{nudge.detail}</span>
     </p>
   );
 }

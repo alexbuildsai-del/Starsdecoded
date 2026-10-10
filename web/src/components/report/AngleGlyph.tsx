@@ -4,6 +4,8 @@
  * east for the Ascendant, up for the Midheaven. An angle is a point on the
  * horizon and never a body, so it is never a render.
  */
+import { tokens } from "@workspace/design";
+
 export type AngleKey = "ascendant" | "midheaven";
 
 /**
@@ -59,7 +61,7 @@ export function AngleGlyph({ angle, size = 36, className }: AngleGlyphProps) {
       width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden className={className}
       data-angle={angle}
     >
-      <AngleGlyphShape x={c} y={c} r={angleGlyphRadius(size, 1.5)} direction={TICK_DIRECTION[angle]} stroke="hsl(var(--brass))" strokeWidth={1.5} />
+      <AngleGlyphShape x={c} y={c} r={angleGlyphRadius(size, 1.5)} direction={TICK_DIRECTION[angle]} stroke={tokens.color.brass} strokeWidth={1.5} />
     </svg>
   );
 }

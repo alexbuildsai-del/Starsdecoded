@@ -43,24 +43,24 @@ const ART_TEXT = "min-[1001px]:col-start-1 min-[1001px]:row-start-1 min-[1001px]
 const ART_FIGURE = "w-full max-w-[480px] justify-self-center self-center min-[1001px]:col-start-2 min-[1001px]:row-span-2 min-[1001px]:row-start-1";
 const ART_CONTROL = "min-[1001px]:col-start-1 min-[1001px]:row-start-2 min-[1001px]:self-start";
 const PROSE =
-  "grid content-start gap-4 [&>p]:max-w-[62ch] [&>p]:text-[17px] [&>p]:leading-[1.75] [&>p]:text-[color:var(--paper-dim)] max-[760px]:[&>p]:text-[16px]";
-const H2 = "text-[clamp(26px,2.6vw,32px)] leading-[1.15]";
+  "grid content-start gap-4 [&>p]:max-w-[62ch] [&>p]:text-card-title-sm [&>p]:leading-[1.75] [&>p]:text-paper-dim max-[760px]:[&>p]:text-prose";
+const H2 = "text-sheet-title md:text-page-title leading-[1.15]";
 // A browser draws a range's empty track light against an indigo accent, which a dark-only page cannot take, so the track
 // and thumb are drawn in the site's colours; the box is tall enough for a thumb on a phone.
 const RANGE =
   "h-8 w-full cursor-pointer appearance-none bg-transparent " +
-  "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-[rgba(232,235,242,.16)] " +
-  "[&::-webkit-slider-thumb]:mt-[-7px] [&::-webkit-slider-thumb]:box-border [&::-webkit-slider-thumb]:size-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-solid [&::-webkit-slider-thumb]:border-[color:var(--indigo-lt)] [&::-webkit-slider-thumb]:bg-[color:var(--indigo)] " +
-  "[&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-[rgba(232,235,242,.16)] " +
-  "[&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-[18px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-solid [&::-moz-range-thumb]:border-[color:var(--indigo-lt)] [&::-moz-range-thumb]:bg-[color:var(--indigo)]";
+  "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-paper/16 " +
+  "[&::-webkit-slider-thumb]:mt-[-7px] [&::-webkit-slider-thumb]:box-border [&::-webkit-slider-thumb]:size-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-solid [&::-webkit-slider-thumb]:border-indigo-lt [&::-webkit-slider-thumb]:bg-indigo " +
+  "[&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-paper/16 " +
+  "[&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-[18px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-solid [&::-moz-range-thumb]:border-indigo-lt [&::-moz-range-thumb]:bg-indigo";
 
 // R11-17's plate tokens and frame are private to the home section, so the page draws its plates with the same values.
 const PLATE_TOKENS = {
   "--sky": "var(--sd-brass)",
-  "--sky-dim": "color-mix(in srgb, var(--sd-brass) 65%, #000)",
+  "--sky-dim": "color-mix(in srgb, var(--sd-brass) 65%, var(--color-void))",
 } as CSSProperties;
 const PLATE =
-  "grid min-w-0 content-start justify-items-center gap-[9px] rounded-[16px] border border-[var(--line)] bg-[rgba(17,22,31,.6)] px-[14px] py-4 text-center";
+  "grid min-w-0 content-start justify-items-center gap-[9px] rounded-card border border-line bg-surface/60 px-[14px] py-4 text-center";
 
 let sampleRose: RiseWindow | null | undefined;
 
@@ -166,7 +166,7 @@ function DayControls({ town, minute, onMinute, shown }: { town: Town | null; min
   return (
     <div className="grid min-h-[268px] content-start gap-4">
       <div className="grid gap-2.5">
-        <label htmlFor="bt-day" className="sd-mono text-[11px] uppercase tracking-[.14em] text-[color:var(--paper-dim)]">
+        <label htmlFor="bt-day" className="sd-mono text-kicker uppercase tracking-[.14em] text-paper-dim">
           {`${formatUpdated(town.day.at.birthDate)} · ${said} · over ${town.place.city}`}
         </label>
         <input
@@ -182,13 +182,13 @@ function DayControls({ town, minute, onMinute, shown }: { town: Town | null; min
         />
       </div>
       {shown ? (
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px] gap-y-2.5 rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.45)] p-4">
+        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px] gap-y-2.5 rounded-card border border-line bg-surface/45 p-4">
           {dayStats(town.day, shown.sky.chart, clockOf(shown.minute), clock).map((row) => (
             <div key={row.label} className="contents">
-              <dt className="[font:500_10.5px/1.6_var(--f-label)] uppercase tracking-[.16em] text-[color:var(--sd-muted)]">{row.label}</dt>
-              <dd className="sd-mono m-0 text-[13px] leading-[1.55] text-[color:var(--paper)]">
+              <dt className="[font:500_10.5px/1.6_var(--f-label)] uppercase tracking-[.16em] text-muted">{row.label}</dt>
+              <dd className="sd-mono m-0 text-small leading-[1.55] text-paper">
                 {row.value}
-                {row.note ? <span className="block [font:400_13px/1.55_var(--f-body)] text-[color:var(--sd-muted)]">{row.note}</span> : null}
+                {row.note ? <span className="block [font:400_13px/1.55_var(--f-body)] text-muted">{row.note}</span> : null}
               </dd>
             </div>
           ))}
@@ -210,14 +210,14 @@ function Plates() {
       <ul className="m-0 grid list-none grid-cols-3 gap-[14px] p-0 max-[560px]:grid-cols-1">
         {plates.map((plate) => (
           <li key={plate.mode} className={PLATE}>
-            <p className="sd-eyebrow text-[10.5px] tracking-[.2em] text-[var(--paper)]">{MODE_LABELS[plate.mode].title}</p>
-            <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[color:var(--sd-muted)]">{plateAnswer(plate, clock)}</p>
+            <p className="sd-eyebrow text-caption tracking-[.2em] text-paper">{MODE_LABELS[plate.mode].title}</p>
+            <p className="min-h-[2.8em] text-caption leading-[1.4] text-muted">{plateAnswer(plate, clock)}</p>
             {/* The readout under the plate states its facts, so the drawing stays out of the reading order. */}
             <div aria-hidden="true">
               <TriadPlate chart={plate.chart} name={person.name} className="block h-auto w-[150px] max-w-full" />
             </div>
-            <p className="sd-mono text-[11px] uppercase leading-[1.5] tracking-[.04em] text-[color:var(--paper-dim)]">{plateReadout(plate, clock)}</p>
-            <p className="text-[12.5px] leading-[1.45] text-[color:var(--sd-muted)]">{plateLine(plate)}</p>
+            <p className="sd-mono text-kicker uppercase leading-[1.5] tracking-[.04em] text-paper-dim">{plateReadout(plate, clock)}</p>
+            <p className="text-caption leading-[1.45] text-muted">{plateLine(plate)}</p>
           </li>
         ))}
       </ul>
@@ -305,7 +305,7 @@ export default function LearnBirthTimePage() {
             <h2 id="find-h" className={H2}>
               Where to find your birth time
             </h2>
-            <ul className="m-0 grid max-w-[62ch] list-disc gap-2 pl-5 text-[17px] leading-[1.75] text-[color:var(--paper-dim)] marker:text-[color:var(--sd-muted)] max-[760px]:text-[16px] [&_b]:font-medium [&_b]:text-[color:var(--paper)]">
+            <ul className="m-0 grid max-w-[62ch] list-disc gap-2 pl-5 text-card-title-sm leading-[1.75] text-paper-dim marker:text-muted max-[760px]:text-prose [&_b]:font-medium [&_b]:text-paper">
               <li>
                 <b>Your full birth certificate.</b> In many countries it shows the time. In England and Wales it usually doesn't, unless
                 you're a twin.

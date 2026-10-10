@@ -19,6 +19,7 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/commerce": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/design": "workspace:*",
     "@workspace/engine": "workspace:*",
     "@workspace/integrations-openai-ai-server": "workspace:*",
     "@workspace/launch": "workspace:*",

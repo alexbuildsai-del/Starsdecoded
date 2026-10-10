@@ -6,7 +6,7 @@
  * for the slow ones, and Mercury and Venus pass Earth where Earth passes Mars and the rest, so it names neither a length
  * nor who passes whom. Its colours are the page's own tokens, and print sets dark ones, so a printed page shows it.
  */
-import { cn } from "@/lib/utils";
+import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
 
 export const RETROGRADE_LINE =
   "Retrograde. From Earth, a planet can look like it moves backwards for weeks or months. It doesn't really. It looks that way because Earth and the planet pass each other on their way round the Sun.";
@@ -17,16 +17,11 @@ export function RetrogradeLine({ className }: { className?: string }) {
   return (
     <p
       data-retrograde-line
-      className={cn("flex items-start gap-2 border-t border-[color:var(--line-soft,#1A202C)] pt-2.5 text-[13px] leading-normal text-[color:var(--paper-dim,#AEB6C6)] print:border-[#999] print:text-[#444]", className)}
+      className={`flex items-start gap-2 border-t border-line-soft pt-2.5 text-small text-paper-dim print:border-line-strong print:text-ground ${className ?? ""}`}
     >
-      <span
-        aria-hidden
-        className="mt-px inline-grid h-[18px] w-[18px] flex-none place-items-center rounded-[4px] border border-[#6B3A42] font-numeric text-[11px] font-semibold leading-none text-[#E3A3AD] print:border-[#9B4A57] print:text-[#9B4A57]"
-      >
-        R
-      </span>
+      <RetrogradeBadge size="small" className="mt-px" />
       <span>
-        <b className="font-medium text-[color:var(--paper,#E8EBF2)] print:text-black">{WORD}</b>
+        <b className="font-medium text-paper print:text-ground">{WORD}</b>
         {RETROGRADE_LINE.slice(WORD.length)}
       </span>
     </p>

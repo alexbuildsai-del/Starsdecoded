@@ -4,6 +4,7 @@ import { CREDIT_LINE } from "@workspace/commerce";
 import { BundleList } from "@/components/BundleList";
 import { usePrices } from "@/lib/prices";
 import { ReportCta } from "../cta";
+import { buttonStyles } from "@/ds/atoms/Button";
 
 const euros = (cents: number) => `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
 
@@ -62,7 +63,7 @@ export default function Pricing() {
         <div className="max-w-[620px]">
           <BundleList prices={items} />
           <div className="mt-6 flex">
-            <ReportCta source="pricing" className="sd-btn" />
+            <ReportCta source="pricing" className={buttonStyles()} />
           </div>
         </div>
       </div>

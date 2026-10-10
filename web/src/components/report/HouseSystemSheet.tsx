@@ -1,4 +1,5 @@
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/ds/organisms/Sheet";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 export const HOUSE_SYSTEM_PARAGRAPHS = [
   "A house system is the rule for dividing the sky into the twelve life areas. Your planets, signs, degrees and aspects are the same in every system. Only the house numbers change.",
@@ -10,17 +11,19 @@ export const HOUSE_SYSTEM_PARAGRAPHS = [
 export function HouseSystemSheet() {
   return (
     <Sheet>
-      <SheetTrigger className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-border">
-        Why do my houses differ from other sites?
+      <SheetTrigger asChild>
+        <TextButton className="text-muted underline decoration-line underline-offset-4 hover:text-paper">
+          <span className="font-label text-data-sm uppercase">Why do my houses differ from other sites?</span>
+        </TextButton>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent side="right" className="w-full overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="font-display text-xl">Whole sign houses</SheetTitle>
+          <SheetTitle>Whole sign houses</SheetTitle>
           <SheetDescription className="sr-only">
             How this report divides the sky into houses.
           </SheetDescription>
         </SheetHeader>
-        <div className="mt-4 space-y-3 text-sm leading-relaxed text-foreground/80">
+        <div className="mt-4 space-y-3 text-ui text-paper-dim">
           {HOUSE_SYSTEM_PARAGRAPHS.map((p, i) => <p key={i}>{p}</p>)}
         </div>
       </SheetContent>

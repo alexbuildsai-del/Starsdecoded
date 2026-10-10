@@ -13,7 +13,7 @@ import type {
 } from "@/types/chart";
 import { FactCard } from "@/components/FactCard";
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
-import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
+import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/ds/organisms/Checklist";
 import { ProseRail } from "@/components/report/ProseRail";
 import { itemKey } from "@/lib/workbook";
 

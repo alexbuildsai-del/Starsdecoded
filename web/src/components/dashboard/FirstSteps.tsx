@@ -11,7 +11,10 @@ import { useId, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { Check } from "lucide-react";
 import type { FirstSteps as Steps } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { ChoiceTile } from "@/ds/molecules/ChoiceTile";
 import { ShareWindow } from "@/components/share/ShareWindow";
 import { useHome } from "@/hooks/useHome";
 import { FIRST_STEPS, canPair, firstStepsView, type FirstStepAction, type FirstStepRow } from "@/lib/home-view";
@@ -26,46 +29,10 @@ export interface FirstStepsProps {
   onHide: () => void;
 }
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]";
-
-export interface ChoiceButtonProps {
-  title: string;
-  line: string;
-  /** The group's one main action, which differs by colour only (ADR-333). */
-  main?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}
-
-/**
- * One of two actions of the same weight, side by side at one width and height, a title over its small line: Make a
- * report's two and step 4's either/or are the same kind of thing, so they share one look.
- */
-export function ChoiceButton({ title, line, main = false, disabled = false, onClick }: ChoiceButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "grid min-h-14 min-w-0 content-center gap-0.5 rounded-[10px] border px-3 py-2.5 text-left transition duration-200",
-        "active:scale-[.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:cursor-default disabled:active:scale-100",
-        FOCUS,
-        main
-          ? "border-primary bg-primary text-white hover:brightness-110"
-          : "border-[#2E3646] bg-transparent text-[#E8EBF2] hover:border-[#9FA8DA]/55 disabled:hover:border-[#2E3646]",
-      )}
-    >
-      <span className={cn("font-label text-[13.5px] font-medium leading-tight", disabled && "text-[#AEB6C6]")}>{title}</span>
-      <span className={cn("text-xs leading-snug", main ? "text-white" : "text-[#9AA3B5]")}>{line}</span>
-    </button>
-  );
-}
-
 function Mark({ row }: { row: FirstStepRow }) {
   if (row.done) {
     return (
-      <span role="img" aria-label="Done" className="grid h-[26px] w-[26px] place-items-center rounded-full bg-[#3FA796] text-[#0D1117]">
+      <span role="img" aria-label="Done" className="grid size-[26px] place-items-center rounded-pill bg-teal text-ground">
         <Check aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.5} />
       </span>
     );
@@ -74,8 +41,8 @@ function Mark({ row }: { row: FirstStepRow }) {
     <span
       aria-hidden="true"
       className={cn(
-        "grid h-[26px] w-[26px] place-items-center rounded-full border font-numeric text-xs",
-        row.current ? "border-[#5C6BC0] text-[#9FA8DA]" : "border-[#3A4560] text-[#9AA3B5]",
+        "grid size-[26px] place-items-center rounded-pill border font-mono text-data tabular-nums",
+        row.current ? "border-indigo text-indigo-lt" : "border-line-strong text-paper-dim",
       )}
     >
       {row.step}
@@ -84,10 +51,10 @@ function Mark({ row }: { row: FirstStepRow }) {
 }
 
 function Action({ action, name, onAct }: { action: FirstStepAction; name: string; onAct: (action: FirstStepAction) => void }) {
-  if (action.kind === "after") return <span className="whitespace-nowrap text-xs text-[#9AA3B5]">{action.label}</span>;
+  if (action.kind === "after") return <span className="whitespace-nowrap text-caption text-paper-dim">{action.label}</span>;
   if (action.kind === "writing") {
     return (
-      <span className="inline-flex min-h-8 items-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-2.5 font-label text-xs font-medium text-[#9FA8DA]">
+      <span className="inline-flex min-h-8 items-center rounded-inner border border-indigo/35 bg-indigo-tint px-2.5 font-label text-caption text-indigo-lt">
         <StatusDots label={action.label} />
       </span>
     );
@@ -95,18 +62,9 @@ function Action({ action, name, onAct }: { action: FirstStepAction; name: string
   // The visible verb leads each name, so a voice command that says what it sees still finds the button.
   const named = action.kind === "start" ? "Start your Personal report" : action.kind === "share" ? `Share ${name}'s report` : undefined;
   return (
-    <button
-      type="button"
-      onClick={() => onAct(action)}
-      aria-label={named}
-      className={cn(
-        "inline-flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-md bg-primary px-3 font-label text-xs font-medium text-white",
-        "transition duration-200 hover:brightness-110 active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100",
-        FOCUS,
-      )}
-    >
+    <Button size="compact" onClick={() => onAct(action)} aria-label={named} className="shrink-0">
       {action.label}
-    </button>
+    </Button>
   );
 }
 
@@ -115,10 +73,10 @@ function Step({ row, name, onAct, children }: { row: FirstStepRow; name: string;
     <li className="grid grid-cols-[26px_minmax(0,1fr)_auto] items-start gap-x-3">
       <Mark row={row} />
       <div className="min-w-0 pt-[3px]">
-        <p className={cn("text-[14px] font-medium leading-snug [overflow-wrap:anywhere]", row.done || row.current ? "text-[#E8EBF2]" : "text-[#AEB6C6]")}>
+        <p className={cn("text-ui font-medium [overflow-wrap:anywhere]", row.done || row.current ? "text-paper" : "text-paper-dim")}>
           {row.title}
         </p>
-        {row.line && <p className="mt-0.5 text-[12.5px] leading-snug text-[#9AA3B5]">{row.line}</p>}
+        {row.line && <p className="mt-0.5 text-caption text-paper-dim">{row.line}</p>}
       </div>
       <div className="self-center">{row.action && <Action action={row.action} name={name} onAct={onAct} />}</div>
       {children && <div className="col-span-2 col-start-2 mt-2.5">{children}</div>}
@@ -146,25 +104,20 @@ export function FirstSteps({ steps, onAddSomeone, onMakePair, onHide }: FirstSte
   return (
     <section aria-labelledby={headingId} className="grid gap-3" data-testid="first-steps">
       <div className="flex items-center justify-between gap-3">
-        <h3 id={headingId} className="font-label text-[14px] font-medium leading-tight text-[#E8EBF2]">
+        <h3 id={headingId} className="font-label text-ui font-medium text-paper">
           {FIRST_STEPS.title}
         </h3>
         <div className="flex shrink-0 items-center gap-1">
-          <span className="font-numeric text-xs text-[#9AA3B5]">{view.count}</span>
-          <span aria-hidden="true" className="text-xs text-[#6B7385]">·</span>
-          <button
-            type="button"
-            onClick={onHide}
-            aria-label="Hide your first steps"
-            className={cn("-mr-1.5 inline-flex min-h-8 items-center rounded-md px-1.5 font-label text-xs font-medium text-[#9FA8DA] underline-offset-4 hover:text-[#E8EBF2] hover:underline", FOCUS)}
-          >
+          <span className="font-mono text-data tabular-nums text-paper-dim">{view.count}</span>
+          <span aria-hidden="true" className="text-caption text-muted">·</span>
+          <TextButton onClick={onHide} aria-label="Hide your first steps" className="-mr-1.5 px-1.5 font-label text-caption underline-offset-4 hover:underline">
             {FIRST_STEPS.hide}
-          </button>
+          </TextButton>
         </div>
       </div>
-      <div aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-[#242C3B]">
+      <div aria-hidden="true" className="h-1 overflow-hidden rounded-pill bg-line">
         <div
-          className="h-full rounded-full bg-[#5C6BC0] transition-[width] duration-500 ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none"
+          className="h-full rounded-pill bg-indigo transition-[width] duration-(--dur-slow) ease-[var(--ease)] motion-reduce:transition-none"
           style={{ width: `${view.done * 25}%` }}
         />
       </div>
@@ -173,14 +126,14 @@ export function FirstSteps({ steps, onAddSomeone, onMakePair, onHide }: FirstSte
           <Step key={row.step} row={row} name={name} onAct={act}>
             {row.step === 4 && view.either && (
               <div className="grid grid-cols-2 gap-2">
-                <ChoiceButton
+                <ChoiceTile
                   main={view.either.pair.ready}
                   disabled={!view.either.pair.ready}
                   title={view.either.pair.label}
                   line={view.either.pair.line}
                   onClick={() => view.either && onMakePair(view.either.pair.profileId)}
                 />
-                <ChoiceButton title={view.either.more.label} line={view.either.more.line} onClick={onAddSomeone} />
+                <ChoiceTile title={view.either.more.label} line={view.either.more.line} onClick={onAddSomeone} />
               </div>
             )}
           </Step>

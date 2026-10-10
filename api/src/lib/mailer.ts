@@ -19,9 +19,12 @@ import {
   renewalLine,
   type CatalogueItemId,
 } from "@workspace/commerce";
+import { tokens } from "@workspace/design";
 import { readAppEnv, type AppEnv } from "./appEnv.js";
 import { logger } from "./logger.js";
 import { publicWebBase } from "./waitlist.js";
+
+const { color, fontFamily, radius, type } = tokens;
 
 function getResendCredentials(): { apiKey: string; fromEmail: string } {
   const apiKey = process.env.RESEND_API_KEY?.trim();
@@ -55,8 +58,8 @@ function markImg(origin: string): string {
 function ctaButton(label: string, href: string): string {
   return `<table cellpadding="0" cellspacing="0" style="margin:0 auto 8px;">
     <tr>
-      <td style="background:linear-gradient(135deg,#5B6CF6 0%,#7C4DFF 100%);border-radius:8px;padding:14px 32px;text-align:center;">
-        <a href="${encodeURI(href)}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none;letter-spacing:0.02em;">${label}</a>
+      <td style="background:${color.indigo};border-radius:${radius.control};padding:14px 32px;text-align:center;">
+        <a href="${encodeURI(href)}" style="color:${color["on-indigo"]};font-size:${type.button.fontSize};font-weight:600;text-decoration:none;letter-spacing:0.02em;">${label}</a>
       </td>
     </tr>
   </table>`;
@@ -76,22 +79,22 @@ function shell(origin: string, bodyHtml: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stars Decoded</title>
 </head>
-<body style="margin:0;padding:0;background:#0D1117;font-family:'Inter',Arial,sans-serif;color:#E6EDF3;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0D1117;padding:40px 0;">
+<body style="margin:0;padding:0;background:${color.ground};font-family:${fontFamily.body};color:${color.paper};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${color.ground};padding:40px 0;">
     <tr>
       <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#161B22;border-radius:12px;overflow:hidden;">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:${color.surface};border-radius:${radius.card};overflow:hidden;">
           <tr>
-            <td style="background:#0B0F17;padding:32px 40px;text-align:center;">
-              ${markImg(origin)}<span style="font-size:26px;letter-spacing:0.02em;color:#fff;font-family:Georgia,serif;vertical-align:middle;">Stars Decoded</span>
+            <td style="background:${color.ground};padding:32px 40px;text-align:center;">
+              ${markImg(origin)}<span style="font-size:${type["sheet-title"].fontSize};letter-spacing:0.02em;color:${color.paper};font-family:${fontFamily.display};vertical-align:middle;">Stars Decoded</span>
             </td>
           </tr>
           <tr>
             <td>${bodyHtml}</td>
           </tr>
           <tr>
-            <td style="padding:20px 40px;border-top:1px solid #21262D;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#484F58;">© Stars Decoded</p>
+            <td style="padding:20px 40px;border-top:1px solid ${color.line};text-align:center;">
+              <p style="margin:0;font-size:${type.kicker.fontSize};color:${color.muted};">© Stars Decoded</p>
             </td>
           </tr>
         </table>
@@ -169,11 +172,11 @@ export function buildReportEmail(opts: SendReportEmailOptions): EmailContent {
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#C9D1D9;">Hi ${person},</p>` +
-        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> shared your report with you.</p>` +
-        `<p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#8B949E;">Sign in with this email and it's yours to keep.</p>` +
+      `<p style="margin:0 0 20px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};">Hi ${person},</p>` +
+        `<p style="margin:0 0 24px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};"><strong>${giver}</strong> shared your report with you.</p>` +
+        `<p style="margin:0 0 32px;font-size:${type.ui.fontSize};line-height:1.6;color:${color.muted};">Sign in with this email and it's yours to keep.</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Claim my report", claimUrl)}</div>` +
-        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This link is private to you and expires in 7 days.</p>`,
+        `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">This link is private to you and expires in 7 days.</p>`,
     ),
   );
   const text = textShell([
@@ -213,10 +216,10 @@ export function buildShareEmail(opts: SendShareEmailOptions): EmailContent {
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${sharer}</strong> shared their Personal report with you.</p>` +
-        `<p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#8B949E;">${signIn}</p>` +
+      `<p style="margin:0 0 24px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};"><strong>${sharer}</strong> shared their Personal report with you.</p>` +
+        `<p style="margin:0 0 32px;font-size:${type.ui.fontSize};line-height:1.6;color:${color.muted};">${signIn}</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Read the report", claimUrl)}</div>` +
-        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This link is private to you and expires in 7 days.</p>`,
+        `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">This link is private to you and expires in 7 days.</p>`,
     ),
   );
   const text = textShell([
@@ -265,12 +268,12 @@ export function buildPairEmail(opts: SendPairEmailOptions): EmailContent {
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.06em;color:#8B949E;text-transform:uppercase;">${giver} &amp; ${other}</p>` +
-        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> shared a Compatibility report with you${tail}</p>` +
+      `<p style="margin:0 0 8px;font-size:${type.small.fontSize};letter-spacing:0.06em;color:${color.muted};text-transform:uppercase;">${giver} &amp; ${other}</p>` +
+        `<p style="margin:0 0 24px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};"><strong>${giver}</strong> shared a Compatibility report with you${tail}</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton(cta, url)}</div>` +
         (granted
           ? ""
-          : `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This link is private to you and expires in 7 days.</p>`),
+          : `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">This link is private to you and expires in 7 days.</p>`),
     ),
   );
   const text = textShell(
@@ -313,18 +316,18 @@ export function buildGiftEmail(opts: SendGiftEmailOptions): EmailContent {
   // The locked copy (credit-loop.md "Two verbs" and Settled at lock 9), in ADR-170's name.
   const subject = `${giverFirstName} gave you a Personal report`;
   const noteHtml = trimmedNote
-    ? `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#E6EDF3;font-style:italic;">“${escapeHtml(trimmedNote)}”</p>`
+    ? `<p style="margin:0 0 28px;font-size:${type.ui.fontSize};line-height:1.6;color:${color.paper};font-style:italic;">“${escapeHtml(trimmedNote)}”</p>`
     : "";
   const noteText = trimmedNote ? [`"${trimmedNote}"`, ``] : [];
   const html = shell(
     origin,
     `<img src="${origin}/gift-cover.png" width="560" height="347" alt="A gift from ${giver}" style="display:block;width:100%;height:auto;border:0;">` +
       paddedSection(
-        `<p style="margin:0 0 12px;font-size:13px;letter-spacing:0.08em;color:#D4B06A;text-transform:uppercase;">A gift from ${giver}</p>` +
-          `<p style="margin:0 0 20px;font-size:22px;line-height:1.35;color:#F2F4F9;font-family:Georgia,serif;">Your Personal report, for ${recipient}</p>` +
+        `<p style="margin:0 0 12px;font-size:${type.small.fontSize};letter-spacing:0.08em;color:${color.brass};text-transform:uppercase;">A gift from ${giver}</p>` +
+          `<p style="margin:0 0 20px;font-size:${type["card-title"].fontSize};line-height:1.35;color:${color.paper};font-family:${fontFamily.display};">Your Personal report, for ${recipient}</p>` +
           noteHtml +
           `<div style="text-align:center;margin-bottom:24px;">${ctaButton("Claim my report", claimUrl)}</div>` +
-          `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This gift is open for 30 days.</p>`,
+          `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">This gift is open for 30 days.</p>`,
       ),
   );
   const text = textShell(
@@ -360,9 +363,9 @@ export function buildGiftReminderEmail(opts: SendGiftReminderOptions): EmailCont
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> gave you a Personal report. It's still waiting for you, ${recipient}.</p>` +
+      `<p style="margin:0 0 24px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};"><strong>${giver}</strong> gave you a Personal report. It's still waiting for you, ${recipient}.</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Claim my report", claimUrl)}</div>` +
-        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This gift is open for 30 days.</p>`,
+        `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">This gift is open for 30 days.</p>`,
     ),
   );
   const text = textShell([
@@ -397,13 +400,13 @@ export interface SendReceiptEmailOptions {
 
 function receiptRow(label: string, value: string): string {
   return `<tr>
-    <td style="padding:6px 16px 6px 0;font-size:14px;color:#8B949E;vertical-align:top;">${label}</td>
-    <td style="padding:6px 0;font-size:14px;color:#E6EDF3;vertical-align:top;">${value}</td>
+    <td style="padding:6px 16px 6px 0;font-size:${type.ui.fontSize};color:${color.muted};vertical-align:top;">${label}</td>
+    <td style="padding:6px 0;font-size:${type.ui.fontSize};color:${color.paper};vertical-align:top;">${value}</td>
   </tr>`;
 }
 
 function receiptHeading(label: string): string {
-  return `<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.06em;color:#8B949E;text-transform:uppercase;">${label}</p>`;
+  return `<p style="margin:0 0 8px;font-size:${type.small.fontSize};letter-spacing:0.06em;color:${color.muted};text-transform:uppercase;">${label}</p>`;
 }
 
 export function buildReceiptEmail(opts: SendReceiptEmailOptions): EmailContent {
@@ -432,17 +435,17 @@ export function buildReceiptEmail(opts: SendReceiptEmailOptions): EmailContent {
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;">Thank you for your purchase. This is your receipt.</p>` +
+      `<p style="margin:0 0 24px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};">Thank you for your purchase. This is your receipt.</p>` +
         `<table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">${rows}</table>` +
-        (plan && credits ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#8B949E;">${escapeHtml(credits)}</p>` : "") +
-        (renewal ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#C9D1D9;">${escapeHtml(renewal)}</p>` : "") +
+        (plan && credits ? `<p style="margin:0 0 24px;font-size:${type.ui.fontSize};line-height:1.6;color:${color.muted};">${escapeHtml(credits)}</p>` : "") +
+        (renewal ? `<p style="margin:0 0 24px;font-size:${type.ui.fontSize};line-height:1.6;color:${color["paper-dim"]};">${escapeHtml(renewal)}</p>` : "") +
         receiptHeading(agreedTo) +
-        `<p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#C9D1D9;">${escapeHtml(tick)}</p>` +
+        `<p style="margin:0 0 24px;font-size:${type.ui.fontSize};line-height:1.6;color:${color["paper-dim"]};">${escapeHtml(tick)}</p>` +
         receiptHeading(refunds) +
         REFUND_RULES.map(
-          (rule) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#C9D1D9;">${escapeHtml(rule)}</p>`,
+          (rule) => `<p style="margin:0 0 8px;font-size:${type.ui.fontSize};line-height:1.6;color:${color["paper-dim"]};">${escapeHtml(rule)}</p>`,
         ).join("") +
-        `<p style="margin:16px 0 32px;font-size:13px;line-height:1.6;color:#8B949E;">${stripeNote}</p>` +
+        `<p style="margin:16px 0 32px;font-size:${type.small.fontSize};line-height:1.6;color:${color.muted};">${stripeNote}</p>` +
         `<div style="text-align:center;">${ctaButton("See my History", historyUrl)}</div>`,
     ),
   );
@@ -495,10 +498,10 @@ export function buildWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): Ema
   const html = shell(
     publicWebBase(),
     paddedSection(
-      `<p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#C9D1D9;">${lede}</p>` +
+      `<p style="margin:0 0 32px;font-size:${type.prose.fontSize};line-height:1.6;color:${color["paper-dim"]};">${lede}</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Confirm my email", confirmUrl)}</div>` +
-        `<p style="margin:0 0 8px;font-size:12px;color:#6E7681;text-align:center;">${lastDay}</p>` +
-        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">${notYou}</p>`,
+        `<p style="margin:0 0 8px;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">${lastDay}</p>` +
+        `<p style="margin:0;font-size:${type.caption.fontSize};color:${color["label-dim"]};text-align:center;">${notYou}</p>`,
     ),
   );
   const text = textShell([lede, ``, `Confirm my email:`, confirmUrl, ``, lastDay, notYou]);
@@ -544,11 +547,11 @@ export function buildSpendPausedEmail(opts: SendSpendPausedOptions): EmailConten
   const subject = `New reports paused on ${where}`;
   const html = `<!DOCTYPE html>
 <html lang="en">
-<body style="margin:0;padding:24px;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1F2328;">
+<body style="margin:0;padding:24px;font-family:${fontFamily.body};font-size:${type.ui.fontSize};line-height:1.6;color:${color.ground};">
   <p style="margin:0 0 16px;">${lede}</p>
   <p style="margin:0 0 16px;">${figures.join("<br>")}</p>
   <p style="margin:0 0 16px;">${resume}</p>
-  <p style="margin:0;color:#57606A;">${lab}</p>
+  <p style="margin:0;color:${color["line-strong"]};">${lab}</p>
 </body>
 </html>`;
   const text = textShell([lede, ``, ...figures, ``, resume, lab]);

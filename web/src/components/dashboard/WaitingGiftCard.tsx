@@ -19,10 +19,11 @@ import {
   type Gift,
   type GiftCreated,
 } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { FIELD_LABEL, Input } from "@/ds/atoms/Input";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { InlineError } from "@/ds/molecules/Alert";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useToast } from "@/hooks/use-toast";
 import { refusalLine } from "@/lib/refusals";
@@ -35,16 +36,14 @@ export interface WaitingGiftCardProps {
   className?: string;
 }
 
-const TEAL = "#3FA796";
+const TEAL = "var(--color-teal)";
 // POST /gifts/{id}/remind answers 429 sooner than this after the last reminder.
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const DETAIL = "text-[13px] leading-[1.45] text-[var(--paper-dim)]";
-const SMALL = "min-h-[30px] px-[11px] font-label text-xs";
+const DETAIL = "text-small text-paper-dim";
 const PENDING =
-  "inline-flex min-h-[30px] items-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-[11px] font-label text-xs text-[var(--indigo-lt)]";
-const QUESTION = "text-[13.5px] leading-[1.45] text-[var(--paper)]";
-const LABEL = "font-label text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground";
+  "inline-flex h-9 items-center rounded-control border border-indigo/35 bg-indigo-tint px-3 font-label text-caption text-indigo-lt";
+const QUESTION = "text-small text-paper";
 const EMAIL = /.+@.+\..+/;
 
 type Step = "actions" | "take_back" | "address";
@@ -98,10 +97,10 @@ function CardHead({ eyebrow, name, waiting, still }: { eyebrow: string; name: st
     <header className="flex min-w-0 items-center gap-3.5">
       {waiting && <GiftRing still={still} />}
       <div className="min-w-0">
-        <p className="mb-1.5 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#3FA796]">
+        <p className="mb-1.5 font-label text-kicker uppercase text-teal">
           {eyebrow}
         </p>
-        <h2 className="font-display text-2xl leading-[1.1] tracking-[-0.02em] [overflow-wrap:anywhere]">{name}</h2>
+        <h2 className="font-display text-sheet-title text-paper [overflow-wrap:anywhere]">{name}</h2>
       </div>
     </header>
   );
@@ -226,7 +225,7 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
       <CardHead eyebrow="Gift · waiting" name={name} waiting still={still} />
       <div className="grid gap-1.5">
         <p className={DETAIL}>
-          Sent to <span className="text-[var(--paper)] [overflow-wrap:anywhere]">{gift.email}</span>{" "}
+          Sent to <span className="text-paper [overflow-wrap:anywhere]">{gift.email}</span>{" "}
           {dayText(gift.sentAt, now)}.
         </p>
         <p className={DETAIL}>
@@ -238,7 +237,7 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
       </div>
 
       {unsent && (
-        <div className="grid gap-2.5 border-t border-[var(--line)] pt-3.5">
+        <div className="grid gap-2.5 border-t border-line pt-3.5">
           <p className={DETAIL}>
             {`The email didn't go through. Copy this link and send it to ${name} yourself. They sign in with ${unsent.email} to claim it.`}
           </p>
@@ -250,7 +249,7 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               aria-label={`The link for ${name}`}
               onFocus={(e) => e.currentTarget.select()}
             />
-            <Button type="button" variant="outline" onClick={() => copyLink(unsent.claimUrl)} className="shrink-0 gap-1.5 font-label">
+            <Button variant="secondary" onClick={() => copyLink(unsent.claimUrl)} className="h-12 shrink-0">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copied" : "Copy link"}
             </Button>
@@ -259,7 +258,7 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
       )}
 
       {step === "address" ? (
-        <form noValidate onSubmit={sendTo} aria-labelledby={questionId} className="grid gap-3 border-t border-[var(--line)] pt-3.5">
+        <form noValidate onSubmit={sendTo} aria-labelledby={questionId} className="grid gap-3 border-t border-line pt-3.5">
           <p id={questionId} className={QUESTION}>
             {"Enter the right address and we'll send a new link. The old one stops working. "}
             {gift.creditHeld
@@ -267,9 +266,9 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               : `${name} can still claim it until ${dateText(gift.returnsAt)}.`}
           </p>
           <div className="grid gap-1.5">
-            <Label htmlFor={emailId} className={LABEL}>
+            <label htmlFor={emailId} className={FIELD_LABEL}>
               Their email
-            </Label>
+            </label>
             <Input
               id={emailId}
               type="email"
@@ -282,7 +281,6 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               }}
               aria-invalid={changeAddress.error?.status === 400 || undefined}
               aria-describedby={changeError ? `${emailId}-error` : undefined}
-              className="h-10 aria-[invalid=true]:border-destructive"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -291,22 +289,18 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
                 <StatusDots label="Sending" />
               </span>
             ) : (
-              <Button type="submit" size="sm" variant="outline" className={SMALL} disabled={!addressReady}>
+              <Button type="submit" size="compact" variant="secondary" disabled={!addressReady}>
                 Send new link
               </Button>
             )}
-            <Button type="button" size="sm" variant="ghost" className={SMALL} disabled={changeAddress.isPending} onClick={() => setStep("actions")}>
+            <TextButton disabled={changeAddress.isPending} onClick={() => setStep("actions")}>
               Cancel
-            </Button>
+            </TextButton>
           </div>
-          {changeError && (
-            <p id={`${emailId}-error`} role="alert" className="text-xs leading-[1.4] text-destructive">
-              {changeError}
-            </p>
-          )}
+          {changeError && <InlineError id={`${emailId}-error`}>{changeError}</InlineError>}
         </form>
       ) : step === "take_back" ? (
-        <div role="group" aria-labelledby={questionId} className="grid gap-3 border-t border-[var(--line)] pt-3.5">
+        <div role="group" aria-labelledby={questionId} className="grid gap-3 border-t border-line pt-3.5">
           <p id={questionId} className={QUESTION}>
             Take back your gift to {name}? The link in the email stops working
             {gift.creditHeld ? ", and the credit comes back to you." : "."}
@@ -317,26 +311,15 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
                 <StatusDots label="Taking it back" />
               </span>
             ) : (
-              <Button size="sm" variant="outline" className={SMALL} onClick={() => takeBack.mutate({ id: gift.id })}>
+              <Button size="compact" variant="danger" onClick={() => takeBack.mutate({ id: gift.id })}>
                 Take it back
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              autoFocus
-              className={SMALL}
-              disabled={takeBack.isPending}
-              onClick={() => setStep("actions")}
-            >
+            <Button size="compact" variant="secondary" autoFocus disabled={takeBack.isPending} onClick={() => setStep("actions")}>
               Keep it
             </Button>
           </div>
-          {takeBackError && (
-            <p role="alert" className="text-xs leading-[1.4] text-destructive">
-              {takeBackError}
-            </p>
-          )}
+          {takeBackError && <InlineError>{takeBackError}</InlineError>}
         </div>
       ) : (
         <div className="grid gap-2">
@@ -348,25 +331,19 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
             ) : recent ? (
               <span
                 role="status"
-                className="inline-flex min-h-[30px] items-center gap-1.5 rounded-md border border-[rgba(127,176,139,.4)] px-[11px] font-label text-xs text-[#7FB08B]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-control border border-teal/40 px-3 font-label text-caption text-teal"
               >
                 <Check aria-hidden="true" className="h-3.5 w-3.5" />
                 Reminder sent {remindedNow || !last ? "today" : dayText(last, now)}
               </span>
             ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className={cn(SMALL, "border-[rgba(92,107,192,.6)] text-[var(--indigo-lt)]")}
-                onClick={() => remind.mutate({ id: gift.id })}
-              >
+              <Button size="compact" variant="secondary" onClick={() => remind.mutate({ id: gift.id })}>
                 Send a reminder
               </Button>
             )}
             <Button
-              size="sm"
-              variant="outline"
-              className={SMALL}
+              size="compact"
+              variant="secondary"
               onClick={() => {
                 changeAddress.reset();
                 setUnsent(null);
@@ -377,9 +354,8 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               Change address
             </Button>
             <Button
-              size="sm"
-              variant="outline"
-              className={SMALL}
+              size="compact"
+              variant="secondary"
               onClick={() => {
                 takeBack.reset();
                 setStep("take_back");
@@ -388,12 +364,8 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               Take it back
             </Button>
           </div>
-          {recent && !remind.isPending && <p className="text-xs leading-[1.4] text-muted-foreground">You can send one a day.</p>}
-          {remindError && (
-            <p role="alert" className="text-xs leading-[1.4] text-destructive">
-              {remindError}
-            </p>
-          )}
+          {recent && !remind.isPending && <p className="text-caption text-muted">You can send one a day.</p>}
+          {remindError && <InlineError>{remindError}</InlineError>}
         </div>
       )}
     </article>

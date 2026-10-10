@@ -10,7 +10,7 @@
  */
 import { useId, useState } from "react";
 import { Link } from "wouter";
-import { HouseObject } from "@/components/chart/HouseObject";
+import { HouseObject } from "@/ds/atoms/HouseObject";
 import { SIGN_ORDER } from "@/components/chart/wheel-geometry";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { HOUSES, HOUSE_WORDS, PAIRS } from "@/lib/houses";
@@ -31,20 +31,20 @@ const ART_TEXT = "min-[1001px]:col-start-1 min-[1001px]:row-start-1 min-[1001px]
 const ART_FIGURE = "w-full max-w-[480px] justify-self-center self-center min-[1001px]:col-start-2 min-[1001px]:row-span-2 min-[1001px]:row-start-1";
 const ART_CONTROL = "min-[1001px]:col-start-1 min-[1001px]:row-start-2 min-[1001px]:self-start";
 const PROSE =
-  "grid content-start gap-4 [&>p]:max-w-[62ch] [&>p]:text-[17px] [&>p]:leading-[1.75] [&>p]:text-[color:var(--paper-dim)] max-[760px]:[&>p]:text-[16px]";
-const H2 = "text-[clamp(26px,2.6vw,32px)] leading-[1.15]";
+  "grid content-start gap-4 [&>p]:max-w-[62ch] [&>p]:text-card-title-sm [&>p]:leading-[1.75] [&>p]:text-paper-dim max-[760px]:[&>p]:text-prose";
+const H2 = "text-sheet-title md:text-page-title leading-[1.15]";
 const CHIP =
-  "inline-flex h-[36px] cursor-pointer items-center rounded-full border border-[var(--line)] px-3.5 [font:500_12.5px/1_var(--f-label)] text-[color:var(--paper-dim)] transition-[border-color,background-color] duration-200 hover:border-[rgba(159,168,218,.55)] has-[:checked]:border-[rgba(159,168,218,.75)] has-[:checked]:bg-[rgba(92,107,192,.18)] has-[:checked]:text-[color:var(--paper)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--indigo-lt)]";
-const TABLE_WRAP = "overflow-x-auto rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.45)]";
-const TABLE = "w-full border-collapse text-[14.5px] [&_tr:last-child>*]:border-b-0";
+  "inline-flex h-[36px] cursor-pointer items-center rounded-full border border-line px-3.5 [font:500_12.5px/1_var(--f-label)] text-paper-dim transition-[border-color,background-color] duration-200 hover:border-indigo-lt/55 has-[:checked]:border-indigo-lt/75 has-[:checked]:bg-indigo/18 has-[:checked]:text-paper has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-indigo-lt";
+const TABLE_WRAP = "overflow-x-auto rounded-card border border-line bg-surface/45";
+const TABLE = "w-full border-collapse text-ui [&_tr:last-child>*]:border-b-0";
 const TH_COL =
-  "border-b border-[var(--line)] px-4 py-3.5 text-left [font:500_10.5px/1_var(--f-label)] uppercase tracking-[.16em] text-[color:var(--sd-muted)] max-[760px]:px-3";
-const TD = "border-b border-[var(--line-soft)] px-4 py-[11px] align-middle text-[color:var(--paper-dim)] max-[760px]:px-3";
+  "border-b border-line px-4 py-3.5 text-left [font:500_10.5px/1_var(--f-label)] uppercase tracking-[.16em] text-muted max-[760px]:px-3";
+const TD = "border-b border-line-soft px-4 py-[11px] align-middle text-paper-dim max-[760px]:px-3";
 const TH_ROW =
-  "w-[24%] border-b border-[var(--line-soft)] px-4 py-3 text-left align-middle [font:500_10.5px/1.3_var(--f-label)] uppercase tracking-[.14em] text-[color:var(--sd-muted)] max-[760px]:px-3";
+  "w-[24%] border-b border-line-soft px-4 py-3 text-left align-middle [font:500_10.5px/1.3_var(--f-label)] uppercase tracking-[.14em] text-muted max-[760px]:px-3";
 /** On a phone the pair's own words take a line of their own under its houses. */
 const PAIR_ROW =
-  "grid grid-cols-[112px_200px_minmax(0,1fr)] items-baseline gap-x-6 gap-y-1.5 border-b border-[var(--line-soft)] py-4 last:border-b-0 max-[760px]:grid-cols-[96px_minmax(0,1fr)] max-[760px]:gap-x-3";
+  "grid grid-cols-[112px_200px_minmax(0,1fr)] items-baseline gap-x-6 gap-y-1.5 border-b border-line-soft py-4 last:border-b-0 max-[760px]:grid-cols-[96px_minmax(0,1fr)] max-[760px]:gap-x-3";
 
 /** A covers line or a pair's words opening a cell or a row of their own, in sentence case; the words are the house set's. */
 const sentenceCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -53,7 +53,7 @@ function SignPicker({ rising, onPick }: { rising: number; onPick: (sign: number)
   const group = useId();
   return (
     <fieldset className="m-0 grid min-w-0 gap-3 border-0 p-0">
-      <legend className="mb-3 p-0 [font:500_11px/1.2_var(--f-label)] uppercase tracking-[.2em] text-[color:var(--sd-muted)]">Rising sign</legend>
+      <legend className="mb-3 p-0 [font:500_11px/1.2_var(--f-label)] uppercase tracking-[.2em] text-muted">Rising sign</legend>
       <div className="flex flex-wrap gap-1.5">
         {SIGN_ORDER.map((sign, i) => (
           <label key={sign} className={CHIP}>
@@ -62,7 +62,7 @@ function SignPicker({ rising, onPick }: { rising: number; onPick: (sign: number)
           </label>
         ))}
       </div>
-      <p className="sd-mono text-[11.5px] uppercase leading-[1.6] tracking-[.08em] text-[color:var(--paper-dim)]" aria-live="polite">
+      <p className="sd-mono text-kicker uppercase leading-[1.6] tracking-[.08em] text-paper-dim" aria-live="polite">
         {pickLine(rising)}
       </p>
     </fieldset>
@@ -174,7 +174,7 @@ export default function LearnHousesPage() {
               <tbody>
                 {HOUSES.map((house) => (
                   <tr key={house.n}>
-                    <th scope="row" className={`${TD} sd-mono w-16 text-left text-[12px] font-medium text-[color:var(--sd-brass)]`}>
+                    <th scope="row" className={`${TD} sd-mono w-16 text-left text-caption font-medium text-brass`}>
                       {ORDINALS[house.n - 1]}
                       {/* Four columns leave a phone too little room for the covers line, so there the object sits under its number. */}
                       <HouseObject house={house.n} size={28} className="mt-2 hidden max-[760px]:block" />
@@ -185,7 +185,7 @@ export default function LearnHousesPage() {
                         {house.object}
                       </span>
                     </td>
-                    <td className={`${TD} w-[180px] [font:400_19px/1.2_var(--f-display)] text-[color:var(--paper)] max-[760px]:w-auto`}>
+                    <td className={`${TD} w-[180px] [font:400_19px/1.2_var(--f-display)] text-paper max-[760px]:w-auto`}>
                       {house.word}
                     </td>
                     <td className={TD}>{sentenceCase(house.covers)}</td>
@@ -211,13 +211,13 @@ export default function LearnHousesPage() {
           <ul className="m-0 grid max-w-[760px] list-none p-0">
             {PAIRS.map(([n, side, oppositeSide]) => (
               <li key={n} className={PAIR_ROW}>
-                <span className="sd-mono text-[12px] font-medium text-[color:var(--sd-brass)]">
+                <span className="sd-mono text-caption font-medium text-brass">
                   {ORDINALS[n - 1]} and {ORDINALS[n + 5]}
                 </span>
-                <span className="[font:500_11px/1.4_var(--f-label)] uppercase tracking-[.14em] text-[color:var(--indigo-lt)]">
+                <span className="[font:500_11px/1.4_var(--f-label)] uppercase tracking-[.14em] text-indigo-lt">
                   {HOUSE_WORDS[n - 1]} · {HOUSE_WORDS[n + 5]}
                 </span>
-                <span className="[font:400_21px/1.3_var(--f-display)] text-[color:var(--paper)] max-[760px]:col-span-2">
+                <span className="[font:400_21px/1.3_var(--f-display)] text-paper max-[760px]:col-span-2">
                   {sentenceCase(`${side} · ${oppositeSide}`)}
                 </span>
               </li>
@@ -243,10 +243,10 @@ export default function LearnHousesPage() {
                 <thead>
                   <tr>
                     <td className={`${TH_COL} w-[24%]`} />
-                    <th scope="col" className={`${TH_COL} text-[color:var(--paper-dim)]`}>
+                    <th scope="col" className={`${TH_COL} text-paper-dim`}>
                       Whole-sign houses
                     </th>
-                    <th scope="col" className={`${TH_COL} text-[color:var(--paper-dim)]`}>
+                    <th scope="col" className={`${TH_COL} text-paper-dim`}>
                       Placidus houses
                     </th>
                   </tr>

@@ -8,7 +8,6 @@ import { Suspense, type ComponentType, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_ENV } from "@/lib/appEnv";
 import NotFound, { NOT_FOUND_TITLE } from "@/pages/not-found";
 import { headFor } from "@/site/head";
@@ -30,11 +29,9 @@ const basePath = base.replace(/\/$/, "");
 function Shell({ path, children }: { path: string; children: ReactNode }) {
   return (
     <QueryClientProvider client={new QueryClient()}>
-      <TooltipProvider>
-        <Router base={basePath} ssrPath={`${basePath}${path}`}>
-          <Suspense fallback={null}>{children}</Suspense>
-        </Router>
-      </TooltipProvider>
+      <Router base={basePath} ssrPath={`${basePath}${path}`}>
+        <Suspense fallback={null}>{children}</Suspense>
+      </Router>
     </QueryClientProvider>
   );
 }

@@ -18,6 +18,7 @@ import { ReportCta } from "../cta";
 import { SAMPLE_PAIRS, samplePerson } from "../data/people";
 import { CLOSING_LINE, LENS_COPY, OPENING_LINE } from "../sections/TwoCharts";
 import { SAMPLE_LIVE, pageFor } from "../site";
+import { Button, buttonStyles } from "@/ds/atoms/Button";
 
 const page = pageFor("/compatibility");
 
@@ -91,10 +92,10 @@ function arrive(els: readonly HTMLElement[], beat: Beat): Animation[] {
 }
 
 const CHOICE =
-  "relative inline-flex items-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--indigo-lt)]";
+  "relative inline-flex items-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-indigo-lt";
 // The home page's lens tabs' look, where a choice is a radio rather than a tab.
-const LENS_CHIP = `sd-lensbtn ${CHOICE} has-checked:border-[rgba(149,117,205,.75)] has-checked:bg-[rgba(149,117,205,.15)] has-checked:text-[var(--paper)]`;
-const PARENT_CHIP = `${CHOICE} h-8 cursor-pointer rounded-full border border-[var(--line)] px-3 font-label text-[12.5px] text-[var(--paper-dim)] transition-colors has-checked:border-[var(--indigo)] has-checked:bg-[rgba(92,107,192,.15)] has-checked:text-[var(--paper)]`;
+const LENS_CHIP = `sd-lensbtn ${CHOICE} has-checked:border-violet/75 has-checked:bg-violet/15 has-checked:text-paper`;
+const PARENT_CHIP = `${CHOICE} h-8 cursor-pointer rounded-full border border-line px-3 font-label text-caption text-paper-dim transition-colors has-checked:border-indigo has-checked:bg-indigo/15 has-checked:text-paper`;
 
 /** Words first, so on a phone each piece comes after the step that explains it. */
 function Step({ n, title, titleId, text, children }: { n: number; title: string; titleId?: string; text: string; children: ReactNode }) {
@@ -104,7 +105,7 @@ function Step({ n, title, titleId, text, children }: { n: number; title: string;
         <span className="sn" aria-hidden="true">
           {two(n)}
         </span>
-        <h3 id={titleId} className="min-[760px]:text-[28px]">
+        <h3 id={titleId} className="min-[760px]:text-page-title">
           {title}
         </h3>
         <p className="max-w-[44ch]">{text}</p>
@@ -236,9 +237,9 @@ function HowToGetIt() {
             </h2>
           </div>
           {/* Nothing plays under reduced motion, so the button goes too: by CSS, not state, so the HTML and hydration agree. */}
-          <button type="button" className="sd-btn sd-btn-g sd-btn-sm justify-self-end motion-reduce:hidden" onClick={replay}>
+          <Button variant="secondary" size="compact" className="justify-self-end motion-reduce:hidden" onClick={replay}>
             Play it again
-          </button>
+          </Button>
         </div>
 
         <ol className="m-0 grid list-none gap-[18px] p-0">
@@ -278,7 +279,7 @@ function HowToGetIt() {
                 hidden={!lensInfo(lens).asksParent}
                 className="flex flex-wrap items-center gap-2"
               >
-                <span id={parentId} className="mr-1 text-[13px] text-[var(--sd-muted)]">
+                <span id={parentId} className="mr-1 text-small text-muted">
                   {PARENT_QUESTION}
                 </span>
                 {[PARENT, CHILD].map(
@@ -315,14 +316,14 @@ function HowToGetIt() {
                     {PAIR_CHAPTER_TITLES(shown).map((title, i) => (
                       <li
                         key={title}
-                        className="grid grid-cols-[30px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] px-3.5 py-2.5"
+                        className="grid grid-cols-[30px_minmax(0,1fr)] items-baseline gap-2 rounded-control border border-line-soft bg-void/55 px-3.5 py-2.5"
                       >
-                        <span aria-hidden="true" className="font-numeric text-[11.5px] font-medium" style={{ color: chapterAccent(i + 1) }}>
+                        <span aria-hidden="true" className="font-numeric text-caption font-medium" style={{ color: chapterAccent(i + 1) }}>
                           {two(i + 1)}
                         </span>
                         <span className="min-w-0">
-                          <span className="block font-display text-[17px] leading-[1.3] text-[var(--paper)]">{title}</span>
-                          <span className="mt-0.5 block text-[14px] leading-[1.45] text-[var(--sd-muted)]">{lines[i]}</span>
+                          <span className="block font-display text-card-title-sm leading-[1.3] text-paper">{title}</span>
+                          <span className="mt-0.5 block text-ui leading-[1.45] text-muted">{lines[i]}</span>
                         </span>
                       </li>
                     ))}
@@ -341,14 +342,14 @@ function Start() {
   return (
     <div className="sd-cta">
       <div>
-        <p className="sd-eyebrow text-[var(--violet)]">{COMPATIBILITY_REPORT}</p>
+        <p className="sd-eyebrow text-violet">{COMPATIBILITY_REPORT}</p>
         <h2>Start with your own {PERSONAL_REPORT}</h2>
         <p>Then add the people you care about from your dashboard, and pick who you want a {COMPATIBILITY_REPORT} with.</p>
       </div>
       <div className="sd-cta-acts">
-        <ReportCta source="compatibility" className="sd-btn" />
+        <ReportCta source="compatibility" className={buttonStyles()} />
         {SAMPLE_LIVE && (
-          <Link className="sd-btn sd-btn-g" href="/sample">
+          <Link className={buttonStyles({ variant: "secondary" })} href="/sample">
             Read a sample
           </Link>
         )}

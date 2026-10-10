@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { AlertCircle, Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Download } from "lucide-react";
+import { Button } from "@/ds/atoms/Button";
+import { Input } from "@/ds/atoms/Input";
+import { Alert } from "@/ds/molecules/Alert";
+import { AdminDenied, AdminLoading, AdminShell } from "@/components/lab/AdminShell";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Wordmark } from "@/components/Wordmark";
+} from "@/ds/organisms/Confirm";
 import { ClerkStalledPage } from "@/components/ClerkStalled";
 import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { BASE_URL } from "@/lib/api";
@@ -84,25 +85,10 @@ export default function AdminWaitlistPage() {
 
   if (clerkStalled) return <ClerkStalledPage />;
 
-  if (!isLoaded || isAdmin === null) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
-        {error ? <p className="text-sm text-destructive">{error}</p> : <Loader2 className="h-8 w-8 animate-spin text-primary/40" />}
-      </div>
-    );
-  }
+  if (!isLoaded || isAdmin === null) return <AdminLoading error={error} />;
 
   if (isAdmin === false) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
-          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
-          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/waitlist` })}>Sign out</Button>
-        </div>
-      </div>
-    );
+    return <AdminDenied onSignOut={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/waitlist` })} />;
   }
 
   const all = rows ?? [];
@@ -114,82 +100,59 @@ export default function AdminWaitlistPage() {
       : "Test sign-ups on this environment. The real list is on production, at mystarsdecoded.com/admin/waitlist.";
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <button type="button" onClick={() => navigate("/dashboard")}><Wordmark /></button>
-          <span className="font-label text-xs tracking-[0.15em] uppercase text-muted-foreground hidden sm:block">Admin</span>
-        </div>
-      </nav>
+    <>
+      <AdminShell
+        current="/admin/waitlist"
+        title="Waitlist"
+        lede={<><p>{where}</p><p className="mt-1">Pending means the confirmation link hasn't been opened yet. Those addresses are deleted after {CONFIRM_LINK_DAYS} days.</p></>}
+        aside={
+          <Button variant="secondary" size="compact" onClick={() => download(all)} disabled={all.length === 0}>
+            <Download />
+            Download CSV
+          </Button>
+        }
+      >
+        <p className="font-mono text-data tabular-nums text-paper">
+          {counts.confirmed} confirmed · {counts.pending} pending · {counts.day} confirmed in the last day · {counts.week} in the last 7 days
+        </p>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-20 flex gap-6">
-        <aside className="hidden md:flex flex-col gap-1 w-48 shrink-0 pt-2">
-          <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2 px-3">Admin</p>
-          <button type="button" onClick={() => navigate("/admin/prompts")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Prompts</button>
-          <button type="button" onClick={() => navigate("/admin/report-lab")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Lab</button>
-          <button type="button" onClick={() => navigate("/admin/waitlist")} className="text-left px-3 py-2 rounded-lg text-sm font-label bg-primary/10 text-primary">Waitlist</button>
-        </aside>
+        {error && <Alert>{error}</Alert>}
 
-        <main className="flex-1 min-w-0">
-          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
-              <h1 className="font-display text-2xl">Waitlist</h1>
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{where}</p>
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Pending means the confirmation link hasn't been opened yet. Those addresses are deleted after {CONFIRM_LINK_DAYS} days.
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => download(all)} disabled={all.length === 0}>
-              <Download className="h-4 w-4" />
-              Download CSV
-            </Button>
-          </div>
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an address" aria-label="Find an address" className="h-10 max-w-sm" />
 
-          <p className="font-numeric text-sm mb-4">
-            {counts.confirmed} confirmed · {counts.pending} pending · {counts.day} confirmed in the last day · {counts.week} in the last 7 days
-          </p>
-
-          {error && (
-            <div role="alert" className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">{error}</div>
-          )}
-
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an address" aria-label="Find an address" className="mb-3 max-w-sm" />
-
-          {all.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-10">No one has joined yet. The form is on the waitlist page.</p>
-          ) : (
-            <div className="rounded-lg border border-border/60 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-card/60 text-left font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Email</th>
-                    <th className="px-4 py-2.5 font-medium">Joined</th>
-                    <th className="px-4 py-2.5 font-medium">Confirmed</th>
-                    <th className="px-4 py-2.5 font-medium">Form</th>
-                    <th className="px-4 py-2.5 font-medium">Campaign</th>
-                    <th className="px-4 py-2.5" />
+        {all.length === 0 ? (
+          <p className="py-10 text-small text-paper-dim">No one has joined yet. The form is on the waitlist page.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-card border border-line bg-surface">
+            <table className="w-full text-small">
+              <thead className="text-left font-label text-label uppercase text-label-dim">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Email</th>
+                  <th className="px-4 py-2.5 font-medium">Joined</th>
+                  <th className="px-4 py-2.5 font-medium">Confirmed</th>
+                  <th className="px-4 py-2.5 font-medium">Form</th>
+                  <th className="px-4 py-2.5 font-medium">Campaign</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((r) => (
+                  <tr key={r.id} className="border-t border-line">
+                    <td className="break-all px-4 py-2.5">{r.email}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono tabular-nums text-paper-dim">{stamp(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono tabular-nums text-paper-dim">{r.confirmedAt ? stamp(r.confirmedAt) : "Pending"}</td>
+                    <td className="px-4 py-2.5 text-paper-dim">{r.source ?? ""}</td>
+                    <td className="px-4 py-2.5 text-paper-dim">{[r.utmSource, r.utmMedium, r.utmCampaign, r.utmContent].filter(Boolean).join(" / ")}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button variant="secondary" size="compact" onClick={() => setRemoving(r)}>Remove</Button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {shown.map((r) => (
-                    <tr key={r.id} className="border-t border-border/40">
-                      <td className="px-4 py-2.5 break-all">{r.email}</td>
-                      <td className="px-4 py-2.5 font-numeric whitespace-nowrap text-muted-foreground">{stamp(r.createdAt)}</td>
-                      <td className="px-4 py-2.5 font-numeric whitespace-nowrap text-muted-foreground">{r.confirmedAt ? stamp(r.confirmedAt) : "Pending"}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{r.source ?? ""}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{[r.utmSource, r.utmMedium, r.utmCampaign, r.utmContent].filter(Boolean).join(" / ")}</td>
-                      <td className="px-4 py-2.5 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setRemoving(r)}>Remove</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </main>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </AdminShell>
 
       <AlertDialog open={removing !== null} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
         <AlertDialogContent>
@@ -203,6 +166,6 @@ export default function AdminWaitlistPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

@@ -24,7 +24,7 @@ import { SAMPLE_ACCOUNT, ThingCard } from "./ThingCard";
 /** The Saturn-return finder's place on the page (R16-16), where Life's link goes. */
 const FINDER = "#finder";
 
-const NOTE = "text-[13.5px] leading-normal text-[#AEB6C6]";
+const NOTE = "text-small leading-normal text-paper-dim";
 
 /**
  * Her waves with each cycle marked at the engine's date for it. Found in the
@@ -68,26 +68,26 @@ function nextCycles(mira: Mira): CycleView[] {
 
 // CycleCard's status chip, the one look a cycle's status has wherever it shows (ADR-172).
 const CHIP_LOOK = {
-  now: "border-[#5C6BC0] bg-[rgba(92,107,192,.16)] text-[#E8EBF2]",
-  ahead: "border-[#242C3B] text-[#E8EBF2]",
-  past: "border-[#242C3B] text-[#7E889A]",
+  now: "border-indigo bg-indigo/16 text-paper",
+  ahead: "border-line text-paper",
+  past: "border-line text-muted",
 } as const;
 
 function CycleRow({ cycle, today, order }: { cycle: CycleView; today: string; order: DateOrder }) {
   const { name, word } = CYCLE_WORDS[cycle.id];
   return (
-    <li className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-baseline gap-x-2.5 border-t border-[#1A202C] py-2">
-      <span className="font-numeric text-lg leading-none text-[#E8EBF2]">
+    <li className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-baseline gap-x-2.5 border-t border-line-soft py-2">
+      <span className="font-numeric text-lg leading-none text-paper">
         <span className="sr-only">Age </span>
         {cycle.age}
       </span>
       <span className="grid min-w-0 gap-0.5">
-        <span className="text-[14.5px] leading-snug text-[#E8EBF2]">{name}</span>
-        <span className="text-[12.5px] leading-snug text-[#7E889A]">{word}</span>
+        <span className="text-ui leading-snug text-paper">{name}</span>
+        <span className="text-caption leading-snug text-muted">{word}</span>
       </span>
       <span className="grid justify-items-end gap-1.5 text-right">
-        <span className="font-numeric text-xs text-[#AEB6C6]">{monthYear(cycleDay(cycle), order)}</span>
-        <span className={`whitespace-nowrap rounded-full border px-2 py-1 text-[11px] leading-none ${CHIP_LOOK[cycleWhen(cycle, today)]}`}>
+        <span className="font-numeric text-xs text-paper-dim">{monthYear(cycleDay(cycle), order)}</span>
+        <span className={`whitespace-nowrap rounded-full border px-2 py-1 text-caption leading-none ${CHIP_LOOK[cycleWhen(cycle, today)]}`}>
           {cycleChip(cycle, today)}
         </span>
       </span>
@@ -116,7 +116,7 @@ function NowAndAhead({ mira, order }: { mira: Mira; order: DateOrder }) {
       {more > 0 ? <p className={NOTE}>And {more} more today.</p> : null}
       {next ? (
         <p className={NOTE}>
-          Coming up: <b className="font-normal text-[#E8EBF2]">{next.headline}</b>
+          Coming up: <b className="font-normal text-paper">{next.headline}</b>
           {next.change === "starts"
             ? `, from ${nearDate(next.day, today, order)}.`
             : ` ${next.change} on ${nearDate(next.day, today, order)}.`}
@@ -136,7 +136,7 @@ function Life({ mira, order }: { mira: Mira; order: DateOrder }) {
       promise="Know which chapter of your life you're in"
       why="Astrology marks a few ages most people notice: around 29, around 37 and the early forties. Timeline shows yours with your own dates, so you can look back and see what's coming."
       more={
-        <a href={FINDER} className="justify-self-start text-[14.5px] font-medium text-[#9FA8DA] no-underline hover:underline">
+        <a href={FINDER} className="justify-self-start text-ui font-medium text-indigo-lt no-underline hover:underline">
           When is your Saturn return? Find yours <span aria-hidden="true">↓</span>
         </a>
       }
@@ -145,7 +145,7 @@ function Life({ mira, order }: { mira: Mira; order: DateOrder }) {
     >
       <Waves wave={WAVES} today={mira.wave.today} />
       {look ? (
-        <p className="border-l-2 border-[#3FA796] pl-3 font-display text-[16.5px] italic leading-snug text-[#E8EBF2]">{look}</p>
+        <p className="border-l-2 border-teal pl-3 font-display text-prose italic leading-snug text-paper">{look}</p>
       ) : null}
       <ul role="list" className="m-0 grid list-none p-0">
         {nextCycles(mira).map((cycle) => (
@@ -167,27 +167,27 @@ function Readings({ mira }: { mira: Mira }) {
       sees="What Mira reads"
       mark={SAMPLE_WORDS}
     >
-      <figure className="m-0 grid gap-1 border-l-2 border-[#242C3B] pl-3">
-        <figcaption className="font-label text-[10.5px] uppercase leading-snug tracking-[.12em] text-[#7E889A]">{reportLine.source}</figcaption>
-        <blockquote className="m-0 font-display text-base leading-normal text-[#AEB6C6]">“{reportLine.text}”</blockquote>
+      <figure className="m-0 grid gap-1 border-l-2 border-line pl-3">
+        <figcaption className="font-label text-kicker uppercase leading-snug tracking-[.12em] text-muted">{reportLine.source}</figcaption>
+        <blockquote className="m-0 font-display text-base leading-normal text-paper-dim">“{reportLine.text}”</blockquote>
       </figure>
-      <p className="flex items-center gap-2 text-[12.5px] leading-snug text-[#7E889A]">
-        <span aria-hidden="true" className="block h-px w-[18px] flex-none bg-[#242C3B]" />
+      <p className="flex items-center gap-2 text-caption leading-snug text-muted">
+        <span aria-hidden="true" className="block h-px w-[18px] flex-none bg-line" />
         {reading.bridge}
       </p>
-      <div className="grid gap-1.5 border-l-2 border-[#5C6BC0] pl-3">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-label text-[10.5px] uppercase leading-none tracking-[.12em] text-[#9FA8DA]">
+      <div className="grid gap-1.5 border-l-2 border-indigo pl-3">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-label text-kicker uppercase leading-none tracking-[.12em] text-indigo-lt">
           Timeline <span aria-hidden="true">·</span> <ToneWord tone={reading.tone} />
         </p>
-        <p className="font-display text-lg leading-snug text-[#E8EBF2]">{reading.headline}</p>
-        <p className="text-[14.5px] leading-[1.6] text-[#E8EBF2]">
+        <p className="font-display text-lg leading-snug text-paper">{reading.headline}</p>
+        <p className="text-ui leading-[1.6] text-paper">
           {reading.before}
-          <mark className="border-b border-dashed border-[#7E889A] bg-transparent text-[#E8EBF2]">{reading.quote}</mark>
+          <mark className="border-b border-dashed border-muted bg-transparent text-paper">{reading.quote}</mark>
           {reading.after}
         </p>
       </div>
       {/* The reading's own link, drawn as Mira sees it: her report isn't on the site, so it goes nowhere here. */}
-      <p className="text-[14.5px] font-medium text-[#9FA8DA]">{reading.link}</p>
+      <p className="text-ui font-medium text-indigo-lt">{reading.link}</p>
     </ThingCard>
   );
 }
@@ -200,7 +200,7 @@ function Ask({ mira }: { mira: Mira }) {
       promise="Ask about any of it, in your own words"
       why="Have a question about a reading? Ask it. Answers come from your chart, your reports and your timeline. Ask never tells you what to do."
       sees={
-        <span className="text-[#E8EBF2]">
+        <span className="text-paper">
           <AskMark size={22} />
         </span>
       }
@@ -208,7 +208,7 @@ function Ask({ mira }: { mira: Mira }) {
     >
       <ul role="list" className="m-0 grid list-none gap-1.5 p-0">
         {mira.sample.questions.map((question) => (
-          <li key={question} className="rounded-xl border border-[#242C3B] bg-[#11161F] px-2.5 py-[7px] text-[13.5px] leading-normal text-[#E8EBF2]">
+          <li key={question} className="rounded-xl border border-line bg-surface px-2.5 py-[7px] text-small leading-normal text-paper">
             {question}
           </li>
         ))}
@@ -231,7 +231,7 @@ function YourWeek({ mira, order }: { mira: Mira; order: DateOrder }) {
       sees={`Mira's dashboard · ${dayMonth(from, order)} to ${dayMonth(to, order)}`}
       mark={SAMPLE_ACCOUNT}
     >
-      <p className="font-display text-[17px] leading-[1.4] text-[#E8EBF2]">
+      <p className="font-display text-card-title-sm leading-[1.4] text-paper">
         {mira.sentence}{goesOn ? " The longer ones continue." : ""}
       </p>
       <DayCells days={mira.days} keyed />
@@ -240,27 +240,27 @@ function YourWeek({ mira, order }: { mira: Mira; order: DateOrder }) {
           {changes.map((change) => (
             <li
               key={`${change.day}.${change.key}.${change.change}`}
-              className="grid grid-cols-[52px_minmax(0,1fr)] items-baseline gap-x-2.5 border-t border-[#1A202C] py-[7px] text-sm"
+              className="grid grid-cols-[52px_minmax(0,1fr)] items-baseline gap-x-2.5 border-t border-line-soft py-[7px] text-sm"
             >
-              <span className="font-numeric text-xs text-[#AEB6C6]">
+              <span className="font-numeric text-xs text-paper-dim">
                 <span aria-hidden="true">
                   {weekdayOf(change.day)} {dayNumber(change.day)}
                 </span>
                 <span className="sr-only">{longDay(change.day, order)}:</span>
               </span>
-              <span className="min-w-0 text-[#E8EBF2]">
-                {change.headline} <span className="text-[12.5px] text-[#7E889A]">{change.change}</span>
+              <span className="min-w-0 text-paper">
+                {change.headline} <span className="text-caption text-muted">{change.change}</span>
               </span>
             </li>
           ))}
         </ul>
       ) : null}
-      <p className="grid gap-0.5 rounded-xl border border-[#242C3B] bg-[#11161F] px-3 py-2.5 text-[13px]">
+      <p className="grid gap-0.5 rounded-xl border border-line bg-surface px-3 py-2.5 text-small">
         <span className="sr-only">The Monday email:</span>
-        <span className="text-xs text-[#7E889A]">
+        <span className="text-xs text-muted">
           {PRODUCT} · {longDay(from, order)}
         </span>
-        <span className="font-medium text-[#E8EBF2]">{mira.sample.subject}</span>
+        <span className="font-medium text-paper">{mira.sample.subject}</span>
       </p>
     </ThingCard>
   );

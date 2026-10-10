@@ -205,6 +205,15 @@ export const OBSERVATIONS: readonly Observation[] = [
     why: "your Sun, which is about who you are, sits in your 10th, the house of your work",
     ideas: [
       {
+        idea: "You tend to need respect at work and thanks for what you add, and your energy drops fast without it",
+        scene: "In a job where nobody notices your ideas, you feel tired by Wednesday, even when the work is easy",
+        sources: [
+          video("@solarflareastrology", "7685470405091478817"),
+          site("Astrolibrary", "https://astrolibrary.org/interpretations/sun-house/"),
+          doctrine("Sun; the 10th house"),
+        ],
+      },
+      {
         idea: "You lead naturally at work, and people tend to notice what you do there",
         scene: "In a meeting where nobody speaks up, you are the one who sets out the plan, and it feels natural",
         sources: [creator("@anemowitch", 12), doctrine("Sun; the 10th house")],
@@ -823,6 +832,22 @@ export const OBSERVATIONS: readonly Observation[] = [
         idea: "You tend to feel most like yourself when you work hard and keep good daily routines",
         scene: "A week where you get up early, work well and cook properly leaves you feeling more like you than any holiday",
         sources: [video("@the_innercosmos", "7687697686237154568"), doctrine("Sun; the 6th house")],
+      },
+    ],
+  },
+  {
+    id: "sun-7-finds-self-in-others",
+    key: { kind: "planet-in-house", body: "sun", house: 7 },
+    why: "your Sun, which is about who you are, sits in your 7th, the house of partners and the people you face one to one",
+    ideas: [
+      {
+        idea: "You often come to know yourself through close relationships, seeing yourself in how the other person sees you",
+        scene: "After a long talk with a partner or close friend, you come away clearer about who you are, and full of energy",
+        sources: [
+          video("@solarflareastrology", "7685470405091478817"),
+          site("Astrolibrary", "https://astrolibrary.org/interpretations/sun-house/"),
+          doctrine("Sun; the 7th house"),
+        ],
       },
     ],
   },

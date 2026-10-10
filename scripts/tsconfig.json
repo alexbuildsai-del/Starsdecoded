@@ -4,5 +4,5 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src", "check-shipped.ts", "check-callers.ts", "check-single-copies.ts"]
+  "include": ["src", "check-shipped.ts", "check-callers.ts", "check-single-copies.ts", "check-ds.ts"]
 }

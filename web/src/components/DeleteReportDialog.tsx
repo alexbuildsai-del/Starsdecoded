@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/ds/organisms/Confirm";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useHome } from "@/hooks/useHome";
@@ -134,7 +134,7 @@ export function DeleteReportDialog({
         <Button
           size="sm"
           variant="ghost"
-          className={className ?? "font-label gap-1.5 text-muted-foreground hover:text-destructive"}
+          className={className ?? "gap-1.5 text-muted hover:text-error"}
           onClick={(e) => e.stopPropagation()}
           data-testid={`button-delete-report-${reportId}`}
         >
@@ -144,7 +144,7 @@ export function DeleteReportDialog({
       </AlertDialogTrigger>
       <AlertDialogContent onClick={(e) => e.stopPropagation()}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-display">
+          <AlertDialogTitle>
             {handsOver ? `Remove ${personName}'s report?` : `Delete ${personName}'s report?`}
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -157,7 +157,7 @@ export function DeleteReportDialog({
                 {note.cancel && (
                   <>
                     {" "}
-                    <Link href={ACCOUNT_PATH} className="text-foreground underline underline-offset-2" onClick={() => setOpen(false)}>
+                    <Link href={ACCOUNT_PATH} className="text-paper underline underline-offset-2" onClick={() => setOpen(false)}>
                       {CANCEL_LINK_TEXT}
                     </Link>
                     .
@@ -175,7 +175,6 @@ export function DeleteReportDialog({
               e.preventDefault();
               deleteReport.mutate({ id: reportId });
             }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             data-testid="button-confirm-delete-report"
           >
             {deleteReport.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

@@ -8,8 +8,10 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { SendState } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { StatusDots } from "@/components/StatusDots";
+import { tokens } from "@workspace/design";
+import { Button } from "@/ds/atoms/Button";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { sharedWaiting } from "@/lib/pair-row";
 import {
   SHARE_CARD, SHARE_LABELS, STORY_CAPTION, STORY_LINES, shareActions, shareCardText, shareLine, shareWith, storyFilename, storyLayout,
@@ -40,7 +42,11 @@ const BULLET_INDENT = 40;
 const DISPLAY = "'Newsreader', Georgia, serif";
 const BODY = "'Inter', system-ui, sans-serif";
 const LABEL = "'Space Grotesk', 'Inter', sans-serif";
-const BRASS = "#D4B06A";
+const { color } = tokens;
+const BRASS = color.brass;
+
+/** A token colour at an opacity, for a canvas that cannot read CSS. */
+const tint = (hex: string, alpha: number) => hex + Math.round(alpha * 255).toString(16).padStart(2, "0");
 const HEADLINE_FONT = `italic 400 44px ${DISPLAY}`;
 const STRENGTH_FONT = `400 30px ${BODY}`;
 
@@ -65,7 +71,7 @@ function drawMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
   const u = size / 64;
   ctx.save();
   ctx.lineCap = "round";
-  ctx.strokeStyle = "#5C6BC0";
+  ctx.strokeStyle = color.indigo;
   ctx.lineWidth = 2.6 * u;
   ctx.beginPath();
   ctx.arc(x + 32 * u, y + 32 * u, 24 * u, 0, Math.PI * 2);
@@ -111,14 +117,14 @@ async function drawStory(text: ShareCardText): Promise<Blob> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No 2D canvas in this browser.");
 
-  ctx.fillStyle = "#06080C";
+  ctx.fillStyle = color.void;
   ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W * 0.5, H * 0.38, 60, W * 0.5, H * 0.38, 720);
-  glow.addColorStop(0, "rgba(92,107,192,.26)");
-  glow.addColorStop(1, "rgba(6,8,12,0)");
+  glow.addColorStop(0, tint(color.indigo, 0.26));
+  glow.addColorStop(1, tint(color.void, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(212,176,106,.28)";
+  ctx.strokeStyle = tint(BRASS, 0.28);
   ctx.lineWidth = 1.5;
   ctx.strokeRect(36, 36, W - 72, H - 72);
 
@@ -134,16 +140,16 @@ async function drawStory(text: ShareCardText): Promise<Blob> {
   ctx.font = `500 22px ${LABEL}`;
   spaced(ctx, text.eyebrow.toUpperCase(), MARGIN, at.eyebrow, 6);
 
-  ctx.fillStyle = "#F2F4F9";
+  ctx.fillStyle = color.paper;
   ctx.font = title.font;
   title.lines.forEach((line, i) => ctx.fillText(line, MARGIN, at.title[i]));
 
-  ctx.fillStyle = "#E8EBF2";
+  ctx.fillStyle = color.paper;
   ctx.font = HEADLINE_FONT;
   headline.forEach((line, i) => ctx.fillText(line, MARGIN, at.headline[i]));
 
   if (at.rule !== null && at.label !== null) {
-    ctx.strokeStyle = "rgba(212,176,106,.45)";
+    ctx.strokeStyle = tint(BRASS, 0.45);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(MARGIN, at.rule);
@@ -162,17 +168,17 @@ async function drawStory(text: ShareCardText): Promise<Blob> {
       ctx.beginPath();
       ctx.arc(MARGIN + 9, ys[0] - 11, 7, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = "#E8EBF2";
+      ctx.fillStyle = color.paper;
       lines.forEach((line, j) => ctx.fillText(line, MARGIN + BULLET_INDENT, ys[j]));
     });
   }
 
-  ctx.fillStyle = "#8A93A6";
+  ctx.fillStyle = color["paper-dim"];
   ctx.font = `400 22px ${BODY}`;
   ctx.fillText(text.foot[0], MARGIN, at.foot[0]);
   ctx.fillText(text.foot[1], MARGIN, at.foot[1]);
 
-  ctx.fillStyle = "#F2F4F9";
+  ctx.fillStyle = color.paper;
   ctx.font = `400 30px ${DISPLAY}`;
   const markSize = 40;
   const wordmarkX = W - MARGIN - ctx.measureText(text.wordmark).width;
@@ -262,18 +268,18 @@ export function StoryPreview({ text }: { text: ShareCardText }) {
   return (
     <div role="group" aria-label={`Story for ${text.title}`} className="rp-root grid w-fit justify-items-start bg-transparent" data-story>
       {url
-        ? <img src={url} alt={[text.title, text.headline].filter(Boolean).join(". ")} width={W} height={H} className="block h-auto w-[132px] rounded-[10px] border border-[var(--line)]" />
-        : <div aria-hidden className="aspect-[9/16] w-[132px] rounded-[10px] border border-[var(--line)] bg-[rgba(232,235,242,.04)]" />}
-      <span className="mt-2 font-label text-[10px] uppercase tracking-[.12em] text-[var(--paper-dim)]">{STORY_CAPTION}</span>
+        ? <img src={url} alt={[text.title, text.headline].filter(Boolean).join(". ")} width={W} height={H} className="block h-auto w-[132px] rounded-control border border-line" />
+        : <div aria-hidden className="aspect-[9/16] w-[132px] rounded-control border border-line bg-surface" />}
+      <span className="mt-2 font-label text-data-sm uppercase text-paper-dim">{STORY_CAPTION}</span>
       <div className="mt-2 flex gap-1.5">
         {actions.map((action, i) => (
-          <Button key={action} variant={i === 0 ? "default" : "outline"} size="sm" disabled={busy || !file} onClick={() => act(action)} className="font-label text-xs">
+          <Button key={action} variant={i === 0 ? "primary" : "secondary"} size="compact" disabled={busy || !file} onClick={() => act(action)}>
             {SHARE_LABELS[action]}
           </Button>
         ))}
       </div>
       {/* Kept in the tree while empty so a screen reader hears what lands in it; it takes no room until then. */}
-      <p role="status" className="mt-2 w-0 min-w-full text-xs leading-[1.5] text-[var(--paper-dim)] empty:mt-0">
+      <p role="status" className="mt-2 w-0 min-w-full text-caption text-paper-dim empty:mt-0">
         {failed ? "The story could not be drawn in this browser." : note}
       </p>
     </div>
@@ -298,30 +304,23 @@ function PairSend({ send, onSend, onStopSharing }: { send: SendState; onSend: ()
     }
   }
 
-  if (send.state === "sent") return <span className="font-label text-xs text-[var(--paper-dim)]">{sharedWaiting(name)}</span>;
+  if (send.state === "sent") return <span className="text-caption text-paper-dim">{sharedWaiting(name)}</span>;
   if (send.state === "joined") {
     return (
       <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-label text-xs text-[var(--paper-dim)]">{name} can read it</span>
+        <span className="text-caption text-paper-dim">{name} can read it</span>
         {/* MB-103 provisional: its sender ends the other person's reading at once, and nothing is deleted (ADR-139). */}
         {onStopSharing && (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={stopping}
-            onClick={stop}
-            aria-label={`Stop sharing with ${name}`}
-            className="font-label text-xs text-[var(--paper-dim)] hover:text-[var(--paper)]"
-          >
+          <TextButton disabled={stopping} onClick={stop} aria-label={`Stop sharing with ${name}`} className="text-paper-dim">
             {stopping ? <StatusDots label="Stopping" /> : "Stop sharing"}
-          </Button>
+          </TextButton>
         )}
-        {stopFailed && <span className="text-xs text-[var(--paper-dim)]">Sharing did not stop. Try again in a minute.</span>}
+        {stopFailed && <span className="text-caption text-paper-dim">Sharing did not stop. Try again in a minute.</span>}
       </span>
     );
   }
   return (
-    <Button variant="outline" size="sm" onClick={onSend} className="font-label text-xs">
+    <Button variant="secondary" size="compact" onClick={onSend}>
       {shareWith(name)}
     </Button>
   );
@@ -339,13 +338,13 @@ export function ShareCard(props: ShareCardProps) {
 
   return (
     <div
-      className="no-print mt-10 grid gap-5 rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.72)] p-5 min-[760px]:grid-cols-[auto_minmax(0,1fr)] min-[760px]:gap-x-8 min-[760px]:gap-y-4"
+      className="no-print mt-10 grid gap-5 rounded-card border border-line bg-surface-glass p-5 min-[760px]:grid-cols-[auto_minmax(0,1fr)] min-[760px]:gap-x-8 min-[760px]:gap-y-4"
       data-share-card
     >
       <div className={cn("min-w-0 min-[760px]:col-start-2 min-[760px]:row-start-1", offer ? "min-[760px]:self-end" : "min-[760px]:row-span-2 min-[760px]:self-center")}>
         <span className="rp-lab">At the end of the report</span>
-        <p className="mt-2 font-display text-[22px] leading-[1.25] text-[var(--paper)]">{shareLine(recipient)}</p>
-        <p className="mt-2 text-[14px] leading-[1.6] text-[var(--paper-dim)]">The story shows a short summary and your three strengths. It shows nothing from either birth chart. Nothing is uploaded.</p>
+        <p className="mt-2 font-display text-card-title text-paper">{shareLine(recipient)}</p>
+        <p className="mt-2 text-ui text-paper-dim">The story shows a short summary and your three strengths. It shows nothing from either birth chart. Nothing is uploaded.</p>
       </div>
       <div className="min-[760px]:col-start-1 min-[760px]:row-span-2 min-[760px]:row-start-1">
         <StoryPreview text={text} />

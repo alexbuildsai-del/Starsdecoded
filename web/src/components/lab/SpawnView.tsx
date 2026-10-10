@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Card } from "@/ds/molecules/Card";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Select } from "@/ds/atoms/Select";
+import { Button } from "@/ds/atoms/Button";
 import { LabApiError, cents, labApi, myReports, type CatalogueEntry, type EstimateResponse, type SessionDetail } from "@/lib/labApi";
 
 /** The first session's sections, career first (annex, resolved at lock). */
@@ -105,32 +107,32 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
     const pending = spawned.pending.filter((p) => p.status === "queued" || p.status === "running").length;
     const failed = spawned.pending.filter((p) => p.status === "failed");
     return (
-      <div className="rounded-lg border border-border/60 bg-card/40 p-4 flex flex-col gap-2 text-sm">
-        <p className="font-label text-primary">{spawned.label}: {spawned.cards} cards</p>
+      <Card as="div" className="p-4 text-sm">
+        <p className="font-label text-indigo-lt">{spawned.label}: {spawned.cards} cards</p>
         {spawned.ready
           ? <p>The room is ready.</p>
-          : <p className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin text-primary/40" /> {pending} replay{pending === 1 ? "" : "s"} still writing</p>}
-        {failed.length > 0 && <p className="text-xs text-destructive">{failed.length} replay{failed.length === 1 ? "" : "s"} failed and will be named at the reveal: {failed.map((f) => `${f.section}`).join(", ")}</p>}
-        <div><Button size="sm" disabled={!spawned.ready} onClick={() => onSpawned(spawned.id)}>Open the reading room</Button></div>
-      </div>
+          : <p className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin text-muted" /> {pending} replay{pending === 1 ? "" : "s"} still writing</p>}
+        {failed.length > 0 && <p className="text-xs text-error">{failed.length} replay{failed.length === 1 ? "" : "s"} failed and will be named at the reveal: {failed.map((f) => `${f.section}`).join(", ")}</p>}
+        <div><Button size="compact" disabled={!spawned.ready} onClick={() => onSpawned(spawned.id)}>Open the reading room</Button></div>
+      </Card>
     );
   }
 
   return (
     <div className="flex flex-col gap-5 text-sm">
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
 
       <label className="flex flex-col gap-1 max-w-xs">
-        <span className="font-label text-xs text-muted-foreground">Session label</span>
-        <input value={label} onChange={(e) => setLabel(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground" />
+        <span className="font-label text-xs text-paper-dim">Session label</span>
+        <input value={label} onChange={(e) => setLabel(e.target.value)} className="bg-surface border border-line rounded px-2 py-1 text-paper" />
       </label>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="font-label text-xs text-muted-foreground mb-1">Base: a stored label and its charts</legend>
-        <select value={baseLabel} onChange={(e) => { setBaseLabel(e.target.value); setCharts(new Set(fixturesByLabel[e.target.value] ?? [])); }} className="bg-card/60 border border-border/60 rounded px-2 py-1 max-w-xs text-foreground">
+        <legend className="font-label text-xs text-paper-dim mb-1">Base: a stored label and its charts</legend>
+        <Select value={baseLabel} onChange={(e) => { setBaseLabel(e.target.value); setCharts(new Set(fixturesByLabel[e.target.value] ?? [])); }} className="h-10 w-auto min-w-32">
           <option value="">no stored label</option>
           {labels.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
+        </Select>
         <div className="flex flex-wrap gap-3">
           {(fixturesByLabel[baseLabel] ?? []).map((c) => (
             <label key={c} className="flex items-center gap-1.5"><input type="checkbox" checked={charts.has(c)} onChange={() => toggle(charts, c, setCharts)} /> {c}</label>
@@ -140,17 +142,17 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
 
       {reports.length > 0 && (
         <fieldset className="flex flex-col gap-2">
-          <legend className="font-label text-xs text-muted-foreground mb-1">Or your own reports, replayed in place</legend>
+          <legend className="font-label text-xs text-paper-dim mb-1">Or your own reports, replayed in place</legend>
           <div className="flex flex-wrap gap-3">
             {reports.map((r) => (
-              <label key={r.id} className="flex items-center gap-1.5"><input type="checkbox" checked={reportBases.has(r.id)} onChange={() => toggle(reportBases, r.id, setReportBases)} /> {r.name} <span className="font-numeric text-xs text-muted-foreground">{r.id.slice(0, 8)}</span></label>
+              <label key={r.id} className="flex items-center gap-1.5"><input type="checkbox" checked={reportBases.has(r.id)} onChange={() => toggle(reportBases, r.id, setReportBases)} /> {r.name} <span className="font-numeric text-xs text-paper-dim">{r.id.slice(0, 8)}</span></label>
             ))}
           </div>
         </fieldset>
       )}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="font-label text-xs text-muted-foreground mb-1">Sections</legend>
+        <legend className="font-label text-xs text-paper-dim mb-1">Sections</legend>
         <div className="flex flex-wrap gap-3">
           {ALL_SECTIONS.map((s) => (
             <label key={s} className="flex items-center gap-1.5"><input type="checkbox" checked={sections.has(s)} onChange={() => toggle(sections, s, setSections)} /> {s}</label>
@@ -159,40 +161,40 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="font-label text-xs text-muted-foreground mb-1">Writers</legend>
+        <legend className="font-label text-xs text-paper-dim mb-1">Writers</legend>
         <div className="flex flex-wrap gap-3">
-          <label className="flex items-center gap-1.5"><input type="checkbox" checked={writers.has("stored")} onChange={() => toggle(writers, "stored", setWriters)} /> stored <span className="text-xs text-muted-foreground">(the base text, free)</span></label>
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={writers.has("stored")} onChange={() => toggle(writers, "stored", setWriters)} /> stored <span className="text-xs text-paper-dim">(the base text, free)</span></label>
           {models.map((m) => (
             <label key={m.id} className="flex items-center gap-1.5">
               <input type="checkbox" checked={writers.has(m.id)} onChange={() => toggle(writers, m.id, setWriters)} /> {m.id}
-              <span className="font-numeric text-xs text-muted-foreground">{m.input}/{m.output} · {m.reasoningEffort}{m.flex ? " · flex" : ""}{m.checked ? "" : " · unchecked"}</span>
+              <span className="font-numeric text-xs text-paper-dim">{m.input}/{m.output} · {m.reasoningEffort}{m.flex ? " · flex" : ""}{m.checked ? "" : " · unchecked"}</span>
             </label>
           ))}
         </div>
         <label className="flex items-center gap-1.5 text-xs">
-          <span className="text-muted-foreground">plus the stored text under another label, at no cost:</span>
-          <select value={[...writers].find((w) => w.startsWith("stored:"))?.slice(7) ?? ""} onChange={(e) => { const next = new Set([...writers].filter((w) => !w.startsWith("stored:"))); if (e.target.value) next.add(`stored:${e.target.value}`); setWriters(next); }} className="bg-card/60 border border-border/60 rounded px-2 py-0.5 text-foreground">
+          <span className="text-paper-dim">plus the stored text under another label, at no cost:</span>
+          <Select value={[...writers].find((w) => w.startsWith("stored:"))?.slice(7) ?? ""} onChange={(e) => { const next = new Set([...writers].filter((w) => !w.startsWith("stored:"))); if (e.target.value) next.add(`stored:${e.target.value}`); setWriters(next); }} className="h-10 w-auto min-w-32">
             <option value="">none</option>
             {labels.filter((l) => l !== baseLabel).map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
+          </Select>
         </label>
-        <label className="flex items-center gap-1.5 mt-1"><input type="checkbox" checked={control} onChange={() => setControl(!control)} /> hidden control <span className="text-xs text-muted-foreground">(a fresh {baseline} replay, never named before the reveal)</span></label>
-        <label className="flex items-center gap-1.5"><input type="checkbox" checked={tier === "flex"} onChange={() => setTier(tier === "flex" ? "standard" : "flex")} /> Flex tier where offered <span className="text-xs text-muted-foreground">(half price; standard otherwise)</span></label>
+        <label className="flex items-center gap-1.5 mt-1"><input type="checkbox" checked={control} onChange={() => setControl(!control)} /> hidden control <span className="text-xs text-paper-dim">(a fresh {baseline} replay, never named before the reveal)</span></label>
+        <label className="flex items-center gap-1.5"><input type="checkbox" checked={tier === "flex"} onChange={() => setTier(tier === "flex" ? "standard" : "flex")} /> Flex tier where offered <span className="text-xs text-paper-dim">(half price; standard otherwise)</span></label>
       </fieldset>
 
-      <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-1">
-        <p className="font-label text-xs text-muted-foreground">Estimate</p>
+      <Card as="div" className="p-3">
+        <p className="font-label text-xs text-paper-dim">Estimate</p>
         {estimating && <p className="flex items-center gap-2 text-xs"><Loader2 className="h-3 w-3 animate-spin" /> pricing the cards</p>}
         {estimate && (
           <>
             <p className="font-numeric">{estimate.cards} cards · standard {cents(estimate.standardUsd)} · Flex {cents(estimate.flexUsd)} · spent this month {cents(estimate.spentUsd)} of {cents(estimate.budgetUsd)}</p>
-            <p className="text-xs text-muted-foreground font-numeric">{estimate.perWriter.map((w) => `${w.writer}: ${w.replays} replays, ${cents(tier === "flex" ? w.flexUsd : w.standardUsd)}`).join(" · ")}</p>
-            {overBudget && <p className="text-xs text-destructive">Over the lab budget: {cents(estimate.spentUsd)} spent plus {cents(shownCost)} would pass {cents(estimate.budgetUsd)} (LAB_BUDGET_USD).</p>}
+            <p className="text-xs text-paper-dim font-numeric">{estimate.perWriter.map((w) => `${w.writer}: ${w.replays} replays, ${cents(tier === "flex" ? w.flexUsd : w.standardUsd)}`).join(" · ")}</p>
+            {overBudget && <p className="text-xs text-error">Over the lab budget: {cents(estimate.spentUsd)} spent plus {cents(shownCost)} would pass {cents(estimate.budgetUsd)} (LAB_BUDGET_USD).</p>}
           </>
         )}
-        {!estimate && !estimating && <p className="text-xs text-muted-foreground">Tick at least one base, one section and one writer.</p>}
-        {production && <p className="text-xs text-muted-foreground mt-2">Production writes with {production.foundation} (foundation) and {production.sections} (sections).</p>}
-      </div>
+        {!estimate && !estimating && <p className="text-xs text-paper-dim">Tick at least one base, one section and one writer.</p>}
+        {production && <p className="text-xs text-paper-dim mt-2">Production writes with {production.foundation} (foundation) and {production.sections} (sections).</p>}
+      </Card>
 
       <div>
         <Button disabled={!estimate || overBudget || spawning || !label.trim()} onClick={spawn}>

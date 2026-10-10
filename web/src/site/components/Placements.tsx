@@ -11,8 +11,8 @@ import { renderFor } from "@/lib/planet-renders";
 import { houseParts, placementRows, type PlacementRow } from "@/site/lib/sky";
 import type { ChartData } from "@/types/chart";
 
-const HEAD = "px-4 py-3.5 text-left font-label text-[10.5px] font-medium uppercase leading-none tracking-[.16em] text-[color:var(--sd-muted)] @max-[460px]:px-3";
-const CELL = "border-b border-[color:var(--line-soft)] px-4 py-[11px] align-middle group-last:border-b-0 @max-[460px]:px-3";
+const HEAD = "px-4 py-3.5 text-left font-label text-kicker font-medium uppercase leading-none tracking-[.16em] text-muted @max-[460px]:px-3";
+const CELL = "border-b border-line-soft px-4 py-[11px] align-middle group-last:border-b-0 @max-[460px]:px-3";
 
 /** Inline side by side where the table has room, one under the other where it doesn't. */
 function Parts({ parts }: { parts: readonly string[] }) {
@@ -34,7 +34,7 @@ function Marker({ row }: { row: PlacementRow }) {
     return (
       <span
         aria-hidden="true"
-        className={`mb-[-1px] ml-[3px] mr-[11px] inline-block h-3 w-3 border-[1.4px] border-[color:var(--sd-brass)] shadow-[inset_0_0_0_3px_var(--bg),inset_0_0_0_6px_var(--sd-brass)] @max-[460px]:mr-[9px] ${row.key === "midheaven" ? "rounded-[2px]" : "rounded-full"}`}
+        className={`mb-[-1px] ml-[3px] mr-[11px] inline-block h-3 w-3 border-[1.4px] border-brass shadow-[inset_0_0_0_3px_var(--bg),inset_0_0_0_6px_var(--sd-brass)] @max-[460px]:mr-[9px] ${row.key === "midheaven" ? "rounded-xs" : "rounded-full"}`}
       />
     );
   }
@@ -45,11 +45,11 @@ function Marker({ row }: { row: PlacementRow }) {
 export function Placements({ chart, caption }: { chart: ChartData; caption: string }) {
   const houses = chart.angles !== undefined;
   return (
-    <div className="@container overflow-x-auto rounded-[14px] border border-[color:var(--line)] bg-[rgba(17,22,31,.45)]">
-      <table className="w-full border-collapse text-[14.5px]">
+    <div className="@container overflow-x-auto rounded-card border border-line bg-surface/45">
+      <table className="w-full border-collapse text-ui">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-[color:var(--line)]">
+          <tr className="border-b border-line">
             <th scope="col" className={HEAD}>
               Planet
             </th>
@@ -66,15 +66,15 @@ export function Placements({ chart, caption }: { chart: ChartData; caption: stri
         <tbody>
           {placementRows(chart).map((row) => (
             <tr key={row.key} className="group">
-              <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal text-[color:var(--paper)]`}>
+              <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal text-paper`}>
                 <Marker row={row} />
                 {row.label}
               </th>
-              <td className={`${CELL} font-numeric text-[13px] text-[color:var(--paper-dim)]`}>
+              <td className={`${CELL} font-numeric text-small text-paper-dim`}>
                 <Parts parts={row.position} />
               </td>
               {houses ? (
-                <td className={`${CELL} text-[color:var(--paper-dim)]`}>{row.house ? <Parts parts={houseParts(row.house)} /> : null}</td>
+                <td className={`${CELL} text-paper-dim`}>{row.house ? <Parts parts={houseParts(row.house)} /> : null}</td>
               ) : null}
             </tr>
           ))}

@@ -1,9 +1,13 @@
+import { tokens } from "@workspace/design";
+
+const c = tokens.color;
+
 /** The four element hues are data and belong to the balance bars alone. */
 export const ELEMENT_HEX: Record<string, string> = {
-  fire: "#E0845C",
-  earth: "#7FB08B",
-  air: "#8FC5E0",
-  water: "#6B7FD7",
+  fire: c["element-fire"],
+  earth: c["element-earth"],
+  air: c["element-air"],
+  water: c["element-water"],
 };
 
 /**
@@ -12,7 +16,7 @@ export const ELEMENT_HEX: Record<string, string> = {
  * neighbours ever share one; chapter 10, Closing, is teal (ADR-46). The chart
  * does not reach this: element hues stay data and brass stays geometry.
  */
-const ACCENTS = ["#5C6BC0", "#3F8FD2", "#9575CD", "#3FA796", "#D9668A", "#B565A7"] as const;
+const ACCENTS = [c["chapter-1"], c["chapter-2"], c["chapter-3"], c["chapter-4"], c["chapter-5"], c["chapter-6"]] as const;
 
 export function chapterAccent(chapter: number): string {
   const i = Math.max(1, Math.round(chapter)) - 1;

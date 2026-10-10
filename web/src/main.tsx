@@ -43,8 +43,9 @@ async function startApp(prerendered: boolean): Promise<void> {
         return route?.load().then(({ default: Page }) => ({ path: route.path, Page }));
       })
     : Promise.resolve(undefined);
-  const [{ createRoot, hydrateRoot }, { setBaseUrl }, { API_ORIGIN }, { default: App }, firstPage] = await Promise.all([
+  const [{ createRoot, hydrateRoot }, { MotionConfig }, { setBaseUrl }, { API_ORIGIN }, { default: App }, firstPage] = await Promise.all([
     import("react-dom/client"),
+    import("framer-motion"),
     import("@workspace/api-client-react"),
     import("./lib/api"),
     import("./App"),
@@ -58,10 +59,20 @@ async function startApp(prerendered: boolean): Promise<void> {
     setBaseUrl(API_ORIGIN);
   }
 
+  // One place decides reduced motion for every framer-motion part: each lands on its final frame when the reader asks.
   if (!prerendered) {
-    createRoot(root).render(<App />);
+    createRoot(root).render(
+      <MotionConfig reducedMotion="user">
+        <App />
+      </MotionConfig>,
+    );
   } else {
-    hydrateRoot(root, <App first={firstPage} />);
+    hydrateRoot(
+      root,
+      <MotionConfig reducedMotion="user">
+        <App first={firstPage} />
+      </MotionConfig>,
+    );
   }
 }
 

@@ -25,7 +25,9 @@ import {
 } from "@workspace/api-client-react";
 import { AskCards } from "@/components/ask/AskCards";
 import { AskMark } from "@/components/ask/AskMark";
-import { StatusDots } from "@/components/StatusDots";
+import { Button, buttonStyles } from "@/ds/atoms/Button";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
@@ -50,11 +52,8 @@ import { cn } from "@/lib/utils";
 /** The report's easing, the one the app moves on. */
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-const NOTE = "m-0 text-[13.5px] leading-normal text-[#AEB6C6]";
-const LINK_BUTTON =
-  "justify-self-start rounded text-[13.5px] text-[#9FA8DA] hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA]";
-const QUIET_BUTTON =
-  "mt-0.5 inline-flex min-h-9 items-center rounded-[10px] border border-[#3A4560] px-3.5 text-[13.5px] font-medium text-[#E8EBF2] transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:border-[#5C6BC0] hover:bg-[rgba(92,107,192,.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA]";
+const NOTE = "m-0 text-small text-paper-dim";
+const OFFER_BUTTON = cn(buttonStyles({ variant: "secondary", size: "compact" }), "mt-0.5 justify-self-start");
 
 export interface AskPanelProps {
   open: boolean;
@@ -77,7 +76,7 @@ function ReaderBubble({ text, bubble }: { text: string; bubble?: RefObject<HTMLP
   return (
     <p
       ref={bubble}
-      className="m-0 max-w-[85%] justify-self-end whitespace-pre-wrap break-words rounded-[16px_16px_4px_16px] border border-[#242C3B] bg-[#171D29] px-3.5 py-2.5 text-[15px] leading-normal text-[#E8EBF2]"
+      className="m-0 max-w-[85%] justify-self-end whitespace-pre-wrap break-words rounded-card rounded-br-inner border border-line bg-raised px-3.5 py-2.5 text-prose leading-normal text-paper"
     >
       <span className="sr-only">You: </span>
       {text}
@@ -95,16 +94,16 @@ function PairOffer({ offer, onLeave }: { offer: OfferView; onLeave: () => void }
     <div
       role="group"
       aria-labelledby={titleId}
-      className="grid justify-items-start gap-1.5 rounded-[10px] border border-dashed border-[#9575CD]/60 px-3 py-2.5 text-[13.5px] leading-snug"
+      className="grid justify-items-start gap-1.5 rounded-control border border-dashed border-violet px-3 py-2.5 text-small leading-snug"
     >
-      <p id={titleId} className="m-0 font-medium text-[#E8EBF2]">
+      <p id={titleId} className="m-0 font-medium text-paper">
         {offer.title}
       </p>
-      <p className="m-0 text-[#AEB6C6]">{offer.reason}</p>
-      <p className="m-0 text-[13px] text-[#E8EBF2]">{offer.credits}</p>
+      <p className="m-0 text-paper-dim">{offer.reason}</p>
+      <p className="m-0 text-small text-paper">{offer.credits}</p>
       {/* Close's own type="button" would land on the link, which a link never carries. */}
       <Dialog.Close asChild type={undefined}>
-        <Link href={offer.href} onClick={onLeave} aria-describedby={titleId} className={QUIET_BUTTON}>
+        <Link href={offer.href} onClick={onLeave} aria-describedby={titleId} className={OFFER_BUTTON}>
           {offer.action}
         </Link>
       </Dialog.Close>
@@ -129,7 +128,7 @@ function Answer({
   return (
     <div className="grid min-w-0 gap-3">
       {paragraphs(message.text).map((text, i) => (
-        <p key={i} className="m-0 whitespace-pre-line break-words text-[15px] leading-[1.65] text-[#E8EBF2]">
+        <p key={i} className="m-0 whitespace-pre-line break-words text-prose leading-[1.65] text-paper">
           {i === 0 ? <span className="sr-only">Ask: </span> : null}
           {text}
         </p>
@@ -143,15 +142,16 @@ function Answer({
       {choices.length ? (
         <div className="flex flex-wrap gap-1.5">
           {choices.map((choice) => (
-            <button
+            <Button
               key={choice.id}
-              type="button"
+              variant="secondary"
+              size="compact"
               disabled={busy}
               onClick={() => onChoose(choice)}
-              className="min-h-9 rounded-full border border-[#242C3B] bg-[#11161F] px-3 py-1.5 text-left text-[13.5px] leading-snug text-[#E8EBF2] transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:border-[#5C6BC0] hover:bg-[rgba(92,107,192,.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA] disabled:cursor-not-allowed disabled:opacity-45"
+              className="h-auto whitespace-normal rounded-full bg-surface py-1.5 text-left leading-snug hover:bg-indigo-tint disabled:cursor-not-allowed disabled:opacity-45"
             >
               {choice.label}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -286,7 +286,7 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
         <Dialog.Portal forceMount key="ask">
           <Dialog.Overlay asChild forceMount>
             <motion.div
-              className="fixed inset-0 z-50 bg-[rgba(6,8,12,.72)]"
+              className="fixed inset-0 z-50 bg-scrim"
               initial={reduced ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: move(0.25) }}
@@ -319,17 +319,17 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
               exit={{ ...away, transition: move(0.3) }}
               transition={move(0.45)}
               className={cn(
-                "fixed z-50 flex flex-col bg-[#0D1117] text-[#E8EBF2] outline-none",
+                "fixed z-50 flex flex-col bg-ground text-paper outline-none",
                 phone
                   ? "inset-x-0 top-0 h-[100dvh]"
-                  : "inset-y-0 right-0 w-[min(440px,100vw)] border-l border-[#242C3B] shadow-[-18px_0_44px_rgba(0,0,0,.45)]",
+                  : "inset-y-0 right-0 w-[min(440px,100vw)] border-l border-line shadow-raised",
               )}
             >
-              <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#1A202C] pl-4 pr-2">
-                <Dialog.Title className="m-0 text-[#E8EBF2]">
+              <div className="flex h-14 shrink-0 items-center justify-between border-b border-line-soft pl-4 pr-2">
+                <Dialog.Title className="m-0 text-paper">
                   <AskMark size={20} />
                 </Dialog.Title>
-                <Dialog.Close className="rounded px-2 py-2 font-label text-[10.5px] font-medium uppercase tracking-[0.14em] text-[#AEB6C6] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#9FA8DA]">
+                <Dialog.Close className="rounded px-2 py-2 font-label text-data-sm font-medium uppercase text-paper-dim transition-colors hover:text-paper focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-lt">
                   Close
                 </Dialog.Close>
               </div>
@@ -338,16 +338,16 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
                 {thread.isError && !thread.data ? (
                   <div className="grid gap-2">
                     <p className={NOTE}>Your messages didn't load.</p>
-                    <button type="button" onClick={() => void thread.refetch()} className={LINK_BUTTON}>
+                    <TextButton onClick={() => void thread.refetch()} className="justify-self-start">
                       Try again
-                    </button>
+                    </TextButton>
                   </div>
                 ) : thread.data || pending !== null ? (
                   // Drawn once the thread is in, so its history isn't read out; what's added after is.
                   <div role="log" aria-label="Your conversation with Ask" className="grid min-w-0 gap-5">
                     {messages.length === 0 && pending === null ? (
                       <div className="grid gap-2 pt-1">
-                        <p className="m-0 font-display text-[22px] leading-[1.2] text-[#E8EBF2]">
+                        <p className="m-0 font-display text-card-title text-paper">
                           A chat about your chart, your reports and your timeline
                         </p>
                         <p className={NOTE}>When Ask needs a date or a person, it asks you back.</p>
@@ -372,7 +372,7 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
                     {pending !== null ? (
                       <>
                         <ReaderBubble text={pending} />
-                        <p className="m-0 text-[14px] text-[#AEB6C6]">
+                        <p className="m-0 text-ui text-paper-dim">
                           <StatusDots label="Writing" />
                         </p>
                       </>
@@ -386,17 +386,17 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
                   event.preventDefault();
                   sendDraft();
                 }}
-                className="shrink-0 border-t border-[#1A202C] px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"
+                className="shrink-0 border-t border-line-soft px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"
               >
                 {refusal ? (
-                  <p role="alert" className="m-0 mb-2.5 text-[13.5px] leading-snug text-[#E8EBF2]">
+                  <p role="alert" className="m-0 mb-2.5 text-small leading-snug text-paper">
                     {refusal}
                   </p>
                 ) : null}
                 <div
                   className={cn(
-                    "flex items-end gap-2 rounded-[14px] border bg-[#06080C] py-1.5 pl-3.5 pr-1.5 transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)]",
-                    capped ? "border-[#1A202C]" : "border-[#242C3B] focus-within:border-[#5C6BC0]",
+                    "flex items-end gap-2 rounded-card border bg-void py-1.5 pl-3.5 pr-1.5 transition-colors duration-[var(--dur-base)] ease-[var(--ease)]",
+                    capped ? "border-line-soft" : "border-control-edge focus-within:border-indigo-lt",
                   )}
                 >
                   <label htmlFor={boxId} className="sr-only">
@@ -417,28 +417,24 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
                       if (refusal) setRefusal(null);
                     }}
                     onKeyDown={onKey}
-                    className="max-h-40 min-w-0 flex-1 resize-none self-center bg-transparent py-1.5 text-base leading-normal text-[#E8EBF2] placeholder:text-[#7E889A] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    className="max-h-40 min-w-0 flex-1 resize-none self-center bg-transparent py-1.5 text-base leading-normal text-paper placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                   />
-                  <button
-                    type="submit"
-                    disabled={!ready}
-                    className="shrink-0 rounded-[10px] bg-[#5C6BC0] px-3 py-[7px] text-[13.5px] font-medium text-[#F4F5FA] transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-[#6B79CB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06080C] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[#5C6BC0]"
-                  >
+                  <Button type="submit" size="compact" disabled={!ready} className="shrink-0 disabled:cursor-not-allowed disabled:opacity-45">
                     Send
-                  </button>
+                  </Button>
                 </div>
                 {room ? (
-                  <p aria-live="polite" className="m-0 mt-1 text-right text-xs text-[#7E889A]">
+                  <p aria-live="polite" className="m-0 mt-1 text-right text-xs text-muted">
                     {room}
                   </p>
                 ) : null}
-                <div className="mt-2 grid gap-0.5 text-center text-[12.5px] leading-snug">
+                <div className="mt-2 grid gap-0.5 text-center text-caption leading-snug">
                   {under ? (
-                    <p id={usageId} aria-live="polite" className="m-0 text-[#AEB6C6]">
+                    <p id={usageId} aria-live="polite" className="m-0 text-paper-dim">
                       {under.line}
                     </p>
                   ) : null}
-                  <Dialog.Description className="m-0 text-[#7E889A]">
+                  <Dialog.Description className="m-0 text-muted">
                     Ask is an AI. It answers from your chart and your reports.
                   </Dialog.Description>
                 </div>

@@ -23,7 +23,7 @@ export function PrelaunchRibbon() {
     <Link
       href="/admin/waitlist"
       className={cn(
-        "fixed bottom-3 left-3 z-[60] rounded-full border border-primary/40 bg-primary/15 px-3 py-1 font-label text-[10px] tracking-[0.2em] uppercase text-primary-foreground/90 backdrop-blur-sm hover:bg-primary/25 max-sm:left-1/2 max-sm:w-max max-sm:max-w-[calc(100vw-2rem)] max-sm:-translate-x-1/2 max-sm:text-center",
+        "fixed bottom-3 left-3 z-[60] rounded-full border border-indigo/40 bg-indigo/15 px-3 py-1 font-label text-kicker tracking-[0.2em] uppercase text-paper backdrop-blur-sm hover:bg-indigo/25 max-sm:left-1/2 max-sm:w-max max-sm:max-w-[calc(100vw-2rem)] max-sm:-translate-x-1/2 max-sm:text-center",
         onSite ? "max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]" : "max-sm:bottom-auto max-sm:top-4",
       )}
     >

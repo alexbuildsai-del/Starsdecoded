@@ -9,6 +9,7 @@
  * once, still; so does a failed report, which has nothing left to show being written.
  */
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { tokens } from "@workspace/design";
 import type { LoadingSlots } from "@/components/loading/LoadingFrame";
 import type { PairPerson } from "@/components/report/PairHero";
 import { NOT_DRAWN, pairHeroLayout } from "@/components/report/pair-hero-layout";
@@ -31,23 +32,27 @@ export interface PairStoryProps {
   children: (slots: LoadingSlots) => ReactNode;
 }
 
-const VOID = "#06080C";
-const GROUND = "#0D1117";
-const LINE = "#242C3B";
-const LINE_SOFT = "#1A202C";
-const PAPER = "#E8EBF2";
-const PAPER_DIM = "#AEB6C6";
-const INDIGO = "#5C6BC0";
-const INDIGO_LT = "#9FA8DA";
-const VIOLET = "#9575CD";
-const BRASS = "#D4B06A";
+const c = tokens.color;
+const VOID = c.void;
+const GROUND = c.ground;
+const LINE = c.line;
+const LINE_SOFT = c["line-soft"];
+const PAPER = c.paper;
+const PAPER_DIM = c["paper-dim"];
+const INDIGO = c.indigo;
+const INDIGO_LT = c["indigo-lt"];
+const VIOLET = c.violet;
+const BRASS = c.brass;
 
 const FONT: Record<PairText["font"] | "label", string> = {
-  serif: "'Newsreader', Georgia, serif",
-  sans: "'Inter', ui-sans-serif, system-ui, sans-serif",
-  mono: "'IBM Plex Mono', ui-monospace, monospace",
-  label: "'Space Grotesk', ui-monospace, sans-serif",
+  serif: tokens.fontFamily.display,
+  sans: tokens.fontFamily.body,
+  mono: tokens.fontFamily.mono,
+  label: tokens.fontFamily.label,
 };
+
+/** The indigo-lt edge of a house dot, as strong as `share` of the colour. */
+const dotEdge = (share: number): string => `color-mix(in srgb, ${INDIGO_LT} ${share}%, transparent)`;
 
 const TONE: Record<PairText["tone"], string> = { paper: PAPER, dim: PAPER_DIM, brass: BRASS };
 
@@ -284,12 +289,15 @@ function Stage({ stage, label, ids, svgRef }: {
   );
 }
 
-/** Sizes cap at the phone's and shrink with the frame's height, so the block fits its slot on a short screen too. */
+/**
+ * Sizes cap at the phone's and shrink with the frame's height, so the block fits its slot on a short screen too, but
+ * never under the 11 px floor (B-75).
+ */
 const LINE_LOOK: Record<PairLine["role"], CSSProperties> = {
-  place: { fontSize: "min(12px, 1.7cqh)", lineHeight: 1.6, color: PAPER },
-  distance: { fontSize: "min(12px, 1.7cqh)", lineHeight: 1.6, color: BRASS },
-  date: { fontSize: "min(17px, 2.4cqh)", lineHeight: 1.5, color: PAPER },
-  when: { fontSize: "min(11px, 1.55cqh)", lineHeight: 1.7, color: PAPER_DIM },
+  place: { fontSize: "clamp(11px, 1.7cqh, 12px)", lineHeight: 1.6, color: PAPER },
+  distance: { fontSize: "clamp(11px, 1.7cqh, 12px)", lineHeight: 1.6, color: BRASS },
+  date: { fontSize: "clamp(11px, 2.4cqh, 17px)", lineHeight: 1.5, color: PAPER },
+  when: { fontSize: "11px", lineHeight: 1.7, color: PAPER_DIM },
 };
 
 const MONO: CSSProperties = { fontFamily: FONT.mono, fontVariantNumeric: "tabular-nums", margin: 0 };
@@ -309,11 +317,11 @@ function Lines({ detail }: { detail: PairLines }) {
 
 function House({ detail, inset }: { detail: PairHouse; inset: number }) {
   const start = detail.align === "start";
-  const row: CSSProperties = { ...MONO, fontSize: "min(11.5px, 1.6cqh)", lineHeight: 1.5, color: PAPER_DIM };
+  const row: CSSProperties = { ...MONO, fontSize: "clamp(11px, 1.6cqh, 11.5px)", lineHeight: 1.5, color: PAPER_DIM };
   return (
     <div style={{ alignSelf: "stretch", height: "100%", display: "flex", flexDirection: "column", textAlign: start ? "left" : "center", paddingLeft: start ? inset : 0 }}>
       <div style={{ opacity: detail.opacity }}>
-        <p style={{ margin: 0, fontFamily: FONT.label, fontSize: "min(10px, 1.45cqh)", lineHeight: 1.3, letterSpacing: ".16em", textTransform: "uppercase", color: INDIGO_LT }}>
+        <p style={{ margin: 0, fontFamily: FONT.label, fontSize: "11px", lineHeight: 1.3, letterSpacing: ".16em", textTransform: "uppercase", color: INDIGO_LT }}>
           {detail.label}
         </p>
         <p style={{ margin: "min(4px, .5cqh) 0 0", fontFamily: FONT.serif, fontSize: "min(30px, 3.6cqh)", lineHeight: 1.1, color: PAPER }}>
@@ -338,7 +346,7 @@ function House({ detail, inset }: { detail: PairHouse; inset: number }) {
             key={i}
             style={{
               display: "block", width: 6, height: 6, boxSizing: "border-box", borderRadius: "50%",
-              border: `1px solid ${INDIGO_LT}`, borderColor: dot.reached ? "rgba(159,168,218,.9)" : "rgba(159,168,218,.35)",
+              border: `1px solid ${INDIGO_LT}`, borderColor: dot.reached ? dotEdge(90) : dotEdge(35),
               background: dot.filled ? INDIGO_LT : "transparent",
             }}
           />

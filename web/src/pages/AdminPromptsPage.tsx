@@ -10,13 +10,16 @@ import {
   Save,
   AlertCircle,
   Eye,
-  X,
-  Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ds/atoms/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { BASE_URL } from "@/lib/api";
-import { Wordmark } from "@/components/Wordmark";
+import { Alert } from "@/ds/molecules/Alert";
+import { Card } from "@/ds/molecules/Card";
+import { Chip } from "@/ds/atoms/Chip";
+import { SegmentedControl } from "@/ds/molecules/SegmentedControl";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ds/organisms/Dialog";
+import { AdminDenied, AdminLoading, AdminShell } from "@/components/lab/AdminShell";
 import { ClerkStalledPage } from "@/components/ClerkStalled";
 import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { usePageTitle } from "@/lib/page-title";
@@ -71,61 +74,46 @@ interface PreviewModalProps {
 }
 
 function PreviewModal({ open, label, loading, text, error, onClose }: PreviewModalProps) {
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative w-full max-w-2xl rounded-2xl border border-border/60 bg-[#0D1117] shadow-2xl flex flex-col max-h-[80vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
-          <div>
-            <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-0.5">AI Preview</p>
-            <h2 className="font-display text-base text-foreground">{label}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-card/60"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="flex max-h-[80vh] flex-col sm:max-w-2xl">
+        <DialogHeader>
+          <p className="m-0 font-label text-label uppercase text-label-dim">AI Preview</p>
+          <DialogTitle>{label}</DialogTitle>
+        </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading && (
-            <div className="flex items-center gap-3 text-muted-foreground py-8 justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-primary/60" />
-              <span className="text-sm">Calling AI…</span>
+            <div className="flex items-center justify-center gap-3 py-8 text-paper-dim">
+              <Loader2 className="h-5 w-5 animate-spin text-muted" />
+              <span className="text-small">Calling AI…</span>
             </div>
           )}
           {error && !loading && (
-            <div className="flex items-start gap-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 text-small text-error">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
           {!loading && !error && text !== null && text.length > 0 && (
-            <pre className="text-sm text-foreground/90 whitespace-pre-wrap font-numeric leading-relaxed">
+            <pre className="whitespace-pre-wrap font-numeric text-small leading-relaxed text-paper">
               {text}
             </pre>
           )}
           {!loading && !error && text !== null && text.length === 0 && (
-            <p className="text-sm text-muted-foreground py-8 text-center">
+            <p className="py-8 text-center text-small text-paper-dim">
               The AI returned an empty response.
             </p>
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-border/40 shrink-0 flex justify-end">
-          <Button size="sm" variant="outline" onClick={onClose}>
+        <DialogFooter>
+          <Button size="compact" variant="secondary" onClick={onClose}>
             Close
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -242,53 +230,43 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
         error={previewError}
         onClose={() => setPreviewOpen(false)}
       />
-      <div
-        className={`rounded-xl border ${entry.isOverridden ? "border-primary/40 bg-primary/5" : "border-border/60 bg-card/40"} backdrop-blur-sm overflow-hidden`}
-      >
-        <button
-          type="button"
+      <Card as="div" variant={entry.isOverridden ? "tint" : "surface"} className="gap-0 overflow-hidden p-0 sm:p-0">
+        <Button
+          variant="secondary"
+          aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 hover:bg-card/60 transition-colors"
+          className="h-auto min-h-14 w-full justify-between gap-3 rounded-none border-0 px-5 py-4 text-left hover:bg-raised"
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="font-label text-sm text-foreground/90 truncate">{entry.label}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="truncate font-label text-small text-paper">{entry.label}</span>
             {entry.isOverridden && (
-              <span className="shrink-0 text-[10px] font-label tracking-[0.15em] uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                Customised
-              </span>
+              <Chip tone="now" className="shrink-0">Customised</Chip>
             )}
             {dirty && (
-              <span className="shrink-0 text-[10px] font-label tracking-[0.15em] uppercase text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
-                Unsaved
-              </span>
+              <Chip tone="brass" className="shrink-0">Unsaved</Chip>
             )}
           </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-        </button>
+          {open ? <ChevronUp className="h-4 w-4 text-paper-dim shrink-0" /> : <ChevronDown className="h-4 w-4 text-paper-dim shrink-0" />}
+        </Button>
 
         {open && (
-          <div className="px-5 pb-5 flex flex-col gap-4 border-t border-border/40 pt-4">
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+          <div className="flex flex-col gap-4 border-t border-line px-5 pb-5 pt-4">
+            {error && <Alert>{error}</Alert>}
 
             {hasSystem && (
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs tracking-[0.12em] uppercase text-muted-foreground">
+                <label className="font-label text-label uppercase text-muted">
                   System Prompt
                 </label>
                 <Textarea
                   value={system}
                   onChange={(e) => setSystem(e.target.value)}
                   readOnly={readOnly}
-                  className="font-numeric text-xs min-h-[140px] resize-y bg-background/60"
+                  className="min-h-[140px] resize-y bg-ground font-numeric text-data"
                   placeholder="Leave blank to use default…"
                 />
                 {defaultSystem && system !== defaultSystem && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-data-sm text-paper-dim">
                     Default: <span className="italic">{defaultSystem.slice(0, 80)}…</span>
                   </p>
                 )}
@@ -297,25 +275,25 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
 
             {hasUser && (
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs tracking-[0.12em] uppercase text-muted-foreground">
+                <label className="font-label text-label uppercase text-muted">
                   User Prompt
                 </label>
                 <Textarea
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
                   readOnly={readOnly}
-                  className="font-numeric text-xs min-h-[200px] resize-y bg-background/60"
+                  className="min-h-[200px] resize-y bg-ground font-numeric text-data"
                   placeholder="Leave blank to use default…"
                 />
                 {defaultUser && user !== defaultUser && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-data-sm text-paper-dim">
                     Default: <span className="italic">{defaultUser.slice(0, 80)}…</span>
                   </p>
                 )}
                 {FORMAT_NOTES[entry.key] && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2">
-                    <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-300/80 font-numeric whitespace-pre-wrap leading-relaxed">
+                  <div className="flex items-start gap-2 rounded-card border border-brass/20 bg-brass/5 px-3 py-2">
+                    <AlertCircle className="h-3.5 w-3.5 text-brass shrink-0 mt-0.5" />
+                    <p className="text-data-sm text-brass/80 font-numeric whitespace-pre-wrap leading-relaxed">
                       {FORMAT_NOTES[entry.key]}
                     </p>
                   </div>
@@ -326,48 +304,47 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
             <div className="flex items-center gap-2 flex-wrap">
               {!readOnly && (
                 <Button
-                  size="sm"
-                  className="gradient-primary text-white border-0 font-label font-medium"
+                  size="compact"
                   onClick={handleSave}
                   disabled={saving || resetting}
                 >
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  {saving ? <Loader2 className="animate-spin" /> : <Save />}
                   Save
                 </Button>
               )}
               <Button
-                size="sm"
-                variant="outline"
+                size="compact"
+                variant="secondary"
                 onClick={handlePreview}
                 disabled={saving || resetting || previewing}
               >
-                {previewing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+                {previewing ? <Loader2 className="animate-spin" /> : <Eye />}
                 Preview
               </Button>
               {entry.isOverridden && !readOnly && (
                 <Button
-                  size="sm"
-                  variant="outline"
+                  size="compact"
+                  variant="secondary"
                   onClick={handleReset}
                   disabled={saving || resetting}
                 >
-                  {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+                  {resetting ? <Loader2 className="animate-spin" /> : <RotateCcw />}
                   Reset to default
                 </Button>
               )}
               {success && (
-                <span className="text-xs text-green-400 font-label">Saved!</span>
+                <span className="font-label text-data text-teal">Saved!</span>
               )}
             </div>
 
             {entry.updatedAt && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-data-sm text-paper-dim">
                 Last saved: {new Date(entry.updatedAt).toLocaleString()}
               </p>
             )}
           </div>
         )}
-      </div>
+      </Card>
     </>
   );
 }
@@ -412,47 +389,33 @@ export default function AdminPromptsPage() {
 
 
 
+  const signedIn = Boolean(user);
   useEffect(() => {
     if (isLoaded) {
-      if (!user) {
+      if (!signedIn) {
         navigate(`${basePath}/sign-in?return_to=/admin/prompts`);
       } else {
         loadData();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, user]);
+  }, [isLoaded, signedIn]);
 
   if (clerkStalled) return <ClerkStalledPage />;
 
-  if (!isLoaded || loading) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
-      </div>
-    );
-  }
+  if (!isLoaded || loading) return <AdminLoading error={null} />;
 
   if (isAdmin === false) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
-          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
-          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/prompts` })}>Sign out</Button>
-        </div>
-      </div>
-    );
+    return <AdminDenied onSignOut={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/prompts` })} />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
+      <div className="grid min-h-screen place-items-center bg-ground px-6 text-paper">
         <div className="max-w-md text-center">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button variant="outline" onClick={() => loadData()}>Retry</Button>
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-error" />
+          <p className="mb-4 text-small text-paper-dim">{error}</p>
+          <Button variant="secondary" onClick={() => loadData()}>Retry</Button>
         </div>
       </div>
     );
@@ -463,116 +426,50 @@ export default function AdminPromptsPage() {
   const overrideCount = prompts.filter((p) => p.isOverridden).length;
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard")}
-          >
-            <Wordmark />
-          </button>
-          <div className="flex items-center gap-4">
-            <span className="font-label text-xs tracking-[0.15em] uppercase text-muted-foreground hidden sm:block">
-              Admin
-            </span>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-20 flex gap-6">
-        {/* Sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 w-48 shrink-0 pt-2">
-          <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2 px-3">
-            Admin
+    <AdminShell
+      current="/admin/prompts"
+      title="Prompt Templates"
+      lede={
+        <>
+          {readOnly
+            ? "The prompts this environment uses for reports, Timeline and Ask."
+            : "Edit the AI prompts for reports, Timeline and Ask. Changes take effect on the next report, reading or answer."}
+          {overrideCount > 0 && (
+            <> <span className="text-indigo-lt">{overrideCount} customised.</span></>
+          )}
+        </>
+      }
+    >
+      {readOnly && (
+        <Alert tone="notice" className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-brass" />
+          <p className="m-0">
+            Read-only here. Prompts are edited on staging and promoted to production with each release.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/prompts")}
-            className="text-left px-3 py-2 rounded-lg text-sm font-label bg-primary/10 text-primary"
-          >
-            Prompts
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/report-lab")}
-            className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground"
-          >
-            Lab
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/waitlist")}
-            className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground"
-          >
-            Waitlist
-          </button>
-        </aside>
+        </Alert>
+      )}
 
-        {/* Main content */}
-        <main className="flex-1 min-w-0">
-          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
-              <h1 className="font-display text-2xl">Prompt Templates</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {readOnly
-                  ? "The prompts this environment uses for reports, Timeline and Ask."
-                  : "Edit the AI prompts for reports, Timeline and Ask. Changes take effect on the next report, reading or answer."}
-                {overrideCount > 0 && (
-                  <> <span className="text-primary">{overrideCount} customised.</span></>
-                )}
-              </p>
-            </div>
-          </div>
+      <SegmentedControl<Tab>
+        aria-label="Prompt families"
+        className="w-fit max-w-full flex-wrap"
+        options={TABS.map((id) => ({ id, label: TAB_LABELS[id] }))}
+        value={tab}
+        onChange={setTab}
+      />
 
-          {readOnly && (
-            <div
-              role="status"
-              className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 flex items-start gap-3 text-amber-200"
-            >
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm leading-relaxed">
-                Read-only here. Prompts are edited on staging and promoted to production with each release.
-              </p>
-            </div>
-          )}
+      {tab === "pair" && (
+        <p className="max-w-prose text-caption text-paper-dim">{LENS_NOTE}</p>
+      )}
 
-          {/* Tab bar */}
-          <div className="mb-4 flex flex-wrap gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit max-w-full">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-md text-xs font-label tracking-wide transition-colors ${
-                  tab === t
-                    ? "bg-primary/20 text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {TAB_LABELS[t]}
-              </button>
-            ))}
-          </div>
-
-          {tab === "pair" && (
-            <p className="mb-4 text-xs text-muted-foreground max-w-prose">{LENS_NOTE}</p>
-          )}
-
-
-          {/* Prompt cards */}
-          <div className="flex flex-col gap-3">
-            {displayedPrompts.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No prompts in this section.</p>
-            ) : (
-              displayedPrompts.map((p) => (
-                <PromptCard key={p.key} entry={p} readOnly={readOnly} onSaved={loadData} />
-              ))
-            )}
-          </div>
-        </main>
+      <div className="flex flex-col gap-3">
+        {displayedPrompts.length === 0 ? (
+          <p className="py-8 text-center text-small text-paper-dim">No prompts in this section.</p>
+        ) : (
+          displayedPrompts.map((p) => (
+            <PromptCard key={p.key} entry={p} readOnly={readOnly} onSaved={loadData} />
+          ))
+        )}
       </div>
-    </div>
+    </AdminShell>
   );
 }
