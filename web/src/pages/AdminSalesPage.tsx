@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { AlertCircle, Check, Copy, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import { CAMPAIGN_ITEMS, MAX_CAMPAIGN_OFF, bundleById, formatEuro } from "@workspace/commerce";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/ds/atoms/Button";
+import { Input } from "@/ds/atoms/Input";
+import { Select } from "@/ds/atoms/Select";
+import { Chip, type ChipTone } from "@/ds/atoms/Chip";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Alert } from "@/ds/molecules/Alert";
+import { Card } from "@/ds/molecules/Card";
+import { AdminDenied, AdminLoading, AdminShell } from "@/components/lab/AdminShell";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Wordmark } from "@/components/Wordmark";
+} from "@/ds/organisms/Confirm";
 import { ClerkStalledPage } from "@/components/ClerkStalled";
 import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { BASE_URL } from "@/lib/api";
@@ -36,22 +40,18 @@ function centsOf(text: string): number | null {
   return Math.round(parseFloat(t) * 100);
 }
 
-const CHIP: Record<CampaignStatus, { label: string; cls: string }> = {
-  live: { label: "Live", cls: "border-green-400/40 text-green-400" },
-  scheduled: { label: "Scheduled", cls: "border-primary/40 text-primary" },
-  ended: { label: "Ended", cls: "border-border text-muted-foreground" },
+const CHIP: Record<CampaignStatus, { label: string; tone: ChipTone }> = {
+  live: { label: "Live", tone: "teal" },
+  scheduled: { label: "Scheduled", tone: "now" },
+  ended: { label: "Ended", tone: "neutral" },
 };
-
-function Chip({ label, cls }: { label: string; cls: string }) {
-  return <span className={`inline-block rounded-full border px-2.5 py-0.5 font-label text-[10px] tracking-[0.14em] uppercase whitespace-nowrap ${cls}`}>{label}</span>;
-}
 
 const price = (cents: number) => <span className="font-numeric">{formatEuro(cents)}</span>;
 
 function CampaignLine({ c }: { c: Campaign }) {
   const items = ITEMS.filter((id) => c.prices[id] !== undefined);
   return (
-    <p className="text-xs text-muted-foreground mt-0.5">
+    <p className="text-caption text-paper-dim mt-0.5">
       {items.map((id, i) => (
         <span key={id}>
           {i > 0 && ", "}
@@ -70,15 +70,14 @@ function CopyLink({ link, label = "Copy the campaign link" }: { link: string; la
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center gap-2 mt-1.5">
-      <code className="font-numeric text-xs text-muted-foreground break-all">{link}</code>
-      <Button
-        type="button" variant="ghost" size="sm"
+      <code className="font-numeric text-caption text-paper-dim break-all">{link}</code>
+      <TextButton
         aria-label={label}
         onClick={() => { void navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }}
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy"}
-      </Button>
+      </TextButton>
     </div>
   );
 }
@@ -118,31 +117,27 @@ function CampaignForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="rounded-lg border border-border/60 bg-card/40 p-4 mb-4 space-y-4">
-      <div>
-        <Label htmlFor="c-name" className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">Name</Label>
-        <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required className="mt-1.5 max-w-sm" />
-        <p className="text-xs text-muted-foreground mt-1">Buyers see this name on the receipt. Up to 40 letters.</p>
-      </div>
+    <Card as="div" className="mb-4"><form onSubmit={(e) => void submit(e)} className="grid gap-4">
+      <Input id="c-name" label="Name" hint="Buyers see this name on the receipt. Up to 40 letters." value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required className="h-10 max-w-sm" />
 
       <fieldset>
-        <legend className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground mb-1.5">Products and prices</legend>
+        <legend className="mb-1.5 font-label text-label uppercase text-muted">Products and prices</legend>
         <div className="space-y-2">
           {ITEMS.map((id) => {
             const full = bundleById(id).cents;
             const floor = Math.ceil(full * (1 - MAX_CAMPAIGN_OFF));
             return (
               <div key={id} className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-2 text-sm w-44">
-                  <input type="checkbox" checked={on[id]} onChange={(e) => setOn({ ...on, [id]: e.target.checked })} className="h-4 w-4 accent-[hsl(var(--primary))]" />
+                <label className="flex items-center gap-2 text-small w-44">
+                  <input type="checkbox" checked={on[id]} onChange={(e) => setOn({ ...on, [id]: e.target.checked })} className="h-4 w-4 accent-indigo" />
                   {bundleById(id).name}
                 </label>
                 <Input
                   value={amounts[id]} onChange={(e) => setAmounts({ ...amounts, [id]: e.target.value })}
                   disabled={!on[id]} inputMode="decimal" aria-label={`${bundleById(id).name} campaign price in euros`}
-                  className="w-28 font-numeric"
+                  className="h-10 w-28 font-numeric"
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-paper-dim">
                   now {price(full)}, lowest {price(floor)}
                 </span>
               </div>
@@ -152,40 +147,32 @@ function CampaignForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
       </fieldset>
 
       <div className="flex gap-4 flex-wrap">
-        <div>
-          <Label htmlFor="c-start" className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">First day</Label>
-          <Input id="c-start" type="date" value={startsOn} min={brusselsToday(new Date())} onChange={(e) => setStartsOn(e.target.value)} required className="mt-1.5 w-44 font-numeric" />
-        </div>
-        <div>
-          <Label htmlFor="c-end" className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">Last day</Label>
-          <Input id="c-end" type="date" value={endsOn} min={startsOn || undefined} onChange={(e) => setEndsOn(e.target.value)} required className="mt-1.5 w-44 font-numeric" />
-        </div>
+        <Input id="c-start" label="First day" type="date" value={startsOn} min={brusselsToday(new Date())} onChange={(e) => setStartsOn(e.target.value)} required className="h-10 w-44 font-numeric" />
+        <Input id="c-end" label="Last day" type="date" value={endsOn} min={startsOn || undefined} onChange={(e) => setEndsOn(e.target.value)} required className="h-10 w-44 font-numeric" />
       </div>
-      <p className="text-xs text-muted-foreground -mt-2">Days run on Brussels time, from midnight on the first to midnight at the end of the last.</p>
+      <p className="text-caption text-paper-dim -mt-2">Days run on Brussels time, from midnight on the first to midnight at the end of the last.</p>
 
       <fieldset>
-        <legend className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground mb-1.5">Who sees it</legend>
-        <div className="flex gap-5 flex-wrap text-sm">
-          <label className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === "everyone"} onChange={() => setAudience("everyone")} className="accent-[hsl(var(--primary))]" /> Everyone</label>
-          <label className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === "link"} onChange={() => setAudience("link")} className="accent-[hsl(var(--primary))]" /> Only people with the link</label>
+        <legend className="mb-1.5 font-label text-label uppercase text-muted">Who sees it</legend>
+        <div className="flex gap-5 flex-wrap text-small">
+          <label className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === "everyone"} onChange={() => setAudience("everyone")} className="accent-indigo" /> Everyone</label>
+          <label className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === "link"} onChange={() => setAudience("link")} className="accent-indigo" /> Only people with the link</label>
         </div>
         {audience === "link" && (
           <div className="mt-3">
-            <Label htmlFor="c-slug" className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">Link word</Label>
-            <Input id="c-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} autoCapitalize="none" spellCheck={false} placeholder="waitlist" className="mt-1.5 max-w-xs" />
-            <p className="text-xs text-muted-foreground mt-1">Lower case letters, numbers and dashes.</p>
+            <Input id="c-slug" label="Link word" hint="Lower case letters, numbers and dashes." value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} autoCapitalize="none" spellCheck={false} placeholder="waitlist" className="h-10 max-w-xs" />
             {slug.trim() && <CopyLink link={campaignLink(window.location.origin, slug.trim())} />}
           </div>
         )}
       </fieldset>
 
-      {refusal && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">{refusal}</p>}
+      {refusal && <Alert>{refusal}</Alert>}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Save campaign</Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />}Save campaign</Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>
-    </form>
+    </form></Card>
   );
 }
 
@@ -203,35 +190,35 @@ function CampaignSection({ rows, onChange, onError }: { rows: Campaign[]; onChan
   return (
     <section aria-labelledby="campaigns-h" className="mb-10">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 id="campaigns-h" className="font-label text-xs tracking-[0.2em] uppercase text-primary/80">Campaigns</h2>
-        {!adding && <Button size="sm" onClick={() => setAdding(true)}>New campaign</Button>}
+        <h2 id="campaigns-h" className="font-label text-kicker uppercase text-indigo-lt">Campaigns</h2>
+        {!adding && <Button size="compact" onClick={() => setAdding(true)}>New campaign</Button>}
       </div>
 
       {adding && <CampaignForm onCancel={() => setAdding(false)} onSaved={() => { setAdding(false); onChange(); }} />}
 
       {sorted.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6">No campaigns yet. Buyers see the full prices.</p>
+        <p className="text-small text-paper-dim py-6">No campaigns yet. Buyers see the full prices.</p>
       ) : (
-        <ul className="rounded-lg border border-border/60 divide-y divide-border/40">
+        <ul className="divide-y divide-line rounded-card border border-line bg-surface">
           {sorted.map((c) => {
             const status = campaignStatus(c, now);
             return (
               <li key={c.id} className="px-4 py-3 grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 items-center">
                 <div className="min-w-0">
-                  <p className="text-sm">{c.name}</p>
+                  <p className="text-small">{c.name}</p>
                   <CampaignLine c={c} />
                   {c.audience === "link" && c.slug && status !== "ended" && <CopyLink link={campaignLink(window.location.origin, c.slug)} />}
                 </div>
-                <Chip {...CHIP[status]} />
+                <Chip tone={CHIP[status].tone}>{CHIP[status].label}</Chip>
                 <div className="col-span-2 sm:col-span-1 sm:w-24 text-right">
-                  {status !== "ended" && <Button variant="ghost" size="sm" onClick={() => setEnding(c)}>End now</Button>}
+                  {status !== "ended" && <Button variant="secondary" size="compact" onClick={() => setEnding(c)}>End now</Button>}
                 </div>
               </li>
             );
           })}
         </ul>
       )}
-      <p className="text-xs text-muted-foreground mt-2">
+      <p className="text-caption text-paper-dim mt-2">
         A link-only campaign runs from its own link, for example mystarsdecoded.com/?c=waitlist. Only Couple and Family &amp; friends take a campaign, at most {Math.round(MAX_CAMPAIGN_OFF * 100)}% off.
       </p>
 
@@ -264,20 +251,20 @@ function TesterRow({ t, onChange, onError, onRemove }: { t: Tester; onChange: ()
   return (
     <li className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 items-center">
       <div className="min-w-0">
-        <p className="text-sm break-all">{t.email}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="break-all text-small">{t.email}</p>
+        <p className="text-caption text-paper-dim mt-0.5">
           tester · <span className="font-numeric">{given}</span> {given === 1 ? "credit" : "credits"} · <span className="font-numeric">{t.used ?? 0}</span> used
         </p>
       </div>
       <div className="flex items-center gap-1.5 justify-end">
-        <select
+        <Select
           value={count} onChange={(e) => setCount(Number(e.target.value) as GrantCount)} aria-label={`Credits to give ${t.email}`}
-          className="h-8 rounded-md border border-input bg-transparent px-2 text-base md:text-xs font-numeric"
+          className="h-9 w-20 font-numeric"
         >
-          {GRANT_COUNTS.map((n) => <option key={n} value={n} className="bg-background">{n}</option>)}
-        </select>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => void grant()}>Grant {count}</Button>
-        <Button variant="ghost" size="sm" onClick={() => onRemove(t)}>Remove</Button>
+          {GRANT_COUNTS.map((n) => <option key={n} value={n}>{n}</option>)}
+        </Select>
+        <Button variant="secondary" size="compact" disabled={busy} onClick={() => void grant()}>Grant {count}</Button>
+        <Button variant="secondary" size="compact" onClick={() => onRemove(t)}>Remove</Button>
       </div>
     </li>
   );
@@ -316,51 +303,49 @@ function TesterSection({ rows, onChange, onError }: { rows: Tester[]; onChange: 
   return (
     <section aria-labelledby="testers-h">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 id="testers-h" className="font-label text-xs tracking-[0.2em] uppercase text-primary/80">Testers</h2>
-        {!adding && <Button size="sm" variant="outline" onClick={() => setAdding(true)}>Add a tester by email</Button>}
+        <h2 id="testers-h" className="font-label text-kicker uppercase text-indigo-lt">Testers</h2>
+        {!adding && <Button size="compact" variant="secondary" onClick={() => setAdding(true)}>Add a tester by email</Button>}
       </div>
 
       {adding && (
-        <form onSubmit={(e) => void add(e)} className="rounded-lg border border-border/60 bg-card/40 p-4 mb-4">
-          <Label htmlFor="t-email" className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">Email</Label>
-          <Input id="t-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoCapitalize="none" className="mt-1.5 max-w-sm" />
-          <p className="text-xs text-muted-foreground mt-1">The person needs an account already. Use the email they signed up with.</p>
-          {refusal && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm mt-3">{refusal}</p>}
-          <div className="flex gap-2 mt-3">
-            <Button type="submit" disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Add tester</Button>
-            <Button type="button" variant="ghost" onClick={() => { setAdding(false); setRefusal(null); }}>Cancel</Button>
+        <Card as="div" className="mb-4"><form onSubmit={(e) => void add(e)} className="grid gap-3">
+          <Input id="t-email" label="Email" hint="The person needs an account already. Use the email they signed up with." type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoCapitalize="none" className="h-10 max-w-sm" />
+          {refusal && <Alert>{refusal}</Alert>}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />}Add tester</Button>
+            <Button type="button" variant="secondary" onClick={() => { setAdding(false); setRefusal(null); }}>Cancel</Button>
           </div>
-        </form>
+        </form></Card>
       )}
 
-      <ul className="rounded-lg border border-border/60 divide-y divide-border/40">
+      <ul className="divide-y divide-line rounded-card border border-line bg-surface">
         {people.map((t) => <TesterRow key={t.userId} t={t} onChange={onChange} onError={onError} onRemove={setRemoving} />)}
         {APP_ENV !== "production" && (
           <li className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-4 items-center">
             <div className="min-w-0">
-              <p className="text-sm">QA pair (staging only)</p>
-              <p className="text-xs text-muted-foreground mt-0.5">qa-a and qa-b, made and reset by staging</p>
+              <p className="text-small">QA pair (staging only)</p>
+              <p className="text-caption text-paper-dim mt-0.5">qa-a and qa-b, made and reset by staging</p>
             </div>
-            <Chip label="Auto" cls="border-green-400/40 text-green-400" />
+            <Chip tone="teal">Auto</Chip>
           </li>
         )}
         {APP_ENV === "staging" && (
           <li className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-4 items-center">
             <div className="min-w-0">
-              <p className="text-sm">QA account (staging only)</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-small">QA account (staging only)</p>
+              <p className="text-caption text-paper-dim mt-0.5">
                 {qaAccount ? "/qa signs in with this email. Staging makes it and tops up its test credits at each start." : "Staging makes it at its next start."}
               </p>
               {qaAccount && <CopyLink link={qaAccount.email} label="Copy the QA account's email" />}
             </div>
-            <Chip label="Auto" cls="border-green-400/40 text-green-400" />
+            <Chip tone="teal">Auto</Chip>
           </li>
         )}
         {people.length === 0 && APP_ENV === "production" && (
-          <li className="px-4 py-6 text-sm text-muted-foreground">No testers yet. Add one by the email on their account.</li>
+          <li className="px-4 py-6 text-small text-paper-dim">No testers yet. Add one by the email on their account.</li>
         )}
       </ul>
-      <p className="text-xs text-muted-foreground mt-2">Granted credits show in History as "From Stars Decoded" and count as test credits.</p>
+      <p className="text-caption text-paper-dim mt-2">Granted credits show in History as "From Stars Decoded" and count as test credits.</p>
 
       <AlertDialog open={removing !== null} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
         <AlertDialogContent>
@@ -415,67 +400,30 @@ export default function AdminSalesPage() {
 
   if (clerkStalled) return <ClerkStalledPage />;
 
-  if (!isLoaded || isAdmin === null) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
-        {error ? <p className="text-sm text-destructive">{error}</p> : <Loader2 className="h-8 w-8 animate-spin text-primary/40" />}
-      </div>
-    );
-  }
+  if (!isLoaded || isAdmin === null) return <AdminLoading error={error} />;
 
   if (isAdmin === false) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
-          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
-          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/sales` })}>Sign out</Button>
-        </div>
-      </div>
-    );
+    return <AdminDenied onSignOut={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/sales` })} />;
   }
 
-  const side = "text-left px-3 py-2 rounded-lg text-sm font-label";
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <button type="button" onClick={() => navigate("/dashboard")}><Wordmark /></button>
-          <span className="font-label text-xs tracking-[0.15em] uppercase text-muted-foreground hidden sm:block">Admin</span>
-        </div>
-      </nav>
+    <AdminShell
+      current="/admin/sales"
+      title="Sales"
+      lede={<>Start a campaign price and give credits to testers. {APP_ENV === "production" ? "This is the live site's list." : "This list is for this test site only. Production has its own."}</>}
+    >
+      <div className="grid max-w-3xl gap-3">
+        {error && <Alert>{error}</Alert>}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-20 flex gap-6">
-        <aside className="hidden md:flex flex-col gap-1 w-48 shrink-0 pt-2">
-          <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2 px-3">Admin</p>
-          <button type="button" onClick={() => navigate("/admin/prompts")} className={`${side} text-muted-foreground hover:text-foreground`}>Prompts</button>
-          <button type="button" onClick={() => navigate("/admin/report-lab")} className={`${side} text-muted-foreground hover:text-foreground`}>Lab</button>
-          <button type="button" onClick={() => navigate("/admin/waitlist")} className={`${side} text-muted-foreground hover:text-foreground`}>Waitlist</button>
-          <button type="button" onClick={() => navigate("/admin/sales")} className={`${side} bg-primary/10 text-primary`}>Sales</button>
-        </aside>
-
-        <main className="flex-1 min-w-0 max-w-3xl">
-          <div className="mb-6">
-            <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
-            <h1 className="font-display text-2xl">Sales</h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Start a campaign price and give credits to testers. {APP_ENV === "production" ? "This is the live site's list." : "This list is for this test site only. Production has its own."}
-            </p>
-          </div>
-
-          {error && <div role="alert" className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">{error}</div>}
-
-          {campaigns === null || testers === null ? (
-            !error && <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
-          ) : (
-            <>
-              <CampaignSection rows={campaigns} onChange={() => void reload()} onError={setError} />
-              <TesterSection rows={testers} onChange={() => void reload()} onError={setError} />
-            </>
-          )}
-        </main>
+        {campaigns === null || testers === null ? (
+          !error && <Loader2 className="h-6 w-6 animate-spin text-muted" />
+        ) : (
+          <>
+            <CampaignSection rows={campaigns} onChange={() => void reload()} onError={setError} />
+            <TesterSection rows={testers} onChange={() => void reload()} onError={setError} />
+          </>
+        )}
       </div>
-    </div>
+    </AdminShell>
   );
 }

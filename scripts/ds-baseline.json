@@ -201,16 +201,6 @@
     "web/src/components/dashboard/orbit.css": {
       "hex": 4
     },
-    "web/src/components/lab/ReadingRoom.tsx": {
-      "textArb": 3,
-      "rawButton": 1
-    },
-    "web/src/components/lab/ReleaseView.tsx": {
-      "colorUtil": 1
-    },
-    "web/src/components/lab/SpotView.tsx": {
-      "rawButton": 2
-    },
     "web/src/components/loading/DidYouKnow.tsx": {
       "hex": 12,
       "textArb": 12,
@@ -426,26 +416,6 @@
       "textArb": 21,
       "roundedArb": 2,
       "rawButton": 5
-    },
-    "web/src/pages/AdminLabPage.tsx": {
-      "textArb": 2,
-      "colorUtil": 3,
-      "rawButton": 4
-    },
-    "web/src/pages/AdminPromptsPage.tsx": {
-      "hex": 1,
-      "textArb": 8,
-      "colorUtil": 12,
-      "rawButton": 6
-    },
-    "web/src/pages/AdminSalesPage.tsx": {
-      "textArb": 9,
-      "colorUtil": 6,
-      "rawButton": 4
-    },
-    "web/src/pages/AdminWaitlistPage.tsx": {
-      "textArb": 2,
-      "rawButton": 3
     },
     "web/src/pages/BirthFormPage.tsx": {
       "colorUtil": 2,
