@@ -60,7 +60,8 @@ export default function Hero() {
               When is your Saturn return?
             </a>
           </div>
-          <p className="text-small leading-normal text-muted">
+          {/* A caption, so it keeps to one line in the fallback face too and the dial below never moves when the faces arrive. */}
+          <p className="text-caption leading-normal text-muted">
             {LAUNCHED ? null : "Timeline opens after launch. "}You'll need a {PERSONAL_REPORT}.
           </p>
         </div>
