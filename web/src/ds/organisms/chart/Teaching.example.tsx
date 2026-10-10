@@ -13,8 +13,8 @@ export default function TeachingExample() {
   ];
   return (
     <Row>
-      <Fig caption="Today: /learn/houses draws its own ring (HouseRing)">
-        <HouseRing chart={known} lit={[1]} label="Today's house ring" className="block h-auto w-full" />
+      <Fig caption="After: /learn/houses' ring (HouseRing), drawn by the Chart">
+        <HouseRing chart={known} lit={[1]} label="The learn page's house ring" className="block h-auto w-full" />
       </Fig>
       <Fig caption="1 · Your houses start at your rising sign">
         <Chart chart={known} state="teach" size={600} fluid only={[]} focus={{ house: 1 }} />

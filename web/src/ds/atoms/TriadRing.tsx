@@ -70,9 +70,11 @@ export function TriadRing({ chart, name, size, className }: TriadRingProps) {
 
   const tail = pointAt(cx, cx, r.signOuter, east);
   const tip = pointAt(cx, cx, r.signOuter + markerR + size * 0.02, east);
+  // The rising marker's tail reaches past the sign ring by about 3.5% of the size, so the box grows by 2% each side.
+  const pad = size * 0.02;
   return (
     <svg
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`${-pad} ${-pad} ${size + 2 * pad} ${size + 2 * pad}`}
       className={className}
       role="img"
       aria-label={`${name}: Sun, Moon and rising at their true positions${blind ? "; the horizon is not drawn" : ""}`}

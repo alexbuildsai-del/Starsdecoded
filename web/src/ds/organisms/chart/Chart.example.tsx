@@ -9,7 +9,7 @@ export default function ChartExample() {
   const [house, setHouse] = useState<number | undefined>(undefined);
   return (
     <Row min={280}>
-      <Fig caption="Today: the report's own plate (TriadPlate), one of four ring copies">
+      <Fig caption="After: the report's own plate (TriadPlate), now the Chart's triad ring">
         <TriadPlate chart={known} name="Audrey Hepburn" className="block h-auto w-full max-w-[260px]" />
       </Fig>
       <Fig caption={`After: Full, then Focus on a pick (${house ? `house ${house}` : "point at a planet, pick a house"})`}>

@@ -16,7 +16,7 @@ export default function TriadRingExample() {
   return (
     <div className="grid gap-8" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
       <figure>
-        <figcaption>Today: TriadPlate (own 12-tick ring, sky colours)</figcaption>
+        <figcaption>After: TriadPlate, the report's plate, drawn by this ring</figcaption>
         <TriadPlate chart={known} name="Audrey Hepburn" />
       </figure>
       <figure>
