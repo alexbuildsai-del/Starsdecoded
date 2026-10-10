@@ -20,6 +20,7 @@ import {
   useCallback, useEffect, useId, useLayoutEffect, useRef, useState,
   type AnimationEvent as ReactAnimationEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent,
 } from "react";
+import { tokens } from "@workspace/design";
 import { CENTRE_ID, pointAngles, ringGaps, type OrbitPoint, type RingGap } from "@/lib/orbit";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -109,15 +110,9 @@ const CUE_Y = 27;
 /** A ghost seat is an invitation, not a person: quieter than the add point, as the approved mock draws it. */
 const GHOST_OPACITY = 0.6;
 
-const PAPER = "#E8EBF2";
-const GROUND = "#0D1117";
-const INDIGO = "#5C6BC0";
-const INDIGO_LT = "#9FA8DA";
-const GRADIENT_END = "#8967C1";
-const VIOLET = "#9575CD";
-const TEAL = "#3FA796";
-const BRASS = "#D4B06A";
-const MUTED = "#7E889A";
+const { paper: PAPER, ground: GROUND, indigo: INDIGO, "indigo-lt": INDIGO_LT, violet: VIOLET, teal: TEAL, brass: BRASS, muted: MUTED } = tokens.color;
+// The centre's gradient ended on a one-off purple; it now ends on violet.
+const GRADIENT_END = VIOLET;
 const SERIF = "Newsreader, Georgia, serif";
 const GROTESK = "'Space Grotesk', ui-sans-serif, system-ui, sans-serif";
 const SANS = "Inter, ui-sans-serif, system-ui, sans-serif";
@@ -522,7 +517,7 @@ function Centre({ centre, selected, reduced, plate, label }: CentreProps) {
             <text y={YOU_Y} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={centre.writing ? 1.4 : 2} fill={BRASS} fillOpacity={0.9}>
               {centre.writing ? "YOU · WRITING" : "YOU"}
             </text>
-            <text y={nameY} textAnchor="middle" fontFamily={SERIF} fontSize={nameSize} fill="#F2F4F9">{name}</text>
+            <text y={nameY} textAnchor="middle" fontFamily={SERIF} fontSize={nameSize} fill={PAPER}>{name}</text>
             <text y={CUE_Y} textAnchor="middle" fontFamily={SANS} fontSize={10} fill={PAPER} fillOpacity={0.85}>{CUE}</text>
           </>
         ) : (
@@ -675,7 +670,7 @@ function Disc({ point, selected, out, reduced }: { point: OrbitPoint; selected: 
   if (point.kind === "gift") {
     return (
       <>
-        <circle r={NODE} fill={selected ? "rgba(63,167,150,.18)" : GROUND} stroke={TEAL} strokeWidth={1.6} strokeDasharray="2 3" pathLength={120} />
+        <circle r={NODE} fill={selected ? TEAL : GROUND} fillOpacity={selected ? 0.18 : 1} stroke={TEAL} strokeWidth={1.6} strokeDasharray="2 3" pathLength={120} />
         <g transform="translate(-7 -5)" fill="none" stroke={TEAL} strokeWidth={1.4} strokeLinejoin="round">
           <rect width={14} height={10} rx={1.5} />
           <path d="M0 1 L7 6 L14 1" />
@@ -688,7 +683,8 @@ function Disc({ point, selected, out, reduced }: { point: OrbitPoint; selected: 
       <>
         <circle
           r={NODE}
-          fill={selected ? "rgba(92,107,192,.25)" : GROUND}
+          fill={selected ? INDIGO : GROUND}
+          fillOpacity={selected ? 0.25 : 1}
           stroke={out ? MUTED : INDIGO}
           strokeOpacity={out ? 0.6 : 0.9}
           strokeWidth={1.5}

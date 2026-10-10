@@ -19,7 +19,6 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useLocation, useSearch } from "wouter";
-import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,13 +43,11 @@ import type { BundleId } from "@workspace/commerce";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BundleButtons } from "@/components/BundleList";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
-import { StatusDots } from "@/components/StatusDots";
-import { Wordmark } from "@/components/Wordmark";
 import { AddSomeoneSheet } from "@/components/dashboard/AddSomeoneSheet";
 import { CompatibilityRows } from "@/components/dashboard/CompatibilityRows";
 import { CreditPill, CreditRow } from "@/components/dashboard/CreditPill";
 import { CreditsSheet } from "@/components/dashboard/CreditsSheet";
-import { ChoiceButton, FirstSteps } from "@/components/dashboard/FirstSteps";
+import { FirstSteps } from "@/components/dashboard/FirstSteps";
 import { GiftFlow } from "@/components/dashboard/GiftFlow";
 import { Nudge } from "@/components/dashboard/Nudge";
 import { Orbit } from "@/components/dashboard/Orbit";
@@ -60,10 +57,20 @@ import { QuickLook } from "@/components/dashboard/QuickLook";
 import { TimelineTeaser } from "@/components/dashboard/TimelineTeaser";
 import { WaitingGiftCard } from "@/components/dashboard/WaitingGiftCard";
 import { YourPairs } from "@/components/dashboard/YourPairs";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ds/atoms/Button";
+import { Chip } from "@/ds/atoms/Chip";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { Numbers } from "@/ds/atoms/Numbers";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Wordmark } from "@/ds/atoms/Wordmark";
+import { Card } from "@/ds/molecules/Card";
+import { ChoiceTile } from "@/ds/molecules/ChoiceTile";
+import { Sheet } from "@/ds/organisms/Sheet";
+import { TopBar } from "@/ds/organisms/TopBar";
+import { AppPage } from "@/ds/templates/AppPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHome } from "@/hooks/useHome";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { checkoutHref } from "@/lib/checkout-view";
 import { openFrom, returnPath, signInFirst, withoutOpen, type AskingStep } from "@/lib/credits-view";
 import {
@@ -89,11 +96,6 @@ import { cn } from "@/lib/utils";
 const YourWeek = lazy(() => import("@/components/dashboard/YourWeek"));
 const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
-/** The phone sheet's first stop, a share of the screen: the quick look's head and triad, with the circle above still in view to tap. */
-const PEEK = 0.45;
-const SHEET_HEIGHT = 0.96;
-/** The report's easing (annex, Micro animations: the phone sheet slides up on it). */
-const EASE = [0.16, 1, 0.3, 1] as const;
 const POLL_MS = 3000;
 const UNDER_WAY = new Set(["pending", "computing", "interpreting", "revising"]);
 // The ledger names a received gift "A gift from {giver}" (credits.ts): the one place its giver reaches the recipient.
@@ -106,15 +108,9 @@ const VIEWS: ReadonlyArray<{ id: View; label: string }> = [
   { id: "compatibility", label: "Compatibility" },
 ];
 
-// The approved mock's type for a section's eyebrow, in the tokens' own colours, since the page draws outside the report's scope.
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em]";
-const HINT = "text-center text-xs leading-snug text-[#9AA3B5]";
+const HINT = "text-center text-caption text-paper-dim";
 const CIRCLE_HINT = "Tap someone for a quick look";
 const ROWS_HINT = "Tap a row to open the report";
-const PANEL = "min-w-0 rounded-[14px] border border-[#242C3B] bg-[#11161F]";
-const CLOSE =
-  "rounded px-1 py-1 font-label text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
-
 function underWay(status: string | undefined): boolean {
   return !!status && UNDER_WAY.has(status);
 }
@@ -200,17 +196,16 @@ function ViewSwitch({ view, onChange, ids }: { view: View; onChange: (view: View
       role="tablist"
       aria-label="Your circle"
       onKeyDown={onKeyDown}
-      className="flex gap-0.5 rounded-[10px] border border-[#242C3B] bg-[#0B0F15] p-[3px] md:max-w-[440px]"
+      className="flex gap-0.5 rounded-control border border-line bg-ground p-[3px] md:max-w-[440px]"
     >
       {VIEWS.map(({ id, label }) => {
         const on = id === view;
         return (
-          <button
+          <TextButton
             key={id}
             ref={(el) => {
               tabs.current[id] = el;
             }}
-            type="button"
             role="tab"
             id={ids[id].tab}
             aria-selected={on}
@@ -218,13 +213,12 @@ function ViewSwitch({ view, onChange, ids }: { view: View; onChange: (view: View
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(id)}
             className={cn(
-              "min-h-9 flex-1 rounded-[7px] px-2 font-label text-[12.5px] font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]",
-              on ? "bg-[#171D29] text-[#E8EBF2]" : "text-[#9AA3B5] hover:text-[#E8EBF2]",
+              "min-h-9 flex-1 justify-center rounded-inner px-2 font-label text-small after:inset-x-0",
+              on ? "bg-raised text-paper" : "text-muted",
             )}
           >
             {label}
-          </button>
+          </TextButton>
         );
       })}
     </div>
@@ -254,20 +248,20 @@ function FirstVisitPanel({ prices, bundles, start }: FirstVisitPanelProps) {
   return (
     <section aria-labelledby={headingId} className="grid gap-4">
       <div className="grid gap-1.5">
-        <h3 id={headingId} className="font-display text-2xl leading-[1.2]">
+        <h3 id={headingId} className="font-display text-sheet-title">
           {FIRST_VISIT.heading}
         </h3>
-        <p className="text-sm leading-[1.5] text-[#9AA3B5]">{FIRST_VISIT.line}</p>
+        <p className="text-ui text-paper-dim">{FIRST_VISIT.line}</p>
       </div>
       {start ? (
         <div className="grid gap-3">
           {start.gift && <Nudge nudge={start.gift} />}
-          <ChoiceButton title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={start.onOwnReport} />
+          <ChoiceTile title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={start.onOwnReport} />
         </div>
       ) : (
         <div className="grid gap-3">
           <BundleButtons prices={prices} lines={FIRST_VISIT_LINES} {...bundles} />
-          <p className="text-[12.5px] leading-snug text-[#9AA3B5]">{firstVisitNote()}</p>
+          <p className="text-caption text-paper-dim">{firstVisitNote()}</p>
         </div>
       )}
     </section>
@@ -278,18 +272,18 @@ function FirstVisitPanel({ prices, bundles, start }: FirstVisitPanelProps) {
 function SeveralPanel({ onPeople }: { onPeople: () => void }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={cn(PANEL, "grid gap-2 p-4")}>
-      <h3 id={headingId} className="font-display text-xl leading-[1.2]">
+    <Card aria-labelledby={headingId} className="gap-2">
+      <h3 id={headingId} className="font-display text-card-title">
         Your report
       </h3>
-      <p className="text-[13px] leading-[1.5] text-[#9AA3B5]">
+      <p className="text-small text-paper-dim">
         More than one is marked as yours. In{" "}
-        <button type="button" onClick={onPeople} className="rounded-sm text-[#E8EBF2] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <TextButton onClick={onPeople} className="inline min-h-0 align-baseline text-paper underline underline-offset-4">
           People
-        </button>
+        </TextButton>
         , choose Not me on any that isn't.
       </p>
-    </section>
+    </Card>
   );
 }
 
@@ -314,16 +308,16 @@ function MakeReport({ own, pairable, focusRef, onOwnReport, onAddSomeone, onPair
   return (
     // A section, not a control, takes the focus from Hide, so a stray Enter starts nothing (R14-12).
     <section ref={focusRef} tabIndex={-1} aria-labelledby={headingId} className="grid gap-2.5 outline-none">
-      <h3 id={headingId} className={cn(EYEBROW, "text-[#9AA3B5]")}>
-        {MAKE_REPORT.label}
+      <h3 id={headingId} className="m-0">
+        <Eyebrow>{MAKE_REPORT.label}</Eyebrow>
       </h3>
       <div className={cn("grid gap-2", pairable && "grid-cols-2")}>
         {own ? (
-          <ChoiceButton title={MAKE_REPORT.someone.title} line={MAKE_REPORT.someone.line} main={!pairable} onClick={onAddSomeone} />
+          <ChoiceTile title={MAKE_REPORT.someone.title} line={MAKE_REPORT.someone.line} main={!pairable} onClick={onAddSomeone} />
         ) : (
-          <ChoiceButton title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={onOwnReport} />
+          <ChoiceTile title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={onOwnReport} />
         )}
-        {pairable && <ChoiceButton title={MAKE_REPORT.pair.title} line={MAKE_REPORT.pair.line} main={own} onClick={onPair} />}
+        {pairable && <ChoiceTile title={MAKE_REPORT.pair.title} line={MAKE_REPORT.pair.line} main={own} onClick={onPair} />}
       </div>
     </section>
   );
@@ -351,15 +345,15 @@ interface IdlePanelProps {
  */
 function IdlePanel({ hint, steps, make, onHideSteps, onMakePair, onPair, onGetCredits }: IdlePanelProps) {
   return (
-    <div className={cn(PANEL, "grid gap-4 p-4 md:p-[18px]")}>
-      {hint && <p className="hidden text-[13px] leading-[1.45] text-[#9AA3B5] md:block">{CIRCLE_HINT}</p>}
+    <Card as="div" className="gap-4">
+      {hint && <p className="hidden text-small text-paper-dim md:block">{CIRCLE_HINT}</p>}
       {steps ? (
         <FirstSteps steps={steps} onAddSomeone={make.onAddSomeone} onMakePair={onMakePair} onHide={onHideSteps} />
       ) : (
         <MakeReport {...make} onPair={onPair} />
       )}
       <CreditRow onGetCredits={onGetCredits} />
-    </div>
+    </Card>
   );
 }
 
@@ -369,190 +363,47 @@ function IdlePanel({ hint, steps, make, onHideSteps, onMakePair, onPair, onGetCr
  */
 function CardFrame({ onClose, children }: { onClose?: () => void; children: ReactNode }) {
   return (
-    <div className={cn(PANEL, "bg-[rgba(17,22,31,.86)] px-[18px] py-4")}>
+    <Card as="div" className="gap-0">
       {onClose && (
         <div className="-mt-2 mb-1 flex justify-end">
-          <button type="button" onClick={onClose} className={CLOSE}>
+          <TextButton onClick={onClose} className="font-label text-label uppercase text-paper-dim">
             Close
-          </button>
+          </TextButton>
         </div>
       )}
       {children}
-    </div>
-  );
-}
-
-interface PhoneSheetProps {
-  open: boolean;
-  /** The open quick look's point, so each new one rises from the peek with its top in view. */
-  cardKey: string | null;
-  label: string;
-  /** The content draws its own close, as a quick look does; a waiting gift's card has none, so the sheet's top carries one. */
-  closes: boolean;
-  onClose: () => void;
-  children: ReactNode;
-}
-
-function glide(reduced: boolean) {
-  return reduced ? { duration: 0 } : { duration: 0.5, ease: EASE };
-}
-
-function useViewportHeight(): number {
-  const [height, setHeight] = useState(() => window.innerHeight);
-  useEffect(() => {
-    const measure = () => setHeight(window.innerHeight);
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-  return height;
-}
-
-/**
- * The quick look as a bottom sheet on a phone (scope 3): a peek, a drag up
- * for the rest. It is not modal, so the circle above stays live: a tap on
- * empty sky closes it and a tap on someone else swaps it. vaul's non-modal
- * drawer still blocks the page when it is opened from state, so the sheet is
- * drawn here.
- */
-function PhoneSheet({ open: shown, cardKey, label, closes, onClose, children }: PhoneSheetProps) {
-  const reduced = useReducedMotion();
-  const viewport = useViewportHeight();
-  const height = Math.round(viewport * SHEET_HEIGHT);
-  const peekY = height - Math.round(viewport * PEEK);
-  const [full, setFull] = useState(false);
-  const y = useMotionValue(height);
-  const drag = useDragControls();
-  const sheet = useRef<HTMLDivElement>(null);
-  const scroller = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!cardKey) return;
-    setFull(false);
-    scroller.current?.scrollTo({ top: 0 });
-  }, [cardKey]);
-
-  useEffect(() => {
-    if (!shown) return;
-    const controls = animate(y, full ? 0 : peekY, glide(reduced));
-    return () => controls.stop();
-  }, [shown, full, peekY, reduced, y]);
-
-  // Escape inside the sheet closes it; the circle already answers Escape pressed anywhere outside a dialog.
-  useEffect(() => {
-    if (!shown) return;
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      if (e.target instanceof Node && sheet.current?.contains(e.target)) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [shown, onClose]);
-
-  const settle = (_: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
-    const at = y.get();
-    const speed = info.velocity.y;
-    if (at > peekY + (height - peekY) / 3 || (speed > 600 && !full)) {
-      onClose();
-      return;
-    }
-    const toFull = speed < -400 || (Math.abs(speed) <= 400 && at < peekY / 2);
-    if (toFull === full) animate(y, full ? 0 : peekY, glide(reduced));
-    else setFull(toFull);
-  };
-
-  return (
-    <AnimatePresence>
-      {shown && (
-        <motion.div
-          key="sheet"
-          ref={sheet}
-          role="dialog"
-          aria-modal="false"
-          aria-label={label}
-          drag="y"
-          dragControls={drag}
-          // At the peek the whole sheet drags up; once open, only its top does, so the quick look scrolls.
-          dragListener={!full}
-          dragConstraints={{ top: 0, bottom: height }}
-          dragElastic={{ top: 0.04, bottom: 0.3 }}
-          dragMomentum={false}
-          onDragEnd={settle}
-          exit={{ y: height, transition: reduced ? { duration: 0 } : { duration: 0.35, ease: EASE } }}
-          style={{ y, height }}
-          className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[20px] border border-b-0 border-[#3A4560] bg-[#171D29] shadow-[0_-18px_44px_rgba(0,0,0,.65)]"
-        >
-          <div
-            onPointerDown={(e) => {
-              if (full) drag.start(e);
-            }}
-            className="relative flex h-10 shrink-0 touch-none items-center justify-center"
-          >
-            <button
-              type="button"
-              aria-label="Show all"
-              aria-expanded={full}
-              onClick={() => setFull((was) => !was)}
-              className="grid h-8 w-16 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <span aria-hidden className="block h-1 w-10 rounded-full bg-[#3A4560]" />
-            </button>
-            {!closes && (
-              <button type="button" onClick={onClose} className={cn(CLOSE, "absolute right-4 top-1/2 -translate-y-1/2")}>
-                Close
-              </button>
-            )}
-          </div>
-          <div
-            ref={scroller}
-            className={cn(
-              "min-h-0 flex-1 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
-              full ? "overflow-y-auto overscroll-contain" : "overflow-hidden",
-            )}
-          >
-            {children}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </Card>
   );
 }
 
 /** The page's bar: the wordmark, and whatever the view puts at its right. */
 function DashboardNav({ children }: { children: ReactNode }) {
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
-        <Wordmark />
-        <div className="flex items-center gap-2">{children}</div>
-      </div>
-    </nav>
+    <>
+      <TopBar left={<Wordmark />} right={children} />
+      {/* The bar is fixed, so the page starts under it. */}
+      <div aria-hidden className="h-14" />
+    </>
   );
 }
 
 /** The preview's ribbon, under the bar and kept in sight while the page scrolls: what this is, the last tap, and Leave. */
 function PreviewRibbon({ said, onLeave }: { said: string | null; onLeave: () => void }) {
   return (
-    <div className="sticky top-14 z-40 mt-14 border-b border-[#5A4C2C] bg-[#171D29]/95 backdrop-blur-md">
+    <div className="sticky top-14 z-40 mt-14 border-b border-brass-dim bg-raised/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2.5 sm:px-6">
-        <span className="shrink-0 font-label text-[10.5px] font-medium uppercase tracking-[0.18em] text-[#D4B06A]">Preview</span>
-        <p role="status" className="min-w-0 flex-1 text-[13px] leading-snug text-[#E8EBF2]">
+        <Eyebrow className="shrink-0 text-brass">Preview</Eyebrow>
+        <p role="status" className="min-w-0 flex-1 text-small text-paper">
           {said ?? VISITOR.intro}
         </p>
-        <button
-          type="button"
-          onClick={onLeave}
-          aria-label={VISITOR.leaveLabel}
-          className="inline-flex min-h-8 shrink-0 items-center rounded-md px-2 font-label text-[12.5px] font-medium text-[#9FA8DA] underline-offset-4 transition-colors hover:text-[#E8EBF2] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
-        >
+        <TextButton onClick={onLeave} aria-label={VISITOR.leaveLabel} className="shrink-0 font-label underline-offset-4 hover:underline">
           {VISITOR.leave}
-        </button>
+        </TextButton>
       </div>
     </div>
   );
 }
 
-const VISITOR_PILL =
-  "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-transparent px-2.5 font-label text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[#9FA8DA]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const NO_ONE: readonly [] = [];
 
 /**
@@ -571,24 +422,30 @@ function NewVisitorView({ onLeave }: { onLeave: () => void }) {
     [],
   );
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <DashboardNav>
-        <button type="button" onClick={() => say("credits")} className={VISITOR_PILL}>
-          <span className="font-numeric text-xs">0</span> credits
-        </button>
-        <Button size="sm" variant="ghost" className="font-label text-xs" onClick={() => say("sign-in")}>
-          Sign in
-        </Button>
-      </DashboardNav>
-      <PreviewRibbon said={said} onLeave={onLeave} />
-
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-[18px] sm:px-6 sm:pt-6">
-        <header className="grid gap-1">
-          <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Dashboard</h1>
-        </header>
-        <section aria-labelledby={circleId} className="mt-6 grid gap-2.5 md:mt-8">
-          <h2 id={circleId} className={cn(EYEBROW, "text-[#8E9BE0]")}>
-            Your circle
+    <AppPage
+      header={
+        <>
+          <TopBar
+            left={<Wordmark />}
+            right={
+              <>
+                <Chip tone="now" onClick={() => say("credits")}>
+                  <Numbers className="text-paper">0</Numbers> credits
+                </Chip>
+                <TextButton onClick={() => say("sign-in")} className="font-label">
+                  Sign in
+                </TextButton>
+              </>
+            }
+          />
+          <PreviewRibbon said={said} onLeave={onLeave} />
+        </>
+      }
+      title="Dashboard"
+    >
+        <section aria-labelledby={circleId} className="grid gap-2.5">
+          <h2 id={circleId} className="m-0">
+            <Eyebrow kind="kicker">Your circle</Eyebrow>
           </h2>
           <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
             <div className="mx-auto w-full min-w-0 max-w-[360px] md:max-w-none">
@@ -607,8 +464,7 @@ function NewVisitorView({ onLeave }: { onLeave: () => void }) {
             </div>
           </div>
         </section>
-      </main>
-    </div>
+    </AppPage>
   );
 }
 
@@ -624,7 +480,7 @@ function VisitorGate({ search }: { search: string }) {
   }, [gate, search, navigate]);
   if (gate === "preview") return <NewVisitorView onLeave={() => navigate(withoutVisitor(search), { replace: true })} />;
   return (
-    <div className="grid min-h-screen place-items-center bg-background bg-stars font-label text-sm text-muted-foreground">
+    <div className="grid min-h-screen place-items-center bg-ground font-label text-ui text-paper-dim">
       <StatusDots label="Loading your dashboard" />
     </div>
   );
@@ -890,39 +746,39 @@ function Dashboard() {
   ) : null;
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
+    <>
+    <AppPage
+      header={
       <DashboardNav>
         <CreditPill onOpen={openCredits} />
         {out ? (
           // The first visit's bundles are its one way to credits, so it draws no second Get credits (Review 05/10 §1).
           // Elsewhere the pill opens the same sheet, so a phone, which also has Sign in to fit, keeps the one control.
           firstVisit ? null : (
-            <Button size="sm" variant="outline" onClick={openCredits} className="hidden font-label sm:inline-flex">
+            <Button size="compact" variant="secondary" onClick={openCredits} className="hidden sm:inline-flex">
               Get credits
             </Button>
           )
         ) : (
-          <Button size="sm" variant="outline" onClick={openAdd} aria-label="Add someone" className="gap-1.5 font-label" data-testid="button-add-someone">
-            <Plus className="h-3.5 w-3.5" />
+          <Button size="compact" variant="secondary" onClick={openAdd} aria-label="Add someone" data-testid="button-add-someone">
+            <Plus aria-hidden />
             <span className="hidden sm:inline">Add someone</span>
           </Button>
         )}
         <AccountMenu />
       </DashboardNav>
-
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-[74px] sm:px-6 sm:pt-20">
-        <header className="grid gap-1">
-          <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Dashboard</h1>
-          {/* An empty dashboard's line would only repeat the first visit's heading. */}
-          {home && !empty && <p className="text-[13px] leading-snug text-[#9AA3B5]">{summaryLine(home)}</p>}
-        </header>
+      }
+      title="Dashboard"
+      // An empty dashboard's line would only repeat the first visit's heading.
+      titleAside={home && !empty ? <p className="text-small text-paper-dim">{summaryLine(home)}</p> : undefined}
+    >
 
         {failed ? (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <p className="text-muted-foreground">We couldn't load your reports. Check your connection and try again.</p>
+            <p className="text-paper-dim">We couldn't load your reports. Check your connection and try again.</p>
             <Button
-              variant="outline"
-              size="sm"
+              variant="secondary"
+              size="compact"
               onClick={() => {
                 void homeQ.refetch();
                 void reportsQ.refetch();
@@ -933,14 +789,14 @@ function Dashboard() {
             </Button>
           </div>
         ) : !loaded || !home ? (
-          <div className="grid min-h-[360px] place-items-center font-label text-sm text-muted-foreground">
+          <div className="grid min-h-[360px] place-items-center font-label text-ui text-paper-dim">
             <StatusDots label="Loading your dashboard" />
           </div>
         ) : (
-          <div className="mt-6 grid gap-6 md:mt-8 md:gap-10">
+          <div className="grid gap-6 md:gap-10">
             <section aria-labelledby={`${viewIds}-circle`} className="grid gap-2.5">
-              <h2 id={`${viewIds}-circle`} className={cn(EYEBROW, "text-[#8E9BE0]")}>
-                Your circle
+              <h2 id={`${viewIds}-circle`} className="m-0">
+                <Eyebrow kind="kicker">Your circle</Eyebrow>
               </h2>
               {!empty && <ViewSwitch view={view} onChange={toView} ids={ids} />}
 
@@ -974,8 +830,8 @@ function Dashboard() {
               ) : (
                 <div role="tabpanel" id={ids.compatibility.panel} aria-labelledby={ids.compatibility.tab} className="grid gap-2.5">
                   {pairable && (
-                    <Button onClick={twoPeople} className="mb-1 gap-1.5 justify-self-start font-label">
-                      <Plus aria-hidden="true" className="h-3.5 w-3.5" />
+                    <Button onClick={twoPeople} className="mb-1 justify-self-start">
+                      <Plus aria-hidden="true" />
                       {MAKE_REPORT.newPair}
                     </Button>
                   )}
@@ -988,7 +844,7 @@ function Dashboard() {
             {week && zone && (
               <Suspense
                 fallback={
-                  <div className="grid min-h-[200px] place-items-center font-label text-sm text-muted-foreground">
+                  <div className="grid min-h-[200px] place-items-center font-label text-ui text-paper-dim">
                     <StatusDots label="Loading your week" />
                   </div>
                 }
@@ -1002,7 +858,7 @@ function Dashboard() {
             {teaser && zone && <TimelineTeaser teaser={teaser} zone={zone} />}
           </div>
         )}
-      </main>
+    </AppPage>
 
       {asks && (
         <Suspense fallback={null}>
@@ -1011,9 +867,9 @@ function Dashboard() {
       )}
 
       {phone && (
-        <PhoneSheet open={!!card} cardKey={card ? active : null} label={cardLabel} closes={cardCloses} onClose={closeCard}>
+        <Sheet peek open={!!card} onOpenChange={(open) => !open && closeCard()} label={cardLabel} contentKey={card ? active : null} selfClosing={cardCloses}>
           {card}
-        </PhoneSheet>
+        </Sheet>
       )}
 
       <CreditsSheet
@@ -1041,6 +897,6 @@ function Dashboard() {
         own={own}
         onGetCredits={() => getCredits("pair")}
       />
-    </div>
+    </>
   );
 }
