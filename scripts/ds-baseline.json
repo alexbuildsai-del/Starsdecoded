@@ -1,0 +1,770 @@
+{
+  "files": {
+    "api/src/lib/mailer.ts": {
+      "hex": 41
+    },
+    "scripts/render-brand.mjs": {
+      "hex": 11,
+      "chartDraw": 1
+    },
+    "web/src/App.tsx": {
+      "textArb": 13,
+      "colorUtil": 1
+    },
+    "web/src/components/AccountMenu.tsx": {
+      "textArb": 2
+    },
+    "web/src/components/AspectChip.tsx": {
+      "textArb": 4,
+      "rawButton": 1,
+      "chartDraw": 2
+    },
+    "web/src/components/BirthDateField.tsx": {
+      "hex": 2,
+      "textArb": 2
+    },
+    "web/src/components/BirthTimeControl.tsx": {
+      "textArb": 2
+    },
+    "web/src/components/BirthTimeDialog.tsx": {
+      "textArb": 1
+    },
+    "web/src/components/BirthTimeField.tsx": {
+      "hex": 1,
+      "textArb": 2
+    },
+    "web/src/components/BundleList.tsx": {
+      "hex": 24,
+      "rgb": 2,
+      "textArb": 24,
+      "roundedArb": 3,
+      "rawButton": 1
+    },
+    "web/src/components/ClerkStalled.tsx": {
+      "hex": 1,
+      "textArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/CompatibilityPicker.tsx": {
+      "hex": 16,
+      "textArb": 15,
+      "roundedArb": 2,
+      "colorUtil": 1
+    },
+    "web/src/components/DraftBanner.tsx": {
+      "colorUtil": 3
+    },
+    "web/src/components/ErrorBoundary.tsx": {
+      "rawButton": 1
+    },
+    "web/src/components/FactCard.tsx": {
+      "hex": 5,
+      "textArb": 8
+    },
+    "web/src/components/Mark.tsx": {
+      "hex": 1
+    },
+    "web/src/components/MethodologyBox.tsx": {
+      "textArb": 2
+    },
+    "web/src/components/PlaceField.tsx": {
+      "textArb": 4,
+      "colorUtil": 1,
+      "rawButton": 4
+    },
+    "web/src/components/PrelaunchRibbon.tsx": {
+      "textArb": 1
+    },
+    "web/src/components/SaveReportCta.tsx": {
+      "colorUtil": 2
+    },
+    "web/src/components/StagingRibbon.tsx": {
+      "textArb": 2,
+      "colorUtil": 5,
+      "rawButton": 1
+    },
+    "web/src/components/TriadRow.tsx": {
+      "hex": 1,
+      "textArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/ask/AskCards.tsx": {
+      "hex": 17,
+      "textArb": 17,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/ask/AskLauncher.tsx": {
+      "hex": 5,
+      "textArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/ask/AskMark.tsx": {
+      "hex": 1
+    },
+    "web/src/components/ask/AskPanel.tsx": {
+      "hex": 48,
+      "rgb": 3,
+      "textArb": 37,
+      "roundedArb": 5,
+      "rawButton": 3
+    },
+    "web/src/components/chart/HouseObject.tsx": {
+      "hex": 1
+    },
+    "web/src/components/chart/NatalWheel.tsx": {
+      "colorUtil": 1,
+      "chartDraw": 10
+    },
+    "web/src/components/dashboard/AddSomeoneSheet.tsx": {
+      "hex": 11,
+      "textArb": 8,
+      "rawButton": 1
+    },
+    "web/src/components/dashboard/CardSections.tsx": {
+      "rgb": 3,
+      "textArb": 17,
+      "roundedArb": 1,
+      "colorUtil": 1
+    },
+    "web/src/components/dashboard/CompatibilityRows.tsx": {
+      "hex": 2,
+      "textArb": 3
+    },
+    "web/src/components/dashboard/CreditPill.tsx": {
+      "hex": 5,
+      "rgb": 4,
+      "textArb": 4,
+      "colorUtil": 1,
+      "rawButton": 2
+    },
+    "web/src/components/dashboard/CreditsSheet.tsx": {
+      "hex": 5,
+      "rgb": 1,
+      "textArb": 7,
+      "colorUtil": 1,
+      "rawButton": 3
+    },
+    "web/src/components/dashboard/FirstSteps.tsx": {
+      "hex": 25,
+      "rgb": 2,
+      "textArb": 20,
+      "roundedArb": 1,
+      "colorUtil": 3,
+      "rawButton": 3
+    },
+    "web/src/components/dashboard/GiftCover.tsx": {
+      "hex": 8,
+      "textArb": 5,
+      "roundedArb": 1
+    },
+    "web/src/components/dashboard/GiftFlow.tsx": {
+      "hex": 2,
+      "rgb": 2,
+      "textArb": 13
+    },
+    "web/src/components/dashboard/HandBackDialog.tsx": {
+      "hex": 1,
+      "textArb": 1
+    },
+    "web/src/components/dashboard/Nudge.tsx": {
+      "hex": 2,
+      "textArb": 3
+    },
+    "web/src/components/dashboard/Orbit.tsx": {
+      "hex": 10,
+      "rgb": 2
+    },
+    "web/src/components/dashboard/PairBlock.tsx": {
+      "hex": 5,
+      "textArb": 6,
+      "roundedArb": 1
+    },
+    "web/src/components/dashboard/PeopleRows.tsx": {
+      "hex": 2,
+      "textArb": 3,
+      "rawButton": 5
+    },
+    "web/src/components/dashboard/Practising.tsx": {
+      "hex": 2,
+      "textArb": 3
+    },
+    "web/src/components/dashboard/QuickLook.tsx": {
+      "hex": 4,
+      "rgb": 3,
+      "textArb": 19,
+      "roundedArb": 1,
+      "rawButton": 2
+    },
+    "web/src/components/dashboard/RowMenu.tsx": {
+      "hex": 35,
+      "textArb": 20,
+      "roundedArb": 3,
+      "rawButton": 2
+    },
+    "web/src/components/dashboard/SkyCard.tsx": {
+      "rgb": 2,
+      "textArb": 3
+    },
+    "web/src/components/dashboard/StopSharingDialog.tsx": {
+      "hex": 11,
+      "textArb": 8,
+      "roundedArb": 3
+    },
+    "web/src/components/dashboard/TimelineTeaser.tsx": {
+      "hex": 11,
+      "rgb": 2,
+      "textArb": 11,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/dashboard/WaitingGiftCard.tsx": {
+      "hex": 3,
+      "rgb": 4,
+      "textArb": 11
+    },
+    "web/src/components/dashboard/YourPairs.tsx": {
+      "hex": 5,
+      "textArb": 4,
+      "roundedArb": 2
+    },
+    "web/src/components/dashboard/YourWeek.tsx": {
+      "hex": 19,
+      "rgb": 1,
+      "textArb": 18,
+      "roundedArb": 3,
+      "rawButton": 3
+    },
+    "web/src/components/dashboard/orbit.css": {
+      "hex": 4
+    },
+    "web/src/components/lab/ReadingRoom.tsx": {
+      "textArb": 3,
+      "rawButton": 1
+    },
+    "web/src/components/lab/ReleaseView.tsx": {
+      "colorUtil": 1
+    },
+    "web/src/components/lab/SpotView.tsx": {
+      "rawButton": 2
+    },
+    "web/src/components/loading/DidYouKnow.tsx": {
+      "hex": 12,
+      "textArb": 12,
+      "rawButton": 1,
+      "chartDraw": 2
+    },
+    "web/src/components/loading/ProgressBar.tsx": {
+      "hex": 3,
+      "textArb": 2
+    },
+    "web/src/components/report/BalanceRail.tsx": {
+      "rgb": 1,
+      "textArb": 2
+    },
+    "web/src/components/report/BuildStory.tsx": {
+      "hex": 2,
+      "textArb": 1
+    },
+    "web/src/components/report/ChapterRail.tsx": {
+      "textArb": 2,
+      "rawButton": 1
+    },
+    "web/src/components/report/Checklist.tsx": {
+      "hex": 26,
+      "rgb": 1,
+      "textArb": 14,
+      "roundedArb": 4,
+      "colorUtil": 1,
+      "rawButton": 1
+    },
+    "web/src/components/report/Citation.tsx": {
+      "rawButton": 1
+    },
+    "web/src/components/report/HouseBlocks.tsx": {
+      "hex": 14,
+      "textArb": 18,
+      "roundedArb": 1,
+      "colorUtil": 2
+    },
+    "web/src/components/report/HouseCard.tsx": {
+      "textArb": 25,
+      "colorUtil": 8,
+      "rawButton": 2
+    },
+    "web/src/components/report/HouseDeck.tsx": {
+      "textArb": 11,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/report/HousePrimer.tsx": {
+      "textArb": 19,
+      "colorUtil": 10
+    },
+    "web/src/components/report/HouseSystemSheet.tsx": {
+      "textArb": 1
+    },
+    "web/src/components/report/LinkCard.tsx": {
+      "hex": 3,
+      "textArb": 15,
+      "roundedArb": 1,
+      "colorUtil": 4,
+      "rawButton": 1
+    },
+    "web/src/components/report/MethodologyStrip.tsx": {
+      "textArb": 6
+    },
+    "web/src/components/report/OpeningOverlay.tsx": {
+      "hex": 3
+    },
+    "web/src/components/report/PairHero.tsx": {
+      "hex": 1,
+      "textArb": 7
+    },
+    "web/src/components/report/PairSections.tsx": {
+      "textArb": 3
+    },
+    "web/src/components/report/PairStory.tsx": {
+      "hex": 10,
+      "rgb": 2
+    },
+    "web/src/components/report/ProseRail.tsx": {
+      "rgb": 1,
+      "textArb": 2
+    },
+    "web/src/components/report/ReportHero.tsx": {
+      "hex": 1,
+      "rgb": 12,
+      "textArb": 4,
+      "rawButton": 1,
+      "chartDraw": 6
+    },
+    "web/src/components/report/ReportSky.tsx": {
+      "hex": 2,
+      "rgb": 1
+    },
+    "web/src/components/report/RevisedText.tsx": {
+      "rawButton": 1
+    },
+    "web/src/components/report/RevisionLedger.tsx": {
+      "textArb": 2,
+      "rawButton": 1
+    },
+    "web/src/components/report/ShareCard.tsx": {
+      "hex": 8,
+      "rgb": 6,
+      "textArb": 12,
+      "roundedArb": 3
+    },
+    "web/src/components/report/TriadPlate.tsx": {
+      "hex": 1,
+      "chartDraw": 6
+    },
+    "web/src/components/report/TwoChartsLedger.tsx": {
+      "hex": 2,
+      "textArb": 11,
+      "rawButton": 1,
+      "chartDraw": 2
+    },
+    "web/src/components/report/hero-layout.ts": {
+      "chartDraw": 2
+    },
+    "web/src/components/share/ShareWindow.tsx": {
+      "hex": 37,
+      "rgb": 4,
+      "textArb": 31,
+      "roundedArb": 2,
+      "colorUtil": 2,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/AgeRing.tsx": {
+      "hex": 11,
+      "textArb": 5
+    },
+    "web/src/components/timeline/ContactCard.tsx": {
+      "hex": 14,
+      "textArb": 15,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/CycleCard.tsx": {
+      "hex": 40,
+      "rgb": 1,
+      "textArb": 38,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/DayCells.tsx": {
+      "hex": 4,
+      "textArb": 4
+    },
+    "web/src/components/timeline/Dial.tsx": {
+      "hex": 16,
+      "textArb": 1,
+      "roundedArb": 1,
+      "rawButton": 1,
+      "chartDraw": 7
+    },
+    "web/src/components/timeline/Life.tsx": {
+      "hex": 32,
+      "textArb": 30,
+      "roundedArb": 2,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/MixBar.tsx": {
+      "roundedArb": 1
+    },
+    "web/src/components/timeline/NowAhead.tsx": {
+      "hex": 43,
+      "textArb": 34,
+      "roundedArb": 3,
+      "colorUtil": 1,
+      "rawButton": 4
+    },
+    "web/src/components/timeline/PassStrip.tsx": {
+      "hex": 9,
+      "roundedArb": 1
+    },
+    "web/src/components/timeline/ReadingSheet.tsx": {
+      "hex": 24,
+      "textArb": 25,
+      "roundedArb": 2,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/RetrogradeLine.tsx": {
+      "hex": 9,
+      "textArb": 7,
+      "roundedArb": 1,
+      "colorUtil": 1
+    },
+    "web/src/components/timeline/TimelineSetup.tsx": {
+      "hex": 13,
+      "rgb": 2,
+      "textArb": 9,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/ToneLegend.tsx": {
+      "hex": 3,
+      "textArb": 4,
+      "roundedArb": 1
+    },
+    "web/src/components/timeline/Waves.tsx": {
+      "hex": 17,
+      "textArb": 7,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/components/timeline/WeekBars.tsx": {
+      "hex": 23,
+      "textArb": 16,
+      "roundedArb": 3,
+      "colorUtil": 1,
+      "rawButton": 2
+    },
+    "web/src/components/ui/alert-dialog.tsx": {
+      "colorUtil": 1
+    },
+    "web/src/components/ui/dialog.tsx": {
+      "colorUtil": 1
+    },
+    "web/src/components/ui/sheet.tsx": {
+      "colorUtil": 1
+    },
+    "web/src/components/ui/toast.tsx": {
+      "colorUtil": 3
+    },
+    "web/src/components/waitlist/ConfirmWaitlist.tsx": {
+      "rawButton": 1
+    },
+    "web/src/components/waitlist/WaitlistForm.tsx": {
+      "textArb": 3,
+      "rawButton": 2
+    },
+    "web/src/index.css": {
+      "hex": 31,
+      "rgb": 72
+    },
+    "web/src/lib/chapter-accent.ts": {
+      "hex": 10
+    },
+    "web/src/lib/charts-meet.ts": {
+      "hex": 2
+    },
+    "web/src/lib/dial.ts": {
+      "chartDraw": 2
+    },
+    "web/src/lib/pair-story.ts": {
+      "chartDraw": 8
+    },
+    "web/src/pages/AccountPage.tsx": {
+      "hex": 21,
+      "textArb": 21,
+      "roundedArb": 2,
+      "rawButton": 5
+    },
+    "web/src/pages/AdminLabPage.tsx": {
+      "textArb": 2,
+      "colorUtil": 3,
+      "rawButton": 4
+    },
+    "web/src/pages/AdminPromptsPage.tsx": {
+      "hex": 1,
+      "textArb": 8,
+      "colorUtil": 12,
+      "rawButton": 6
+    },
+    "web/src/pages/AdminSalesPage.tsx": {
+      "textArb": 9,
+      "colorUtil": 6,
+      "rawButton": 4
+    },
+    "web/src/pages/AdminWaitlistPage.tsx": {
+      "textArb": 2,
+      "rawButton": 3
+    },
+    "web/src/pages/BirthFormPage.tsx": {
+      "colorUtil": 2,
+      "rawButton": 2
+    },
+    "web/src/pages/CheckoutDonePage.tsx": {
+      "hex": 10,
+      "textArb": 11,
+      "roundedArb": 2,
+      "colorUtil": 1
+    },
+    "web/src/pages/CheckoutPage.tsx": {
+      "hex": 40,
+      "textArb": 25,
+      "roundedArb": 4,
+      "colorUtil": 1,
+      "rawButton": 4
+    },
+    "web/src/pages/ClaimPage.tsx": {
+      "hex": 2,
+      "textArb": 1,
+      "colorUtil": 5
+    },
+    "web/src/pages/CompatibilityReportPage.tsx": {
+      "hex": 1,
+      "rawButton": 1
+    },
+    "web/src/pages/DashboardPage.tsx": {
+      "hex": 30,
+      "rgb": 1,
+      "textArb": 30,
+      "roundedArb": 4,
+      "rawButton": 7
+    },
+    "web/src/pages/ReportPage.tsx": {
+      "hex": 6,
+      "rgb": 5,
+      "textArb": 6,
+      "colorUtil": 1,
+      "rawButton": 1,
+      "chartDraw": 3
+    },
+    "web/src/pages/TimelineAppPage.tsx": {
+      "hex": 22,
+      "rgb": 1,
+      "textArb": 17,
+      "roundedArb": 5,
+      "rawButton": 2
+    },
+    "web/src/pages/legal/CompanyPage.tsx": {
+      "textArb": 4
+    },
+    "web/src/pages/legal/LegalLayout.tsx": {
+      "textArb": 7
+    },
+    "web/src/pages/legal/PrivacyPage.tsx": {
+      "textArb": 11
+    },
+    "web/src/pages/legal/RefundsPage.tsx": {
+      "textArb": 1
+    },
+    "web/src/site/WaitlistDialog.tsx": {
+      "hex": 32,
+      "rgb": 2,
+      "textArb": 13,
+      "roundedArb": 2
+    },
+    "web/src/site/components/CycleFinder.tsx": {
+      "hex": 3,
+      "textArb": 11,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/site/components/FilmStill.tsx": {
+      "roundedArb": 3,
+      "colorUtil": 1,
+      "rawButton": 1
+    },
+    "web/src/site/components/HorizonWheel.tsx": {
+      "hex": 5,
+      "rgb": 2,
+      "textArb": 2,
+      "chartDraw": 23
+    },
+    "web/src/site/components/HouseRing.tsx": {
+      "hex": 5,
+      "chartDraw": 17
+    },
+    "web/src/site/components/Placements.tsx": {
+      "rgb": 1,
+      "textArb": 7,
+      "roundedArb": 2
+    },
+    "web/src/site/components/ReadTheWheel.tsx": {
+      "rgb": 3,
+      "textArb": 7,
+      "rawButton": 1
+    },
+    "web/src/site/components/ReferenceCheck.tsx": {
+      "hex": 2,
+      "rgb": 1,
+      "textArb": 3,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/site/components/SampleHead.tsx": {
+      "chartDraw": 5
+    },
+    "web/src/site/components/SampleRail.tsx": {
+      "rgb": 3,
+      "textArb": 9
+    },
+    "web/src/site/components/SkyForm.tsx": {
+      "hex": 1,
+      "textArb": 4,
+      "rawButton": 1
+    },
+    "web/src/site/components/TwoPlates.tsx": {
+      "hex": 5,
+      "textArb": 9,
+      "chartDraw": 4
+    },
+    "web/src/site/pages/CompatibilityPage.tsx": {
+      "rgb": 4,
+      "textArb": 13,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/site/pages/FaqPage.tsx": {
+      "rgb": 3,
+      "textArb": 11,
+      "roundedArb": 1
+    },
+    "web/src/site/pages/LearnBirthTimePage.tsx": {
+      "hex": 1,
+      "rgb": 4,
+      "textArb": 23,
+      "roundedArb": 2
+    },
+    "web/src/site/pages/LearnHousesPage.tsx": {
+      "rgb": 4,
+      "textArb": 22,
+      "roundedArb": 1
+    },
+    "web/src/site/pages/MethodPage.tsx": {
+      "rgb": 2,
+      "textArb": 13,
+      "roundedArb": 1
+    },
+    "web/src/site/pages/SamplePage.tsx": {
+      "hex": 1,
+      "rgb": 3,
+      "textArb": 30,
+      "roundedArb": 2,
+      "rawButton": 3
+    },
+    "web/src/site/pages/SkyPage.tsx": {
+      "textArb": 4
+    },
+    "web/src/site/pages/TimelinePage.tsx": {
+      "textArb": 4
+    },
+    "web/src/site/pages/WaitlistPage.tsx": {
+      "textArb": 1
+    },
+    "web/src/site/sections/BirthTime.tsx": {
+      "hex": 1,
+      "rgb": 1,
+      "textArb": 8,
+      "roundedArb": 1
+    },
+    "web/src/site/sections/Claims.tsx": {
+      "hex": 2,
+      "textArb": 23,
+      "colorUtil": 1,
+      "rawButton": 1,
+      "chartDraw": 6
+    },
+    "web/src/site/sections/Dawn.tsx": {
+      "rgb": 1,
+      "textArb": 1
+    },
+    "web/src/site/sections/Differences.tsx": {
+      "hex": 1,
+      "rgb": 2,
+      "textArb": 23,
+      "roundedArb": 1
+    },
+    "web/src/site/sections/Hero.tsx": {
+      "hex": 2,
+      "textArb": 2,
+      "rawButton": 1
+    },
+    "web/src/site/sections/Inside.tsx": {
+      "rawButton": 1
+    },
+    "web/src/site/sections/Method.tsx": {
+      "rgb": 1,
+      "textArb": 2,
+      "roundedArb": 1
+    },
+    "web/src/site/sections/SkyScreen.tsx": {
+      "rgb": 2,
+      "textArb": 12,
+      "rawButton": 2
+    },
+    "web/src/site/sections/TimelineLine.tsx": {
+      "textArb": 4
+    },
+    "web/src/site/sections/TwoCharts.tsx": {
+      "rgb": 2,
+      "textArb": 12,
+      "roundedArb": 1,
+      "rawButton": 1
+    },
+    "web/src/site/sections/YourPeople.tsx": {
+      "hex": 9,
+      "rgb": 3,
+      "textArb": 15,
+      "roundedArb": 2,
+      "rawButton": 3
+    },
+    "web/src/site/sections/timeline/FiveThings.tsx": {
+      "hex": 41,
+      "rgb": 1,
+      "textArb": 42
+    },
+    "web/src/site/sections/timeline/Hero.tsx": {
+      "textArb": 11
+    },
+    "web/src/site/sections/timeline/ThingCard.tsx": {
+      "hex": 10,
+      "textArb": 10,
+      "roundedArb": 2
+    },
+    "web/src/site/sections/timeline/WhatYouGet.tsx": {
+      "textArb": 13,
+      "roundedArb": 1
+    },
+    "web/src/site/site.css": {
+      "hex": 33,
+      "rgb": 39
+    },
+    "web/src/types/chart.ts": {
+      "chartDraw": 2
+    }
+  }
+}

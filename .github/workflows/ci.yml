@@ -131,6 +131,9 @@ jobs:
         run: pnpm check:shipped
 
       - if: steps.changes.outputs.code != 'false'
+        run: pnpm check:ds
+
+      - if: steps.changes.outputs.code != 'false'
         run: pnpm audit --prod --audit-level high
 
       # Keyless (ADR-200): a release binary pinned by version and checksum, so

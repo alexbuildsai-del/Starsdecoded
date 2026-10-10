@@ -1,0 +1,4 @@
+{ "files": [
+  { "file": "web/src/components/timeline/Dial.tsx", "reason": "The Timeline dial is drawn on wheel radii until its ideation settles it (B-103, ADR-442)." },
+  { "file": "web/src/types/chart.ts", "reason": "Home of the planet and sign glyph tables the chart reads." }
+] }
