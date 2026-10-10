@@ -35,8 +35,9 @@ const { chromium } = createRequire(path.join(root, "e2e", "package.json"))("@pla
 const requireWeb = createRequire(path.join(web, "package.json"));
 const { createServer: createVite } = await import(pathToFileURL(requireWeb.resolve("vite")).href);
 
+const T = JSON.parse(readFileSync(path.join(root, "packages", "design", "src", "tokens.json"), "utf8")).color;
 const mark = readFileSync(path.join(pub, "mark.svg"), "utf8");
-const markOnDark = mark.replace('stroke="#5C6BC0"', 'stroke="#7C83D4"').replace('stroke="#5C6BC0"', 'stroke="#7C83D4"');
+const markOnDark = mark.replaceAll(`stroke="${T.indigo.toUpperCase()}"`, 'stroke="#7C83D4"');
 
 /** The cover's words beside the registry's: the spec's line, and the heading's last words in italic as Hero.tsx sets them. */
 const COVER_LINE = "A report on how you think, work and love, with every claim pointing to your chart.";
@@ -76,19 +77,19 @@ const stars = Array.from({ length: 90 }, (_, i) => {
   const y = (i * 53.7 + (i % 7) * 31) % 694;
   const d = i % 9 === 0 ? 3.2 : 1.6;
   const o = (0.16 + (i % 5) * 0.12).toFixed(2);
-  return `<span style="position:absolute;left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${d}px;height:${d}px;border-radius:50%;background:#E8EBF2;opacity:${o}"></span>`;
+  return `<span style="position:absolute;left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${d}px;height:${d}px;border-radius:50%;background:${T.paper};opacity:${o}"></span>`;
 }).join("");
 
 const giftCover = `<!doctype html><meta charset="utf-8"><style>${css}
   .gc { width: 1120px; height: 694px; position: relative; overflow: hidden;
-    background: radial-gradient(85% 75% at 74% 32%, #1B2340 0%, #0D1117 55%, #06080C 100%); }
+    background: radial-gradient(85% 75% at 74% 32%, #1B2340 0%, ${T.ground} 55%, ${T.void} 100%); }
   .gc .ring { position: absolute; right: 130px; top: 50%; transform: translateY(-50%); width: 320px; height: 320px; opacity: .95; }
   .gc .ring svg { width: 100%; height: 100%; }
 </style><div class="gc">${stars}<div class="ring">${markOnDark}</div></div>`;
 
 // Where cover A (the share-cover artifact) sets each part: the hero's grid at 1200 wide, its wheel column 553 square.
 const coverCss = `
-  html, body { margin: 0; background: #0D1117; }
+  html, body { margin: 0; background: ${T.ground}; }
   .cv { width: ${W}px; height: ${H}px; min-height: 0; overflow: hidden; }
   .cv .sd-hero { width: ${W}px; height: ${H}px; min-height: 0; }
   .cv-stars { position: absolute; inset: 0; width: ${W}px; height: ${H}px; pointer-events: none; }
