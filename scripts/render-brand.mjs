@@ -36,8 +36,14 @@ const requireWeb = createRequire(path.join(web, "package.json"));
 const { createServer: createVite } = await import(pathToFileURL(requireWeb.resolve("vite")).href);
 
 const T = JSON.parse(readFileSync(path.join(root, "packages", "design", "src", "tokens.json"), "utf8")).color;
+/** `share` of the way from one token's hex to another's: the exports' few in-between colours, kept on the tokens. */
+function mix(from, to, share) {
+  const at = (hex, i) => parseInt(hex.slice(i, i + 2), 16);
+  return `#${[1, 3, 5].map((i) => Math.round(at(from, i) + (at(to, i) - at(from, i)) * share).toString(16).padStart(2, "0")).join("")}`;
+}
 const mark = readFileSync(path.join(pub, "mark.svg"), "utf8");
-const markOnDark = mark.replaceAll(`stroke="${T.indigo.toUpperCase()}"`, 'stroke="#7C83D4"');
+// On a dark ground the mark's indigo is lifted a third of the way to indigo-lt.
+const markOnDark = mark.replaceAll(`stroke="${T.indigo.toUpperCase()}"`, `stroke="${mix(T["indigo-hover"], T["indigo-lt"], 0.33).toUpperCase()}"`);
 
 /** The cover's words beside the registry's: the spec's line, and the heading's last words in italic as Hero.tsx sets them. */
 const COVER_LINE = "A report on how you think, work and love, with every claim pointing to your chart.";
@@ -82,7 +88,7 @@ const stars = Array.from({ length: 90 }, (_, i) => {
 
 const giftCover = `<!doctype html><meta charset="utf-8"><style>${css}
   .gc { width: 1120px; height: 694px; position: relative; overflow: hidden;
-    background: radial-gradient(85% 75% at 74% 32%, #1B2340 0%, ${T.ground} 55%, ${T.void} 100%); }
+    background: radial-gradient(85% 75% at 74% 32%, ${mix(T.void, T.indigo, 0.27)} 0%, ${T.ground} 55%, ${T.void} 100%); }
   .gc .ring { position: absolute; right: 130px; top: 50%; transform: translateY(-50%); width: 320px; height: 320px; opacity: .95; }
   .gc .ring svg { width: 100%; height: 100%; }
 </style><div class="gc">${stars}<div class="ring">${markOnDark}</div></div>`;
@@ -98,7 +104,7 @@ const coverCss = `
   .cv .sd-eyebrow { top: 11px; }
   .cv .sd-h1 { top: 39px; margin: 0; font-size: 80px; max-width: none; }
   .cv .cv-line { top: 350px; font-size: 27px; line-height: 1.32; max-width: 500px; }
-  .cv .cv-word { top: 523px; gap: 14px; font-size: 34px; }
+  .cv .cv-word { top: 523px; display: inline-flex; align-items: center; gap: 14px; font: 400 34px/1 var(--font-display); color: ${T.paper}; }
   .cv .cv-word .cv-mark { display: block; width: 44px; height: 44px; }
   .cv .cv-word .cv-mark svg { width: 44px; height: 44px; }
   .cv-wheel { position: absolute; left: 623px; top: 35px; width: 553px; height: 553px; }
@@ -118,7 +124,7 @@ const coverHtml = `<!doctype html>
  */
 async function drawCover(site, given) {
   const { createElement: h, createRoot, flushSync, HorizonWheel, RING_SHARE, BODIES, skyNow, frameOf } = site;
-  const { localParts, offsetAtBirth, latLngLine, sunLine, placeTitle, pageFor, PRODUCT, planGather, landing, GATHER_MAX, wheelRadii } = site;
+  const { localParts, offsetAtBirth, latLngLine, sunLine, placeTitle, pageFor, PRODUCT, planGather, landing, GATHER_MAX } = site;
   const [width, height] = given.size;
   const ZONE = "Europe/London";
   const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -163,7 +169,7 @@ async function drawCover(site, given) {
             h("p", { className: "sd-eyebrow" }, home.eyebrow),
             h("h1", { className: "sd-h1" }, ...heading),
             h("p", { className: "sd-lede cv-line" }, given.line),
-            h("p", { className: "sd-word cv-word" },
+            h("p", { className: "cv-word" },
               h("span", { className: "cv-mark", dangerouslySetInnerHTML: { __html: given.mark } }),
               h("span", null, PRODUCT),
             ),
@@ -211,7 +217,7 @@ async function drawCover(site, given) {
     const p = move ? landing(move, ring) : star;
     if (onWords(p)) return;
     ctx.globalAlpha = move ? star.a : star.a * 0.7;
-    ctx.fillStyle = star.cool ? "#C5CAE9" : "#FFFFFF";
+    ctx.fillStyle = star.cool ? given.stars.cool : given.stars.warm;
     ctx.beginPath();
     ctx.arc(p.x, p.y, star.r, 0, Math.PI * 2);
     ctx.fill();
@@ -225,15 +231,21 @@ async function drawCover(site, given) {
   }));
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
 
-  // Every body where the engine puts it: read back off the wheel, not taken on trust from the sky handed to it.
-  const centre = wheelRadii(600).centre;
+  // Every body where the engine puts it: read back off the wheel, not taken on trust from the sky handed to it. The
+  // Chart places each body's backing disc unturned, round its viewBox's centre, and the page turns the whole plate.
+  const chartSvg = host.querySelector("[data-body]")?.closest("svg");
+  const view = chartSvg?.viewBox.baseVal;
+  const centre = view ? view.x + view.width / 2 : NaN;
+  let plate = chartSvg?.parentElement;
+  while (plate && plate !== host && !plate.style.transform.includes("rotate(")) plate = plate.parentElement;
+  const tilt = Number(plate?.style.transform.match(/rotate\(([-\d.]+)deg\)/)?.[1] ?? 0);
   const frame = frameOf(sky.chart);
   const hundredth = (n) => Math.round(n * 100) / 100;
   const degrees = {};
   for (const body of BODIES) {
     const engine = sky.chart.planets[body].absoluteDegree;
-    const drawn = host.querySelector(`[data-k="${body}"]`)?.getAttribute("transform")?.match(/translate\(([-\d.]+) ([-\d.]+)\)/);
-    const angle = drawn ? (Math.atan2(centre - Number(drawn[2]), Number(drawn[1]) - centre) * 180) / Math.PI : NaN;
+    const disc = host.querySelector(`[data-body="${body}"] circle`);
+    const angle = disc ? (Math.atan2(centre - Number(disc.getAttribute("cy")), Number(disc.getAttribute("cx")) - centre) * 180) / Math.PI - tilt : NaN;
     const off = Math.abs(((angle - 180 + frame - engine) % 360 + 540) % 360 - 180);
     if (!(off < 0.01)) problems.push(`${body} is drawn ${Number.isNaN(off) ? "nowhere" : `${off.toFixed(3)}° from the engine's degree`}`);
     degrees[body] = hundredth(engine);
@@ -265,7 +277,6 @@ import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { localParts, offsetAtBirth } from "@workspace/engine";
-import { wheelRadii } from "@/components/chart/wheel-geometry";
 import { GATHER_MAX, landing, planGather } from "@/lib/gather";
 import { placeTitle } from "@/lib/places";
 import { PRODUCT } from "@/lib/product";
@@ -273,8 +284,8 @@ import { latLngLine, sunLine } from "@/lib/sky-now";
 import { HorizonWheel, RING_SHARE } from "@/site/components/HorizonWheel";
 import { BODIES, frameOf, skyNow } from "@/site/lib/sky";
 import { pageFor } from "@/site/site";
-const site = { createElement, createRoot, flushSync, localParts, offsetAtBirth, wheelRadii, GATHER_MAX, landing, planGather, placeTitle, PRODUCT, latLngLine, sunLine, HorizonWheel, RING_SHARE, BODIES, frameOf, skyNow, pageFor };
-window.__cover = (${drawCover})(site, ${JSON.stringify({ minute, size: [W, H], line: COVER_LINE, italic: H1_ITALIC, mark: markOnDark })})
+const site = { createElement, createRoot, flushSync, localParts, offsetAtBirth, GATHER_MAX, landing, planGather, placeTitle, PRODUCT, latLngLine, sunLine, HorizonWheel, RING_SHARE, BODIES, frameOf, skyNow, pageFor };
+window.__cover = (${drawCover})(site, ${JSON.stringify({ minute, size: [W, H], line: COVER_LINE, italic: H1_ITALIC, mark: markOnDark, stars: { cool: mix(T["indigo-lt"], T["on-indigo"], 0.4), warm: T["on-indigo"] } })})
   .catch((error) => ({ problems: [String(error?.stack ?? error)] }));
 `;
 
