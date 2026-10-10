@@ -19,6 +19,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { tokens } from "@workspace/design";
 import { Button } from "@/ds/atoms/Button";
+import { PlanetBody } from "@/ds/atoms/PlanetBody";
 import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
 import { TextButton } from "@/ds/atoms/TextButton";
 import { InlineError } from "@/ds/molecules/Alert";
@@ -26,7 +27,6 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport, type SendState } from "@workspace/api-client-react";
 import LoadingState from "@/components/LoadingState";
 import {
-  PLANET_GLYPHS,
   PLANET_LABELS,
   isCurrentInterpretation,
   rewriteOffer,
@@ -75,7 +75,7 @@ function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlane
   return (
     <div id={`planet-${name}`} className="py-3 border-b border-line-soft last:border-0 scroll-mt-24">
       <div className="flex items-center gap-3">
-        <span className="w-6 text-center text-lg text-indigo-lt">{PLANET_GLYPHS[name] ?? "·"}</span>
+        <span className="grid w-6 place-items-center"><PlanetBody body={name} size={20} /></span>
         <span className="font-label text-ui w-24 text-muted">{PLANET_LABELS[name] ?? name}</span>
         <span className="font-numeric text-ui flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
@@ -413,7 +413,7 @@ export default function ReportPage() {
                 <div key={name} className="p-5 rounded-card border border-line bg-surface/40">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-indigo-lt text-ui">{PLANET_GLYPHS[name]}</span>
+                      <PlanetBody body={name} size={16} />
                       <span className="font-display text-ui text-paper">
                         {PLANET_LABELS[name]} in {planet.sign}
                       </span>
