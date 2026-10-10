@@ -30,7 +30,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-24 · Swap `fixtures/reports/marie-curie.reference.json` for the real r06 run · was MB-73
 - B-25 · Drop `reports.workbook` (idempotent) once one Release has run on `report_workbooks` · was MB-195
 - B-26 · Enforce the CSP after 7 clean days: read the Failures tab after 2026-10-10, then flip `vercel.json` · was MB-147, ADR-198
-- B-27 · /sample refreshes from the next passing Release; check the old tie line is gone · was MB-182
+- B-27 · /sample refreshes from the next passing Release; check the old tie line is gone; until then it shows the report before R19's rule (no Often noticed, no going-backwards block, no Did you know) · was MB-182, QA-08 #2
 - B-28 · Remove each `// MB-NN provisional` seam whose row is no longer open (seams for 39 rows in `api`, `web`, `packages` today; fetch each row first) · sweep 05/10
 - B-29 · R15 and R16 small follow-ups (libraries, query counts, leak table, release retry; R16 leftovers) · was MB-209, MB-222
 - B-31 · /round reads `/api/qa/latest` after each merge (a skill line; a running /round can't edit its own skill; /qa's half done in R18) · was MB-230, R17
@@ -50,7 +50,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-72 · Staging deploys still answer 502 on `/api/*` for about 45 s (two deploys measured 2026-10-07, after R18-03); finish once MB-228's dashboard answer is in (a volume, Teardown overlap 0, or no health check) · R18 staging confirmation
 - B-75 · The loading stories' chart labels print at 6.5 to 7.5 px and overlap · QA-07 #3
 - B-78 · `/faq` "Do I pay once or every month?" no longer answers once or monthly in its first sentence · QA-07 #6
-- B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data · QA-07 #7
+- B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data; a first-time buyer reads sign-in words, not sign-up ones · QA-07 #7, QA-08 #8
 - B-80 · A dead report link spins about 7 s and calls the API five times before "Report not found."; answer a 404 once · QA-07 #8
 - B-81 · `/sample` chapter 9 still has "Home as destiny, love as friction" and two more fate lines; refresh /sample from the next passing Release or rewrite · QA-07 #9, QA-06 #14
 - B-82 · Model passages for Compatibility, Timeline and Ask, once the Personal report's have been read at a Release; with a dry lab run · ADR-383, R19 plan
@@ -59,7 +59,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-85 · QA account's daily cap: a rewrite in place is counted only in process memory, so a staging restart forgets it; keep the day's let-through count in the database · `qaAccount.ts:145,267` · R19 sentinel S1
 - B-86 · A life cycle's passes carry no direction (forward or backwards) from the engine, so Read more can't say which · `packages/engine` · R19-16
 - B-87 · The 1st house's covers say "how you come across" while the reading bans the phrase; it reaches the prompt as a 7th-house stellium's balance · `houseCovers.ts`, `checks.ts` · R19-12
-- B-88 · Heavy · Mixed · Light legend on the site's sample Timeline cards · `web/src/site` · R19-32
+- B-88 · Heavy · Mixed · Light legend on the site's sample Timeline cards; /timeline's "What you get" still says "easy, mixed or intense" · `web/src/site` · R19-32, QA-08 #5
 - B-89 · Archive tests left on the old behaviour (not run): `orbit.test.ts` (3), `ask-view.test.ts:433-462` and `ask-view.edges.test.ts:216-270` ("Until"), `checks.test.ts:18,21`, `prompts.test.ts:105,114`, the pair-prompts and labDry archive pins, `index.exports.test.ts`; `jobs.test.ts` makes its schema in a `before` hook (R19-50's race) · R19
 - B-90 · Report hero: a long name with a body on the Descendant (high-latitude fixture) still sits over the Moon at 900 to 1366 px; break the name onto two lines in `nameLines` · R19-47
 - B-91 · The picker opened by `?pair=` leaves focus on the page body when closed · `DashboardPage.tsx` · R19-40
@@ -69,6 +69,11 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-95 · First visit leftovers: `Orbit.tsx` draws "YOU / Your report" with ghost seats where the mock has one "You"; Practising shows Audrey's sample when an own report has nothing to practise; the gift nudge's line repeats its heading (/ux-copy) · R19-35
 - B-96 · Docs drift: MASTERFILE §4 still calls the admin Timeline's only access (R-6.2 adds a subscription); §3's testers row lacks the QA account's mark (ADR-387); INDEX's code-map heading lists QA-02 and QA-03 only · R19 close
 - B-97 · Observations take a creator's captions lightly adapted, so a planted line could reach every matching prompt and card; `/observe` step 7 (or `check:shipped`) checks each idea and why is one plain line, no `<>{}`, backtick, all-caps label or words to the writer · `observations.ts`, `.claude/skills/observe/SKILL.md` · sentinel 2026-10-09
+- B-98 · The free chart dialog's "EAST · RISING" label is cut by the left edge at 1280 × 900 (box at x = -13), whole at other sizes · `/`, `/sky` · QA-08 #3
+- B-99 · Escape in the free chart dialog puts focus on the form card's wrapper, not on Show my chart · QA-08 #4
+- B-100 · /method film, 80 to 88 s: the chip "Sunrise 06:10 · ASC Virgo 9°43′" reads as the ascendant at sunrise; 9°43′ is the 06:30 birth's · QA-08 #6
+- B-101 · The home birth form pre-picks London (ADR-107) with no line saying it stands in, and shows a continent and no zone · QA-08 #7
+- B-102 · /timeline mixes date orders in an en-US browser ("Oct 19, 2026" beside "14 Mar 1991"); one order per page · QA-08 #9
 
 ## Waiting on Alex
 
