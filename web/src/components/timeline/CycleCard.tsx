@@ -9,22 +9,28 @@ import { useId, useState } from "react";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { CycleRing } from "@/components/timeline/AgeRing";
 import { OpenCard } from "@/components/timeline/ContactCard";
+import { Chip, type ChipTone } from "@/ds/atoms/Chip";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Card } from "@/ds/molecules/Card";
+import { Strip } from "@/ds/molecules/Strip";
+import { Well } from "@/ds/molecules/Well";
 import {
   cycleAbout, cycleAgeSteps, cycleAges, cycleChip, cycleCountdown, cycleDates, cycleNextLine, cycleWhen, lookBack, ringTarget,
   type CycleView,
 } from "@/lib/life-view";
 
-const CHIP_LOOK = {
-  now: "border-[#5C6BC0] bg-[rgba(92,107,192,.16)] text-[#E8EBF2]",
-  ahead: "border-[#242C3B] text-[#E8EBF2]",
-  past: "border-[#242C3B] text-[#7E889A]",
-} as const;
+const CHIP_LOOK: Record<ReturnType<typeof cycleWhen>, { tone: ChipTone; selected?: boolean; className?: string }> = {
+  now: { tone: "now", selected: true },
+  ahead: { tone: "neutral", className: "text-paper" },
+  past: { tone: "neutral", className: "text-muted" },
+};
 
-function Chip({ cycle }: { cycle: CycleView }) {
+function CycleChip({ cycle }: { cycle: CycleView }) {
+  const look = CHIP_LOOK[cycleWhen(cycle, cycle.today)];
   return (
-    <span className={`whitespace-nowrap rounded-full border px-2 py-1 text-[11px] leading-none ${CHIP_LOOK[cycleWhen(cycle, cycle.today)]}`}>
+    <Chip quiet tone={look.tone} selected={look.selected} className={look.className}>
       {cycleChip(cycle, cycle.today)}
-    </span>
+    </Chip>
   );
 }
 
@@ -35,10 +41,10 @@ const DEGREE = /(\d+\.\d{2}\u00b0 [A-Z][a-z]+)/;
 /** A science line with its degrees set in the numbers' face. */
 function ScienceLine({ text }: { text: string }) {
   return (
-    <p>
+    <p className="text-small text-paper-dim">
       {text.split(DEGREE).map((part, i) =>
         i % 2 ? (
-          <span key={i} className="font-numeric text-[12.5px] text-[#E8EBF2]">
+          <span key={i} className="font-mono text-data tabular-nums text-paper">
             {part}
           </span>
         ) : (
@@ -49,7 +55,7 @@ function ScienceLine({ text }: { text: string }) {
   );
 }
 
-const STEP_LOOK = { past: "text-[#7E889A]", this: "font-medium text-[#E8EBF2]", ahead: "text-[#AEB6C6]" } as const;
+const STEP_LOOK = { past: "text-muted", this: "font-medium text-paper", ahead: "text-paper-dim" } as const;
 
 export interface CycleCardProps {
   cycle: CycleView;
@@ -69,16 +75,16 @@ export function CycleCard({ cycle, compact = false, onOpen, science, meaning }: 
   if (compact) {
     const target = ringTarget(cycle);
     return (
-      <article className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 border-t border-[#1A202C] pt-3">
+      <article className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 border-t border-line-soft pt-3">
         <div className="grid min-w-0 gap-1">
-          <p className="font-label text-[10.5px] uppercase tracking-[.12em] text-[#7E889A]">{cycleAges(cycle)}</p>
-          <p className="font-display text-[19px] leading-tight text-[#E8EBF2]">{cycle.name}</p>
-          <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-[13px]">
-            <span className="font-numeric text-[#E8EBF2]">{cycleDates(cycle, order)}</span>
-            <Chip cycle={cycle} />
+          <p className="font-label text-label uppercase text-muted">{cycleAges(cycle)}</p>
+          <p className="font-display text-card-title-sm text-paper">{cycle.name}</p>
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-small">
+            <span className="font-mono tabular-nums text-paper">{cycleDates(cycle, order)}</span>
+            <CycleChip cycle={cycle} />
           </p>
-          <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{cycle.why || sentence(cycle.word)}</p>
-          {onOpen ? <OpenCard headline={cycle.name} onOpen={onOpen} rounded="after:rounded-md" /> : null}
+          <p className="text-small text-paper-dim">{cycle.why || sentence(cycle.word)}</p>
+          {onOpen ? <OpenCard headline={cycle.name} onOpen={onOpen} rounded="after:rounded-inner" /> : null}
         </div>
         <CycleRing progress={cycle.progress} target={target} size={56} />
       </article>
@@ -87,67 +93,64 @@ export function CycleCard({ cycle, compact = false, onOpen, science, meaning }: 
 
   const look = lookBack(cycle, cycle.today, order);
   const steps = cycleAgeSteps(cycle, cycle.today);
-  const opens = onOpen ? " transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-[#171D29]" : "";
   return (
-    <article className={`relative grid min-w-0 gap-2 rounded-xl border border-[#242C3B] bg-[#11161F] p-3.5${opens}`}>
+    <Card
+      as="article"
+      className={`relative grid min-w-0 p-3.5 sm:p-3.5${onOpen ? " transition-colors duration-base ease-[var(--ease)] hover:bg-raised" : ""}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <span className="rounded-full border border-[#242C3B] px-2.5 py-[3px] font-label text-[10.5px] uppercase leading-snug tracking-[.14em] text-[#AEB6C6]">
-          {cycle.word}
-        </span>
-        <span className="font-numeric text-xs text-[#7E889A]">{cycleCountdown(cycle, cycle.today)}</span>
+        <Chip>{cycle.word}</Chip>
+        <span className="font-mono text-data tabular-nums text-muted">{cycleCountdown(cycle, cycle.today)}</span>
       </div>
       <div className="flex items-start justify-between gap-3">
-        <p className="font-display text-xl leading-tight text-[#E8EBF2]">{cycle.name}</p>
+        <p className="font-display text-card-title text-paper">{cycle.name}</p>
         {science ? (
-          <button
-            type="button"
+          <TextButton
             aria-label="The science behind it"
             aria-expanded={scienceOpen}
             aria-controls={scienceId}
             onClick={() => setScienceOpen((on) => !on)}
-            className={`relative z-10 grid h-6 w-6 flex-none place-items-center rounded-full border font-display text-sm italic leading-none before:absolute before:-inset-2.5 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              scienceOpen ? "border-[#D4B06A] text-[#D4B06A]" : "border-[#242C3B] text-[#AEB6C6] hover:border-[#5C6BC0]"
+            className={`z-10 grid size-6 min-h-0 flex-none place-items-center rounded-pill border px-0 font-display text-sm italic leading-none ${
+              scienceOpen ? "border-brass text-brass" : "border-line text-paper-dim hover:border-indigo"
             }`}
           >
             i
-          </button>
+          </TextButton>
         ) : null}
       </div>
-      <p className="text-sm leading-normal text-[#AEB6C6]">{cycleAbout(cycle.id)}</p>
+      <p className="text-ui text-paper-dim">{cycleAbout(cycle.id)}</p>
       {science && scienceOpen ? (
-        <div id={scienceId} className="grid gap-1.5 rounded-lg border border-[#242C3B] bg-[#0D1117] px-3 py-2.5 text-[13.5px] leading-normal text-[#AEB6C6]">
+        <Well id={scienceId} className="gap-1.5 px-3 py-2.5">
           {science().map((line, i) => (
             <ScienceLine key={i} text={line} />
           ))}
-        </div>
+        </Well>
       ) : null}
-      <div className="grid gap-1 rounded-lg bg-[#171D29] px-2.5 py-2">
-        <p className="font-label text-[10.5px] uppercase leading-none tracking-[.14em] text-[#7E889A]">For you</p>
-        <p className="font-numeric text-[13.5px] leading-normal">
+      <Strip className="grid gap-1 px-2.5 py-2">
+        <p className="font-label text-label uppercase leading-none text-muted">For you</p>
+        <p className="font-mono text-small tabular-nums">
           {steps.map((step, i) => (
             <span key={`${step.age}-${i}`}>
-              {i ? <span className="text-[#7E889A]"> {"\u00b7"} </span> : null}
+              {i ? <span className="text-muted"> {"\u00b7"} </span> : null}
               <span className={STEP_LOOK[step.state]}>{step.age}</span>
             </span>
           ))}
         </p>
-        <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{cycleNextLine(cycle, cycle.today, order)}</p>
-      </div>
+        <p className="text-small text-paper-dim">{cycleNextLine(cycle, cycle.today, order)}</p>
+      </Strip>
       {meaning === null ? (
-        <p aria-hidden className="h-[6.5em] rounded-md bg-[#171D29] motion-safe:animate-pulse" />
+        <p aria-hidden className="h-[6.5em] rounded-inner bg-raised motion-safe:animate-pulse" />
       ) : typeof meaning === "string" ? (
-        <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{meaning}</p>
+        <p className="text-small text-paper-dim">{meaning}</p>
       ) : meaning ? (
         meaning.map((text, i) => (
-          <p key={i} className="whitespace-pre-line text-[14.5px] leading-[1.6] text-[#E8EBF2]">
+          <p key={i} className="whitespace-pre-line text-ui leading-[1.6] text-paper">
             {text}
           </p>
         ))
       ) : null}
-      {look ? (
-        <p className="border-l-2 border-[#3FA796] pl-2.5 font-display text-[15px] italic leading-snug text-[#AEB6C6]">{look}</p>
-      ) : null}
-      {onOpen && (meaning === undefined || typeof meaning === "string") ? <OpenCard headline={cycle.name} onOpen={onOpen} rounded="after:rounded-xl" /> : null}
-    </article>
+      {look ? <p className="border-l-2 border-teal pl-2.5 font-display text-prose italic leading-snug text-paper-dim">{look}</p> : null}
+      {onOpen && (meaning === undefined || typeof meaning === "string") ? <OpenCard headline={cycle.name} onOpen={onOpen} rounded="after:rounded-card" /> : null}
+    </Card>
   );
 }
