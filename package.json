@@ -30,7 +30,7 @@
     "check:ds": "pnpm --filter @workspace/scripts run check:ds"
   },
   "dependencies": {
-    "@vercel/functions": "3.9.9"
+    "@vercel/functions": "3.9.11"
   },
   "devDependencies": {
     "typescript": "~5.9.2",

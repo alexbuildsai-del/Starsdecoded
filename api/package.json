@@ -13,9 +13,9 @@
     "walk": "tsx ./src/walk/loop.walk.ts && tsx ./src/walk/sharing.walk.ts && tsx ./src/walk/timeline.walk.ts && tsx ./src/walk/buyer.walk.ts"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.72",
-    "@clerk/shared": "^4.36.0",
-    "@clerk/testing": "2.2.39",
+    "@clerk/express": "^2.1.75",
+    "@clerk/shared": "^4.38.0",
+    "@clerk/testing": "2.2.42",
     "@workspace/api-zod": "workspace:*",
     "@workspace/commerce": "workspace:*",
     "@workspace/db": "workspace:*",
