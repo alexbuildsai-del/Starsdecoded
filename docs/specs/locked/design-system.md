@@ -1,6 +1,6 @@
 # Design system
 
-Status: locked, 2026-10-10 (the Owner: "Lock it") · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
+Status: locked, 2026-10-10 (the Owner: "Lock it"); built in R20 (`rounds/R20-report.md`; the hero and stories wait, B-104, 105) · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
 first ideation page: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supersedes nothing; extends MASTERFILE §9 and `/web-taste`.
 
 **The Owner's direction (2026-10-09):** lift today's look, don't redraw it. Today's best card is the standard (a quiet

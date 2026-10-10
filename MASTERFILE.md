@@ -207,6 +207,9 @@ Starsdecoded/
   .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /observe /ux-copy /web-taste /marketing,
                             a SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
+  packages/design/          the tokens (tokens.css, mirrored in tokens.ts and tokens.json), checked by pnpm check:ds
+  web/src/ds/               the parts: atoms, molecules, organisms (the Chart), templates; each with .doc.md and
+                            .example.tsx, shown at /admin/design
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded
   Mailbox                   the Owner's open questions only, each with a recommendation and a default (R-12.3)
