@@ -1,6 +1,6 @@
-# Design system (draft)
+# Design system
 
-Status: draft, 2026-10-10 (round 3, the Owner's answers in; ready to lock) · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
+Status: locked, 2026-10-10 (the Owner: "Lock it") · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
 first ideation page: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supersedes nothing; extends MASTERFILE §9 and `/web-taste`.
 
 **The Owner's direction (2026-10-09):** lift today's look, don't redraw it. Today's best card is the standard (a quiet
@@ -152,9 +152,9 @@ two indigos, the Apple table and the rounds: https://claude.ai/artifact/CubRdNjH
 7. The birth fields proposal is taken. 8. Card titles B: 20 px big, 17 px small. 9. ChoiceTile title B: Inter.
 10. The chart is tested for consistency (Scope 8, Acceptance 9).
 
-## Decisions to record
+## Decisions to record (ADR-423 to 436, in order)
 
-All Decided by Claude unless the Owner changes them; the rule each follows is in brackets.
+Decided by Alex at the lock (he took every recommendation, 2026-10-10); the rule each follows is in brackets.
 1. The design system lives in `packages/design` (tokens) and `web/src/ds` (parts by atomic level); it is the only
    source for any value or part (one kind of thing, one look, ADR-172).
 2. Tokens as a Tailwind v4 `@theme` file with a checked `tokens.ts` mirror, not DTCG; the documented hexes are the
@@ -176,6 +176,8 @@ All Decided by Claude unless the Owner changes them; the rule each follows is in
 11. Two rounds, R20 and R21; no brain change, no lab.
 12. Inter on every button (the Owner, 2026-10-09); Space Grotesk only for small labels and chips.
 13. The chart's consistency is a check plus one critical test, not screenshots compared by eye (the Owner, 2026-10-10).
+14. Card titles 20 and 17 px, the ChoiceTile in Inter, label-dim #767F92, the 46 px button in the app, the birth
+    fields proposal, nothing Removed kept (the Owner, 2026-10-10, Settled 1 to 9).
 
 ## Sources (verified 2026-10-09, supported only)
 

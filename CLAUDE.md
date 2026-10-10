@@ -115,6 +115,6 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 1. R19 (explain-like-a-friend, sharing and the circle, the QA agent's own account, the loading bar that waits for Start reading)
    is on staging once its PR merges, and production is R11 to R14. Next: /qa on staging, the Owner's look
-   (`docs/annex/R19-words.md`), then the first Release when the Owner says promote. No round is planned.
+   (`docs/annex/R19-words.md`), then the first Release when the Owner says promote. Locked, unplanned: `design-system` (R20, R21).
 2. Before the first live sale: MB-228, 114 and 115. Before Timeline sells on production: B-03.
 3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).
