@@ -7,6 +7,7 @@
  */
 import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Button } from "@/ds/atoms/Button";
 import { AskMark } from "@/components/ask/AskMark";
 import { AskPanel } from "@/components/ask/AskPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,13 +28,12 @@ export function AskLauncher({ reportId }: { reportId?: string }) {
     <Dialog.Root open={open} onOpenChange={setOpen} modal={phone}>
       {asks ? (
         <Dialog.Trigger asChild>
-          <button
+          <Button
             ref={launcher}
-            type="button"
-            className="fixed bottom-[max(18px,env(safe-area-inset-bottom))] right-[18px] z-30 inline-flex min-h-11 items-center rounded-full bg-[#5C6BC0] py-2.5 pl-3 pr-[18px] text-[#F4F5FA] shadow-[0_8px_24px_rgba(0,0,0,.45)] transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-[#6B79CB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06080C] print:hidden"
+            className="fixed bottom-[max(18px,env(safe-area-inset-bottom))] right-[18px] z-30 h-auto min-h-11 gap-0 rounded-full py-2.5 pl-3 pr-[18px] shadow-raised print:hidden [&_svg]:size-[22px]"
           >
             <AskMark size={22} />
-          </button>
+          </Button>
         </Dialog.Trigger>
       ) : null}
       <AskPanel open={open} phone={phone} reportId={reportId} usage={ask} launcher={launcher} />

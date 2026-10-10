@@ -16,6 +16,7 @@ import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportCta } from "@/site/cta";
 import { MIRA, MIRA_WEEK, pairOf } from "@/site/data/timeline/mira";
 import { pageFor } from "@/site/site";
+import { buttonStyles } from "@/ds/atoms/Button";
 
 const page = pageFor("/timeline");
 
@@ -54,12 +55,13 @@ export default function Hero() {
           <h1 className="sd-page-h1">{page.h1}</h1>
           <p className="sd-lede">{page.lede}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-3">
-            <ReportCta source="timeline" className="sd-btn" />
-            <a className="sd-btn sd-btn-g" href={FINDER}>
+            <ReportCta source="timeline" className={buttonStyles()} />
+            <a className={buttonStyles({ variant: "secondary" })} href={FINDER}>
               When is your Saturn return?
             </a>
           </div>
-          <p className="text-[13px] leading-normal text-[color:var(--sd-muted)]">
+          {/* A caption, so it keeps to one line in the fallback face too and the dial below never moves when the faces arrive. */}
+          <p className="text-caption leading-normal text-muted">
             {LAUNCHED ? null : "Timeline opens after launch. "}You'll need a {PERSONAL_REPORT}.
           </p>
         </div>
@@ -76,10 +78,10 @@ export default function Hero() {
             label="Mira's chart"
           >
             <p className="grid min-w-0 gap-0.5">
-              <span className="font-display text-lg leading-tight text-[color:var(--paper)]">
+              <span className="font-display text-lg leading-tight text-paper">
                 {frame ? dayWords(frame.date, order) : null}
               </span>
-              <span className="text-xs text-[color:var(--sd-muted)]">Mira's chart · the next six months</span>
+              <span className="text-xs text-muted">Mira's chart · the next six months</span>
             </p>
           </Dial>
           {anyRetrograde(MIRA.frames) ? <RetrogradeLine /> : null}
@@ -90,16 +92,16 @@ export default function Hero() {
                 {lines.map(({ headline, tone }) => (
                   <li key={headline} className="grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-x-3">
                     {tone ? <ToneWord tone={tone} /> : <span />}
-                    <span className="text-[14.5px] leading-snug text-[color:var(--paper)]">{headline}</span>
+                    <span className="text-ui leading-snug text-paper">{headline}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[14.5px] leading-snug text-[color:var(--paper-dim)]">A quiet day on her chart.</p>
+              <p className="text-ui leading-snug text-paper-dim">A quiet day on her chart.</p>
             )}
-            {more > 0 ? <p className="text-[13px] text-[color:var(--sd-muted)]">and {more} more</p> : null}
+            {more > 0 ? <p className="text-small text-muted">and {more} more</p> : null}
           </div>
-          <figcaption className="text-xs leading-normal text-[color:var(--sd-muted)]">
+          <figcaption className="text-xs leading-normal text-muted">
             Mira is our sample account. Inside, her chart and houses. Outside, each planet on its own track, coloured by how
             it feels.
           </figcaption>

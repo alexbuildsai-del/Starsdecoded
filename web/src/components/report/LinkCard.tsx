@@ -9,7 +9,8 @@
  * ledger's glyph scrolls to (ADR-101).
  */
 import { useEffect, useId, useRef, useState } from "react";
-import { MEET_COLOURS, MEET_TAGS, meetCards, meetIntro, type MeetCard, type MeetTag } from "@/lib/charts-meet";
+import { Button } from "@/ds/atoms/Button";
+import { MEET_TAGS, meetCards, meetIntro, type MeetCard, type MeetTag } from "@/lib/charts-meet";
 import type { LedgerLink } from "@/lib/ledger";
 import type { PairLink } from "@/types/chart";
 
@@ -19,8 +20,12 @@ interface Placed {
   rest: boolean;
 }
 
-function Dot({ colour }: { colour: string }) {
-  return <span aria-hidden className="block h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: colour }} />;
+// The report's own teal and rose, so a tag looks the same in the ledger and on a card.
+const TAG_TEXT: Record<MeetTag, string> = { comes: "text-teal", challenge: "text-rose" };
+const TAG_DOT: Record<MeetTag, string> = { comes: "bg-teal", challenge: "bg-rose" };
+
+function Dot({ tag }: { tag: MeetTag }) {
+  return <span aria-hidden className={`block size-[7px] shrink-0 rounded-full ${TAG_DOT[tag]}`} />;
 }
 
 export function LinkCard({ card, rest = false }: { card: MeetCard; rest?: boolean }) {
@@ -30,18 +35,18 @@ export function LinkCard({ card, rest = false }: { card: MeetCard; rest?: boolea
       tabIndex={-1}
       data-meet-card={card.tag ?? "overlay"}
       data-rest={rest || undefined}
-      className="rp-link h-full scroll-mt-24 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] print:break-inside-avoid print:border-[#bbb] print:bg-transparent"
+      className="rp-link h-full scroll-mt-24 focus:outline-none focus-visible:ring-1 focus-visible:ring-focus print:break-inside-avoid print:bg-transparent"
     >
       {card.tag && (
-        <div className="flex items-center gap-1.5 font-label text-[10px] uppercase tracking-[0.14em]" style={{ color: MEET_COLOURS[card.tag] }}>
-          <Dot colour={MEET_COLOURS[card.tag]} />
+        <div className={`flex items-center gap-1.5 font-label text-data-sm uppercase ${TAG_TEXT[card.tag]}`}>
+          <Dot tag={card.tag} />
           {MEET_TAGS[card.tag]}
         </div>
       )}
-      <h4 className="text-[18px] leading-[1.25] text-[var(--paper)] first:mt-0 print:text-black">{card.title}</h4>
-      <p className="mt-1 font-numeric text-[10.5px] uppercase leading-[1.5] tracking-[0.08em] text-[var(--paper-dim)] print:text-[#444]">{card.astro}</p>
-      <p className="print:text-black">{card.body}</p>
-      {card.check && <p className="print:text-black"><span className="rp-lab">Does this sound like you?</span> {card.check}</p>}
+      <h4 className="text-lede text-paper first:mt-0 print:text-void">{card.title}</h4>
+      <p className="mt-1 font-numeric text-data-sm uppercase text-paper-dim print:text-void">{card.astro}</p>
+      <p className="print:text-void">{card.body}</p>
+      {card.check && <p className="print:text-void"><span className="rp-lab">Does this sound like you?</span> {card.check}</p>}
     </article>
   );
 }
@@ -51,8 +56,8 @@ function Group({ tag, placed, all, wide }: { tag: MeetTag; placed: Placed[]; all
   const shown = all ? placed.length : placed.filter((p) => !p.rest).length;
   return (
     <div role="group" aria-labelledby={label} className="min-w-0" data-meet-group={tag}>
-      <p id={label} className="flex items-center gap-2 font-label text-[11px] uppercase tracking-[0.14em]" style={{ color: MEET_COLOURS[tag] }}>
-        <Dot colour={MEET_COLOURS[tag]} />
+      <p id={label} className={`flex items-center gap-2 font-label text-label uppercase ${TAG_TEXT[tag]}`}>
+        <Dot tag={tag} />
         <span>{MEET_TAGS[tag]}<span className="print:hidden"> · {shown} of {placed.length}</span></span>
       </p>
       <div className={`mt-3 grid gap-2.5 ${wide ? "min-[760px]:grid-cols-2 min-[760px]:gap-x-6" : ""}`}>
@@ -91,8 +96,8 @@ export function ChartsMeet({ links, ledgerLinks, names }: { links: PairLink[]; l
 
   return (
     <section ref={box} aria-labelledby={heading} className="mt-12" data-charts-meet>
-      <h3 id={heading} className="font-display text-[24px] leading-[1.15] text-[var(--paper)] sm:text-[26px] print:text-black">Where your charts meet</h3>
-      <p className="mt-2 max-w-[60ch] text-[13.5px] leading-[1.55] text-[var(--paper-dim)] print:text-[#444]">{meetIntro(names)}</p>
+      <h3 id={heading} className="font-display text-sheet-title text-paper print:text-void">Where your charts meet</h3>
+      <p className="mt-2 max-w-[60ch] text-small text-paper-dim print:text-void">{meetIntro(names)}</p>
       {groups.length > 0 && (
         <div className={`mt-6 grid gap-8 ${groups.length > 1 ? "min-[760px]:grid-cols-2 min-[760px]:gap-x-6" : ""}`}>
           {groups.map((g) => <Group key={g.tag} tag={g.tag} placed={g.placed} all={all} wide={groups.length === 1} />)}
@@ -104,13 +109,9 @@ export function ChartsMeet({ links, ledgerLinks, names }: { links: PairLink[]; l
         </div>
       )}
       {rest.length > 0 && !all && (
-        <button
-          type="button"
-          onClick={() => setAll(true)}
-          className="no-print mt-6 min-h-[44px] w-full rounded-[10px] border border-dashed border-[var(--line)] px-3 py-3 font-label text-[13px] text-[var(--indigo-lt)] transition-colors hover:border-[var(--indigo-lt)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--indigo-lt)]"
-        >
+        <Button variant="secondary" full onClick={() => setAll(true)} className="no-print mt-6 border-dashed border-line text-indigo-lt">
           Show all {count}
-        </button>
+        </Button>
       )}
     </section>
   );

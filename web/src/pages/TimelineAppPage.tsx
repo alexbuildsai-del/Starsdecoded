@@ -12,8 +12,12 @@ import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetTimelineAccessQueryKey } from "@workspace/api-client-react";
 import { AccountMenu } from "@/components/AccountMenu";
-import { StatusDots } from "@/components/StatusDots";
 import { AskLauncher } from "@/components/ask/AskLauncher";
+import { Button } from "@/ds/atoms/Button";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Card } from "@/ds/molecules/Card";
+import { TopBar } from "@/ds/organisms/TopBar";
 import { Life } from "@/components/timeline/Life";
 import { NowAhead } from "@/components/timeline/NowAhead";
 import { ReadingSheet, type ReadingTarget } from "@/components/timeline/ReadingSheet";
@@ -37,10 +41,8 @@ const SCREENS: readonly { id: Screen; label: string }[] = [
 ];
 
 const LEDE = "The planets on your own chart, now and across your life.";
-const BUTTON =
-  "inline-flex min-h-10 items-center justify-self-start rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#D4B06A]";
-const H2 = "font-display text-[26px] font-normal leading-tight tracking-[-0.01em] text-[#E8EBF2]";
+const EYEBROW = "font-label text-label uppercase text-brass";
+const H2 = "font-display text-sheet-title font-normal text-paper";
 
 /** Now and ahead · Life on a phone: a tab list, so the arrow keys move along it and the screen follows. */
 function ScreenSwitch({
@@ -72,29 +74,24 @@ function ScreenSwitch({
       role={tabs ? "tablist" : undefined}
       aria-label="Timeline"
       onKeyDown={tabs ? onKeyDown : undefined}
-      className="flex gap-0.5 rounded-[10px] border border-[#242C3B] bg-[#0B0F15] p-[3px] md:hidden"
+      className="flex gap-0.5 rounded-control border border-line bg-ground p-[3px] md:hidden"
     >
       {SCREENS.map(({ id, label }) => {
         const on = id === screen;
         return (
-          <button
+          <TextButton
             key={id}
             ref={(el) => {
               buttons.current[id] = el;
             }}
-            type="button"
             {...(tabs
               ? { role: "tab", id: ids[id].tab, "aria-selected": on, "aria-controls": ids[id].panel, tabIndex: on ? 0 : -1 }
               : { "aria-pressed": on })}
             onClick={() => onChange(id)}
-            className={cn(
-              "min-h-10 flex-1 rounded-[7px] px-2 font-label text-[13px] font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]",
-              on ? "bg-[#171D29] text-[#E8EBF2]" : "text-[#9AA3B5] hover:text-[#E8EBF2]",
-            )}
+            className={`min-h-10 flex-1 justify-center rounded-inner px-2 font-label font-medium ${on ? "bg-raised text-paper" : "text-muted hover:text-paper"}`}
           >
             {label}
-          </button>
+          </TextButton>
         );
       })}
     </div>
@@ -105,17 +102,17 @@ function ScreenSwitch({
 function NoReport() {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="mt-6 grid max-w-[560px] gap-3 rounded-[14px] border border-[#242C3B] bg-[#11161F] p-5">
-      <h2 id={id} className="font-display text-2xl font-normal leading-tight text-[#E8EBF2]">
+    <Card aria-labelledby={id} className="mt-6 grid max-w-[560px] gap-3">
+      <h2 id={id} className="font-display text-sheet-title font-normal text-paper">
         Timeline starts with your {PERSONAL_REPORT}
       </h2>
-      <p className="text-sm leading-normal text-[#AEB6C6]">
+      <p className="text-ui text-paper-dim">
         Timeline reads the chart in your own {PERSONAL_REPORT}. You don't have a finished one yet.
       </p>
-      <Link href="/dashboard" className={BUTTON}>
-        Go to my dashboard
-      </Link>
-    </section>
+      <Button asChild variant="secondary" size="compact" className="justify-self-start">
+        <Link href="/dashboard">Go to my dashboard</Link>
+      </Button>
+    </Card>
   );
 }
 
@@ -188,17 +185,17 @@ export function TimelineAppPage() {
   let body;
   if (door === "wait" || (door === "open" && access.hasPersonalReport && !missing && gate.view === "wait")) {
     body = (
-      <div className="grid min-h-[360px] place-items-center font-label text-sm text-muted-foreground">
+      <div className="grid min-h-[360px] place-items-center font-label text-ui text-muted">
         <StatusDots label="Loading your Timeline" />
       </div>
     );
   } else if (door === "retry") {
     body = (
       <div className="mt-6 grid max-w-[560px] gap-3">
-        <p className="text-sm leading-normal text-[#AEB6C6]">We couldn't check your Timeline. Check your connection and try again.</p>
-        <button type="button" onClick={retry} className={BUTTON}>
+        <p className="text-ui text-paper-dim">We couldn't check your Timeline. Check your connection and try again.</p>
+        <Button variant="secondary" size="compact" onClick={retry} className="justify-self-start">
           Try again
-        </button>
+        </Button>
       </div>
     );
   } else if (missing || !access.hasPersonalReport) {
@@ -219,7 +216,7 @@ export function TimelineAppPage() {
       <div className="mt-5 grid gap-6 md:mt-8 md:gap-14">
         <ScreenSwitch screen={screen} onChange={setScreen} ids={ids} tabs={phone} />
         <section {...panel("now", `${uid}-now-h`)} className={cn("grid gap-4", screen !== "now" && "hidden md:grid")}>
-          <h2 id={`${uid}-now-h`} className={cn(H2, "sr-only md:not-sr-only")}>
+          <h2 id={`${uid}-now-h`} className={`${H2} sr-only md:not-sr-only`}>
             Now and ahead
           </h2>
           {week && shown ? (
@@ -228,23 +225,23 @@ export function TimelineAppPage() {
                 <p id={`${uid}-week-h`} className={EYEBROW}>
                   Your week
                 </p>
-                <p className="min-w-0 text-right text-xs leading-[1.4] text-[#9AA3B5]">{weekSpan(week, order)}</p>
+                <p className="min-w-0 text-right text-xs text-paper-dim">{weekSpan(week, order)}</p>
               </div>
-              <div className="rounded-[12px] border border-[#242C3B] bg-[rgba(17,22,31,.55)] p-[18px]">
+              <Card as="div" variant="glass">
                 <WeekBars week={week} zone={shown} onRead={onOpen} />
-              </div>
+              </Card>
             </section>
           ) : null}
           <NowAhead zone={zone} onOpen={onOpen} onNoReport={onNoReport} onNoAccess={onNoAccess} reportId={reportId} />
         </section>
         <section {...panel("life", `${uid}-life-h`)} className={cn("grid gap-4", screen !== "life" && "hidden md:grid")}>
-          <h2 id={`${uid}-life-h`} className={cn(H2, "sr-only md:not-sr-only")}>
+          <h2 id={`${uid}-life-h`} className={`${H2} sr-only md:not-sr-only`}>
             Life
           </h2>
           {shown && today ? (
             <Life zone={shown} today={today} onOpen={onOpen} onNoReport={onNoReport} onNoAccess={onNoAccess} />
           ) : (
-            <div className="grid min-h-[240px] place-items-center font-label text-sm text-[#AEB6C6]">
+            <div className="grid min-h-[240px] place-items-center font-label text-ui text-paper-dim">
               <StatusDots label="Loading" />
             </div>
           )}
@@ -254,19 +251,19 @@ export function TimelineAppPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 rounded font-label text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <AccountMenu />
-        </div>
-      </nav>
+    <div className="min-h-screen bg-ground bg-stars text-paper">
+      <TopBar
+        widthClass="max-w-6xl"
+        left={
+          <TextButton asChild className="gap-1.5 font-label text-ui text-paper-dim">
+            <Link href="/dashboard">
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+              Dashboard
+            </Link>
+          </TextButton>
+        }
+        right={<AccountMenu />}
+      />
 
       {/* The heading stays one element whichever the page shows, so focus a step gave it survives the switch. */}
       <main className={setupShown ? "pt-14" : "mx-auto max-w-6xl px-4 pb-28 pt-[74px] sm:px-6 sm:pt-20"}>
@@ -274,11 +271,11 @@ export function TimelineAppPage() {
           <h1
             ref={pageHeading}
             tabIndex={-1}
-            className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em] focus:outline-none"
+            className="font-display text-page-title font-normal text-paper focus:outline-none"
           >
             Timeline
           </h1>
-          {setupShown ? null : <p className="text-[13px] leading-snug text-[#9AA3B5]">{LEDE}</p>}
+          {setupShown ? null : <p className="text-small text-paper-dim">{LEDE}</p>}
         </header>
         {body}
       </main>

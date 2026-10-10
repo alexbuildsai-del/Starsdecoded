@@ -14,7 +14,16 @@ import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetTimelineAccessQueryKey, useOpenBillingPortal, type AskUsage } from "@workspace/api-client-react";
 import { AccountMenu } from "@/components/AccountMenu";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { Heading } from "@/ds/atoms/Heading";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { Text } from "@/ds/atoms/Text";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Card } from "@/ds/molecules/Card";
+import { TopBar } from "@/ds/organisms/TopBar";
+import { AppPage } from "@/ds/templates/AppPage";
+import { cn } from "@/lib/utils";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { resetDay } from "@/lib/ask-view";
 import type { DateOrder } from "@/lib/date-entry";
@@ -26,16 +35,13 @@ import {
   PAST_DUE_LINE, PORTAL_ERROR_LINE, planDayLine, planLine, useTimelineAccess, type TimelineAccessState,
 } from "@/lib/timeline-access";
 
-// The dashboard's section eyebrow and Timeline's own button, so the page reads as part of the app beside them.
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#8E9BE0]";
-const PLAN = "font-display text-[22px] font-normal leading-snug text-[#E8EBF2]";
-const BUTTON =
-  "inline-flex min-h-10 items-center justify-self-start rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const LINK =
-  "justify-self-start rounded text-sm text-[#9FA8DA] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const CARD = "mt-6 grid max-w-[560px] gap-3 rounded-[14px] border border-[#242C3B] bg-[#11161F] p-5";
-const LINE = "text-sm leading-normal text-[#E8EBF2]";
-const QUIET = "text-sm leading-normal text-[#9AA3B5]";
+const CARD = "max-w-[560px] gap-3";
+const LINK = "justify-self-start text-ui underline underline-offset-2";
+
+/** One line of the card's facts; `quiet` is the dimmer second line. */
+function Line({ quiet, className, ...rest }: { quiet?: boolean } & React.ComponentProps<typeof Text>) {
+  return <Text style="ui" className={cn(quiet ? "text-muted" : "text-paper", className)} {...rest} />;
+}
 
 const ACCOUNT = "/dashboard/account";
 const NEEDS_REPORT = "Timeline reads your own Personal report. Write yours first.";
@@ -82,28 +88,34 @@ function PortalButtons({ canCancel }: { canCancel: boolean }) {
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={open} disabled={busy} className={`${BUTTON} disabled:opacity-60`}>
+        <Button variant="secondary" onClick={open} disabled={busy} className="disabled:opacity-60">
           Manage payment
-        </button>
+        </Button>
         {canCancel ? (
-          <button type="button" onClick={open} disabled={busy} className={`${BUTTON} disabled:opacity-60`}>
+          <Button variant="secondary" onClick={open} disabled={busy} className="disabled:opacity-60">
             Cancel Timeline
-          </button>
+          </Button>
         ) : null}
       </div>
       {portal.isError ? (
-        <p role="alert" className="text-sm leading-normal text-[#AEB6C6]">
-          {PORTAL_ERROR_LINE}
-        </p>
+        <Text role="alert">{PORTAL_ERROR_LINE}</Text>
       ) : null}
     </>
+  );
+}
+
+function Plan({ children }: { children: React.ReactNode }) {
+  return (
+    <Heading style="card-title" as="p">
+      {children}
+    </Heading>
   );
 }
 
 function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; order: DateOrder; onRetry: () => void }) {
   if (state.loading) {
     return (
-      <div className="min-h-10 font-label text-sm text-muted-foreground">
+      <div className="min-h-10 font-label text-ui text-muted">
         <StatusDots label="Loading" />
       </div>
     );
@@ -111,28 +123,30 @@ function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; o
   if (state.error) {
     return (
       <>
-        <p className="text-sm leading-normal text-[#AEB6C6]">We couldn't load this. Check your connection and try again.</p>
-        <button type="button" onClick={onRetry} className={BUTTON}>
+        <Text>We couldn't load this. Check your connection and try again.</Text>
+        <Button variant="secondary" onClick={onRetry} className="justify-self-start">
           Try again
-        </button>
+        </Button>
       </>
     );
   }
   if (!state.access) {
     return (
       <>
-        <p className={PLAN}>Your account doesn't have Timeline.</p>
-        <p className="text-sm leading-normal text-[#E8EBF2]">{planPriceLine()}</p>
+        <Plan>Your account doesn't have Timeline.</Plan>
+        <Line>{planPriceLine()}</Line>
         {state.hasPersonalReport ? (
-          <Link href={checkoutHref("timeline_month", ACCOUNT)} className={BUTTON}>
-            {START_TIMELINE}
-          </Link>
+          <Button asChild className="justify-self-start">
+            <Link href={checkoutHref("timeline_month", ACCOUNT)}>{START_TIMELINE}</Link>
+          </Button>
         ) : (
-          <p className="text-sm leading-normal text-[#AEB6C6]">{NEEDS_REPORT}</p>
+          <Text>{NEEDS_REPORT}</Text>
         )}
-        <Link href="/timeline" className={LINK}>
-          What Timeline does <span aria-hidden="true">›</span>
-        </Link>
+        <TextButton asChild className={LINK}>
+          <Link href="/timeline">
+            What Timeline does <span aria-hidden="true">›</span>
+          </Link>
+        </TextButton>
       </>
     );
   }
@@ -141,24 +155,24 @@ function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; o
   const dayLine = plan ? planDayLine(plan, order) : null;
   return (
     <>
-      <p className={PLAN}>{planLine(state.source, plan)}</p>
+      <Plan>{planLine(state.source, plan)}</Plan>
       {plan && state.source !== "admin" ? (
         <div className="grid gap-0.5">
-          {dayLine ? <p className="text-sm leading-normal text-[#E8EBF2]">{dayLine}</p> : null}
-          {plan.status === "past_due" ? <p className="text-sm leading-normal text-[#AEB6C6]">{PAST_DUE_LINE}</p> : null}
+          {dayLine ? <Line>{dayLine}</Line> : null}
+          {plan.status === "past_due" ? <Text>{PAST_DUE_LINE}</Text> : null}
         </div>
       ) : null}
       {ask ? (
         <div className="grid gap-0.5">
-          <p className="text-sm leading-normal text-[#E8EBF2]">
+          <Line>
             {ask.used} of {ask.cap} Ask messages used this month
-          </p>
-          <p className="text-sm leading-normal text-[#9AA3B5]">The count starts again on {resetDay(ask.resetsOn, order)}.</p>
+          </Line>
+          <Line quiet>The count starts again on {resetDay(ask.resetsOn, order)}.</Line>
         </div>
       ) : null}
-      <Link href="/dashboard/timeline" className={BUTTON}>
-        Open Timeline
-      </Link>
+      <Button asChild className="justify-self-start">
+        <Link href="/dashboard/timeline">Open Timeline</Link>
+      </Button>
       {plan && state.source !== "admin" ? <PortalButtons canCancel={plan.endsOn === null} /> : null}
     </>
   );
@@ -177,33 +191,33 @@ function SubscriberPreview({ ask, order }: { ask: AskUsage | null; order: DateOr
   const [step, setStep] = useState<PreviewStep | null>(null);
   return (
     <>
-      <p className={PLAN}>{ACCOUNT_PREVIEW.plan}</p>
-      <p className="font-numeric text-[12.5px] leading-snug text-[#D4B06A]">{ACCOUNT_PREVIEW.marker}</p>
-      <p className={LINE}>{ACCOUNT_PREVIEW.nextPayment}</p>
+      <Plan>{ACCOUNT_PREVIEW.plan}</Plan>
+      <p className="font-numeric text-caption text-brass">{ACCOUNT_PREVIEW.marker}</p>
+      <Line>{ACCOUNT_PREVIEW.nextPayment}</Line>
       {ask ? (
         <div className="grid gap-0.5">
-          <p className={LINE}>0 of {ask.cap} Ask messages used this month</p>
-          <p className={QUIET}>The count starts again on {resetDay(ask.resetsOn, order)}.</p>
+          <Line>0 of {ask.cap} Ask messages used this month</Line>
+          <Line quiet>The count starts again on {resetDay(ask.resetsOn, order)}.</Line>
         </div>
       ) : null}
       <div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/timeline" className={BUTTON}>
-            Open Timeline
-          </Link>
-          <button type="button" onClick={() => setStep("manage")} className={BUTTON}>
+          <Button asChild>
+            <Link href="/dashboard/timeline">Open Timeline</Link>
+          </Button>
+          <Button variant="secondary" onClick={() => setStep("manage")}>
             Manage payment
-          </button>
-          <button type="button" onClick={() => setStep("cancel")} className={BUTTON}>
+          </Button>
+          <Button variant="secondary" onClick={() => setStep("cancel")}>
             Cancel Timeline
-          </button>
+          </Button>
         </div>
         {/* Kept in the page while empty, so a screen reader is told each step as it shows. */}
         <div role="status">
           {step ? (
             <div className="mt-3 grid gap-0.5">
-              <p className={LINE}>{ACCOUNT_PREVIEW[step]}</p>
-              <p className={QUIET}>{ACCOUNT_PREVIEW.off}</p>
+              <Line>{ACCOUNT_PREVIEW[step]}</Line>
+              <Line quiet>{ACCOUNT_PREVIEW.off}</Line>
             </div>
           ) : null}
         </div>
@@ -216,20 +230,22 @@ function SubscriberPreview({ ask, order }: { ask: AskUsage | null; order: DateOr
 function YourData() {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={CARD}>
-      <h2 id={headingId} className={EYEBROW}>
-        {YOUR_DATA.title}
+    <Card aria-labelledby={headingId} className={CARD}>
+      <h2 id={headingId} className="m-0">
+        <Eyebrow kind="kicker">{YOUR_DATA.title}</Eyebrow>
       </h2>
       <div className="grid gap-1.5">
-        <p className={LINE}>
+        <Line>
           {YOUR_DATA.where} {YOUR_DATA.how}
-        </p>
-        <p className={QUIET}>{YOUR_DATA.goes}</p>
+        </Line>
+        <Line quiet>{YOUR_DATA.goes}</Line>
       </div>
-      <Link href="/privacy" className={LINK}>
-        {YOUR_DATA.more} <span aria-hidden="true">›</span>
-      </Link>
-    </section>
+      <TextButton asChild className={LINK}>
+        <Link href="/privacy">
+          {YOUR_DATA.more} <span aria-hidden="true">›</span>
+        </Link>
+      </TextButton>
+    </Card>
   );
 }
 
@@ -251,38 +267,36 @@ export default function AccountPage() {
   const retry = () => void client.resetQueries({ queryKey: getGetTimelineAccessQueryKey() });
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 rounded font-label text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <AccountMenu />
-        </div>
-      </nav>
-
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-[74px] sm:px-6 sm:pt-20">
-        <header className="grid gap-1">
-          <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Account</h1>
-          {email ? (
-            <p className="text-[13px] leading-snug text-[#9AA3B5]">
-              Signed in as <span className="[overflow-wrap:anywhere]">{email}</span>
-            </p>
-          ) : null}
-        </header>
-
-        <section aria-labelledby={headingId} className={`${CARD} md:mt-8`}>
-          <h2 id={headingId} className={EYEBROW}>
-            Timeline
-          </h2>
-          <TimelinePlan state={timeline} order={order} onRetry={retry} />
-        </section>
-        <YourData />
-      </main>
-    </div>
+    <AppPage
+      header={
+          <TopBar
+            left={
+              <TextButton asChild className="font-label text-ui text-paper-dim">
+                <Link href="/dashboard">
+                  <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </TextButton>
+            }
+            right={<AccountMenu />}
+          />
+      }
+      title="Account"
+      titleAside={
+        email ? (
+          <Text style="small" className="text-muted">
+            Signed in as <span className="[overflow-wrap:anywhere]">{email}</span>
+          </Text>
+        ) : null
+      }
+    >
+      <Card aria-labelledby={headingId} className={cn(CARD, "md:mt-2")}>
+        <h2 id={headingId} className="m-0">
+          <Eyebrow kind="kicker">Timeline</Eyebrow>
+        </h2>
+        <TimelinePlan state={timeline} order={order} onRetry={retry} />
+      </Card>
+      <YourData />
+    </AppPage>
   );
 }

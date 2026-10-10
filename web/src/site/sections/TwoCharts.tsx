@@ -11,6 +11,7 @@ import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { TwoPlates } from "@/site/components/TwoPlates";
 import { SAMPLE_PAIRS, samplePerson } from "@/site/data/people";
 import type { Lens } from "@/types/chart";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 type LensLines = readonly [string, string, string, string, string];
 
@@ -102,13 +103,13 @@ export function PairLenses({ intro }: PairLensesProps) {
         {intro && <div className="min-w-0">{intro}</div>}
         <div role="tablist" aria-label="Who they are to you" className="sd-lenses mt-0" onKeyDown={onKeyDown}>
           {LENSES.map((l) => (
-            <button
+            <TextButton
+              bare
               key={l.lens}
               ref={(el) => {
                 if (el) tabs.current.set(l.lens, el);
                 else tabs.current.delete(l.lens);
               }}
-              type="button"
               role="tab"
               id={tabId(l.lens)}
               aria-selected={l.lens === lens}
@@ -118,14 +119,14 @@ export function PairLenses({ intro }: PairLensesProps) {
               onClick={() => choose(l.lens)}
             >
               {l.door}
-            </button>
+            </TextButton>
           ))}
         </div>
       </div>
       <div role="tabpanel" id={panelId} aria-labelledby={tabId(lens)} tabIndex={0} className="grid min-w-0 gap-[26px] rounded-lg max-[900px]:gap-5">
         <p
           key={`strap-${lens}`}
-          className={`mx-auto max-w-[34em] text-center font-display text-[clamp(19px,2vw,23px)] italic leading-[1.45] text-[var(--paper)] ${moved ? SWAP : ""}`}
+          className={`mx-auto max-w-[34em] text-center font-display text-card-title md:text-sheet-title italic leading-[1.45] text-paper ${moved ? SWAP : ""}`}
         >
           {LENS_COPY[lens].strap}
         </p>
@@ -134,13 +135,13 @@ export function PairLenses({ intro }: PairLensesProps) {
           {titles.map((title, i) => {
             const shared = i === 0 || i === titles.length - 1;
             return (
-              <li key={title} className="grid grid-cols-[34px_minmax(0,1fr)] gap-2.5 border-t border-[var(--line-soft)] py-3">
-                <span className={`font-numeric text-[11.5px] font-medium leading-[1.7] ${shared ? "text-[var(--sd-muted)]" : "text-[var(--violet)]"}`}>
+              <li key={title} className="grid grid-cols-[34px_minmax(0,1fr)] gap-2.5 border-t border-line-soft py-3">
+                <span className={`font-numeric text-caption font-medium leading-[1.7] ${shared ? "text-muted" : "text-violet"}`}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-display text-[18px] leading-[1.3] text-[var(--paper)]">{title}</span>
-                  <span className="mt-0.5 block text-[14px] leading-[1.45] text-[var(--sd-muted)]">{lines[i]}</span>
+                  <span className="block font-display text-lede leading-[1.3] text-paper">{title}</span>
+                  <span className="mt-0.5 block text-ui leading-[1.45] text-muted">{lines[i]}</span>
                 </span>
               </li>
             );
@@ -157,17 +158,17 @@ export default function TwoCharts() {
     <section aria-labelledby={headingId} className="sd-sec pt-0">
       <div className="sd-wrap">
         <div
-          className="grid gap-[26px] rounded-[22px] border border-[var(--line)] p-9 max-[900px]:gap-5 max-[900px]:px-4 max-[900px]:py-[22px]"
-          style={{ background: "radial-gradient(60% 60% at 50% 40%, rgba(149,117,205,.1), transparent 72%), rgba(17,22,31,.5)" }}
+          className="grid gap-[26px] rounded-sheet border border-line p-9 max-[900px]:gap-5 max-[900px]:px-4 max-[900px]:py-[22px]"
+          style={{ background: "radial-gradient(60% 60% at 50% 40%, color-mix(in srgb, var(--color-violet) 10%, transparent), transparent 72%), color-mix(in srgb, var(--color-surface) 50%, transparent)" }}
         >
           <PairLenses
             intro={
               <>
-                <p className="sd-eyebrow text-[var(--violet)]">{COMPATIBILITY_REPORT}</p>
-                <h2 id={headingId} className="mt-2.5 text-[clamp(28px,3vw,38px)] leading-[1.1]">
+                <p className="sd-eyebrow text-violet">{COMPATIBILITY_REPORT}</p>
+                <h2 id={headingId} className="mt-2.5 text-page-title md:text-hero leading-[1.1]">
                   How the two of you get along
                 </h2>
-                <p className="mt-3 max-w-[44em] text-[var(--paper-dim)]">
+                <p className="mt-3 max-w-[44em] text-paper-dim">
                   When you and someone close to you both have a {PERSONAL_REPORT}, you can get a {COMPATIBILITY_REPORT} about the two of
                   you. You choose who they are to you: your partner, your child, or a friend, relative or colleague. It looks at everyday
                   life together, where you clash and what you can try. It never gives you a score.

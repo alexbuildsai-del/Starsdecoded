@@ -32,11 +32,14 @@ import {
   type HomePair,
   type HomePerson,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { Numbers } from "@/ds/atoms/Numbers";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { TriadRow } from "@/components/TriadRow";
 import { BlockFrame, BlockHeading, BlockLine, PairBlock } from "@/components/dashboard/PairBlock";
 import { ShareWindow } from "@/components/share/ShareWindow";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useHome } from "@/hooks/useHome";
 import {
@@ -60,14 +63,13 @@ export interface QuickLookProps {
   onMakePair: (profileId: string) => void;
 }
 
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em]";
 // A status stands where its door will be, in the door's own place and size (ADR-130).
-const STATUS = "items-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] font-label font-medium text-[var(--indigo-lt)]";
-const WIDE_STATUS = `flex min-h-10 w-full justify-center px-4 text-[13.5px] ${STATUS}`;
-const WIDE = "w-full whitespace-normal px-4 text-center font-label text-[13.5px]";
+const WIDE_STATUS =
+  "flex min-h-10 w-full items-center justify-center rounded-control border border-indigo/35 bg-indigo-tint px-4 font-label text-button-compact text-indigo-lt";
+const WIDE = "h-auto min-h-[46px] whitespace-normal px-4 py-2 text-center";
 // Share yours back keeps the indigo outline Share with wears on a report's own page (SendLine).
-const SHARE_OUTLINE = `${WIDE} text-[var(--indigo-lt)] [border-color:rgba(92,107,192,.6)]`;
-const ALERT = "text-sm leading-[1.45] text-[#E79AB2]";
+const SHARE_OUTLINE = `${WIDE} border-indigo/60 text-indigo-lt`;
+const ALERT = "text-ui text-error";
 
 // The two actions share one box, so a status stands in its button's place and size (ADR-130).
 function DoorView({ door, main = false }: { door: Door; main?: boolean }) {
@@ -79,7 +81,7 @@ function DoorView({ door, main = false }: { door: Door; main?: boolean }) {
     );
   }
   return (
-    <Button asChild size="lg" variant={main ? "default" : "outline"} className={WIDE}>
+    <Button asChild full variant={main ? "primary" : "secondary"} className={WIDE}>
       <Link href={door.href}>{door.label}</Link>
     </Button>
   );
@@ -112,10 +114,10 @@ function TryAgain({ person, self }: { person: HomePerson; self: boolean }) {
     : null;
   return (
     <div className="grid gap-2">
-      <Button size="lg" onClick={() => regenerate.mutate({ id: person.reportId })} aria-describedby={freeId} className={WIDE}>
+      <Button full onClick={() => regenerate.mutate({ id: person.reportId })} aria-describedby={freeId} className={WIDE}>
         {TRY_AGAIN.label}
       </Button>
-      <p id={freeId} className="text-center text-xs leading-snug text-[#9AA3B5]">{TRY_AGAIN.free}</p>
+      <p id={freeId} className="text-center text-caption text-paper-dim">{TRY_AGAIN.free}</p>
       {error && <p role="alert" className={ALERT}>{error}</p>}
     </div>
   );
@@ -156,8 +158,8 @@ function ShareBack({ person }: { person: HomePerson }) {
         </div>
       ) : (
         <Button
-          variant="outline"
-          size="lg"
+          variant="secondary"
+          full
           aria-describedby={lineId}
           onClick={() => back.mutate({ data: { profileId: person.profileId } })}
           className={SHARE_OUTLINE}
@@ -165,7 +167,7 @@ function ShareBack({ person }: { person: HomePerson }) {
           {SHARE_MINE.back}
         </Button>
       )}
-      <p id={lineId} className="text-xs leading-[1.45] text-[var(--paper-dim)]">{shareLine(firstName(person.name))}</p>
+      <p id={lineId} className="text-caption text-paper-dim">{shareLine(firstName(person.name))}</p>
       {error && <p role="alert" className={ALERT}>{error}</p>}
     </div>
   );
@@ -204,24 +206,19 @@ export function QuickLook({ person, pair, self, onClose, onMakePair }: QuickLook
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 id={headingId} className="font-display text-[26px] leading-[1.1] tracking-[-0.01em] [overflow-wrap:anywhere]">{person.name}</h3>
-          <p className="mt-1 font-numeric text-xs leading-[1.3] text-[var(--paper-dim)]">{birthDateText(person.birthDate)}</p>
+          <h3 id={headingId} className="font-display text-sheet-title [overflow-wrap:anywhere]">{person.name}</h3>
+          <p className="mt-1"><Numbers>{birthDateText(person.birthDate)}</Numbers></p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--line)] text-[var(--paper-dim)] transition-colors hover:text-[var(--paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
-        >
-          <X aria-hidden className="h-4 w-4" />
-        </button>
+        <Button size="compact" variant="secondary" onClick={onClose} aria-label="Close" className="size-9 shrink-0 px-0">
+          <X aria-hidden />
+        </Button>
       </header>
 
       <TriadRow rows={triad} />
 
       {failed ? (
         <>
-          <p className="text-sm leading-[1.5] text-[var(--paper-dim)]">{failureLine(summaryOf(person.reportId))}</p>
+          <p className="text-ui text-paper-dim">{failureLine(summaryOf(person.reportId))}</p>
           {offersTryAgain(person) && <TryAgain person={person} self={self} />}
         </>
       ) : (
@@ -237,7 +234,7 @@ export function QuickLook({ person, pair, self, onClose, onMakePair }: QuickLook
 
           {look.pair && (
             <div className="grid gap-2">
-              <p className={`${EYEBROW} text-[var(--violet)]`}>{withYouText(look.pair)}</p>
+              <p><Eyebrow className="text-violet">{withYouText(look.pair)}</Eyebrow></p>
               <PairBlock pair={look.pair} />
             </div>
           )}
@@ -245,7 +242,7 @@ export function QuickLook({ person, pair, self, onClose, onMakePair }: QuickLook
           <div className="grid gap-2.5">
             {canMake ? (
               <>
-                <Button size="lg" onClick={() => onMakePair(person.profileId)} className={WIDE}>
+                <Button full onClick={() => onMakePair(person.profileId)} className={WIDE}>
                   {makePairText(person.name)}
                 </Button>
                 <DoorView door={doors.primary} />
@@ -261,15 +258,11 @@ export function QuickLook({ person, pair, self, onClose, onMakePair }: QuickLook
           {shareBack && <ShareBack person={person} />}
 
           {readsLine && (
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2.5">
-              <p className="min-w-0 text-[13px] leading-[1.4] text-[var(--paper-dim)]">{readsLine}</p>
-              <button
-                type="button"
-                onClick={() => setSharing(true)}
-                className="-mr-2 inline-flex min-h-9 shrink-0 items-center rounded-md px-2 font-label text-[13px] font-medium text-[var(--indigo-lt)] underline-offset-4 transition-colors hover:text-[var(--paper)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
-              >
+            <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
+              <p className="min-w-0 text-small text-paper-dim">{readsLine}</p>
+              <TextButton onClick={() => setSharing(true)} className="-mr-2 shrink-0 px-2 font-label underline-offset-4 hover:underline">
                 Share
-              </button>
+              </TextButton>
             </div>
           )}
         </>

@@ -8,6 +8,9 @@
 import { Children, type ReactNode } from "react";
 import { TriadPlate } from "@/components/report/TriadPlate";
 import { TriadRow } from "@/components/TriadRow";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { Numbers } from "@/ds/atoms/Numbers";
+import { Well } from "@/ds/molecules/Well";
 import { WINDOW_UNKNOWN } from "@/lib/birth-time";
 import { ELEMENT_HEX } from "@/lib/chapter-accent";
 import { birthDateText, blindRisingText, doorText, firstName, writingText } from "@/lib/home-view";
@@ -57,17 +60,15 @@ export function emptyElementsText(empty: readonly string[]): string | null {
   return `No ${empty.length === 1 ? last : `${empty.slice(0, -1).join(", ")} or ${last}`}`;
 }
 
-const LABEL = "font-label text-[10px] font-medium uppercase leading-none tracking-[0.2em]";
-
 function SectionBox({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="min-w-0 rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.72)] px-4 py-3.5">
+    <Well className="gap-0 px-4 py-3.5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-1">
-        <h3 className={`${LABEL} text-[var(--paper-dim)]`}>{title}</h3>
+        <h3 className="m-0"><Eyebrow className="text-paper-dim">{title}</Eyebrow></h3>
         {aside}
       </div>
       {children}
-    </section>
+    </Well>
   );
 }
 
@@ -82,11 +83,11 @@ export interface CardHeaderProps {
 export function CardHeader({ name, birthDate, note, self, writing }: CardHeaderProps) {
   return (
     <header className="min-w-0">
-      <p className="mb-1.5 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[var(--sky)]">
-        {eyebrowText(self, writing)}
+      <p className="mb-1.5">
+        <Eyebrow kind="kicker" className="text-brass">{eyebrowText(self, writing)}</Eyebrow>
       </p>
-      <h2 className="font-display text-2xl leading-[1.1] tracking-[-0.02em] [overflow-wrap:anywhere]">{name}</h2>
-      <p className="mt-1 font-numeric text-xs leading-[1.3] text-muted-foreground">{birthLine(birthDate, note)}</p>
+      <h2 className="font-display text-sheet-title [overflow-wrap:anywhere]">{name}</h2>
+      <p className="mt-1"><Numbers className="text-muted">{birthLine(birthDate, note)}</Numbers></p>
     </header>
   );
 }
@@ -107,7 +108,7 @@ export function ElementsSection({ chart }: { chart: ChartData }) {
   return (
     <SectionBox
       title="Elements"
-      aside={<span className={`text-[13px] leading-[1.3] ${lead.lead ? "text-[var(--paper)]" : "text-muted-foreground"}`}>{lead.line}</span>}
+      aside={<span className={`text-small ${lead.lead ? "text-paper" : "text-muted"}`}>{lead.line}</span>}
     >
       <div className="space-y-2.5">
         {ELEMENTS.map((key) => {
@@ -115,12 +116,12 @@ export function ElementsSection({ chart }: { chart: ChartData }) {
           return (
             <div key={key}>
               <div className="mb-1 flex items-center justify-between gap-2">
-                <span className={LABEL} style={{ color: ELEMENT_HEX[key] }}>{key}</span>
-                <span className="font-numeric text-[11.5px] leading-none text-muted-foreground">{count} / {total}</span>
+                <Eyebrow style={{ color: ELEMENT_HEX[key] }}>{key}</Eyebrow>
+                <Numbers className="text-muted">{count} / {total}</Numbers>
               </div>
-              <div aria-hidden className="h-1 overflow-hidden rounded-full bg-white/[.07]">
+              <div aria-hidden className="h-1 overflow-hidden rounded-pill bg-line">
                 <div
-                  className="h-full rounded-full animation-duration-700 ease-[var(--ease)] motion-safe:animate-in motion-safe:slide-in-from-left-full"
+                  className="h-full rounded-pill animation-duration-700 ease-[var(--ease)] motion-safe:animate-in motion-safe:slide-in-from-left-full"
                   style={{ width: `${total ? (count / total) * 100 : 0}%`, background: ELEMENT_HEX[key] }}
                 />
               </div>
@@ -128,8 +129,8 @@ export function ElementsSection({ chart }: { chart: ChartData }) {
           );
         })}
       </div>
-      <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-1 font-numeric text-[11.5px] leading-[1.4] text-muted-foreground">
-        {empty && <span className="text-[var(--paper)]">{empty}</span>}
+      <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-1 font-mono text-data tabular-nums text-muted">
+        {empty && <span className="text-paper">{empty}</span>}
         <span>{modalityLine(chart.modalities)}</span>
       </div>
     </SectionBox>
@@ -142,25 +143,25 @@ export function HousesSection({ chart }: { chart: ChartData }) {
   if (cells.length === 0) {
     return (
       <SectionBox title="Planets by house">
-        <p className="text-[13px] leading-[1.45] text-muted-foreground">{HOUSES_NEED_TIME}</p>
+        <p className="text-small text-muted">{HOUSES_NEED_TIME}</p>
       </SectionBox>
     );
   }
   const busiest = busiestHouse(cells);
   return (
-    <SectionBox title="Planets by house" aside={<span className={`${LABEL} text-muted-foreground`}>Whole sign</span>}>
+    <SectionBox title="Planets by house" aside={<Eyebrow className="text-muted">Whole sign</Eyebrow>}>
       <ol className="grid grid-cols-3 gap-1 @xs:grid-cols-4">
         {cells.map((cell) => {
           const filled = cell.bodies.length > 0;
-          const tone = filled ? "text-[var(--paper-dim)]" : "text-muted-foreground";
+          const tone = filled ? "text-paper-dim" : "text-muted";
           const frame = busiest?.house === cell.house
-            ? "border-[rgba(232,235,242,.42)] bg-[rgba(232,235,242,.04)]"
-            : filled ? "border-[var(--line)]" : "border-[var(--line-soft)]";
+            ? "border-paper/40 bg-paper/5"
+            : filled ? "border-line" : "border-line-soft";
           return (
-            <li key={cell.house} className={`flex min-h-12 min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 pb-1.5 pt-1 text-center ${frame}`}>
+            <li key={cell.house} className={`flex min-h-12 min-w-0 flex-col items-center gap-0.5 rounded-control border px-1 pb-1.5 pt-1 text-center ${frame}`}>
               {/* Every house number the page prints carries its one word (ADR-98). */}
-              <span className={`font-numeric text-[10px] leading-none ${tone}`}>{cell.house}</span>
-              <span className={`text-[10px] leading-tight ${tone}`}>{cell.word}</span>
+              <span className={`font-mono text-data tabular-nums ${tone}`}>{cell.house}</span>
+              <span className={`text-caption ${tone}`}>{cell.word}</span>
               {filled && (
                 <span className="mt-0.5 flex flex-wrap justify-center gap-px">
                   {cell.bodies.map((body) => {
@@ -182,7 +183,7 @@ export function HousesSection({ chart }: { chart: ChartData }) {
           );
         })}
       </ol>
-      {busiest && <p className="mt-2.5 text-[12.5px] leading-[1.4] text-[var(--paper-dim)]">{busiest.line}</p>}
+      {busiest && <p className="mt-2.5 text-caption text-paper-dim">{busiest.line}</p>}
     </SectionBox>
   );
 }
@@ -193,7 +194,7 @@ export function ChartPending({ label }: { label: string }) {
     <div aria-busy="true" className="grid gap-3.5">
       <span className="sr-only">{label}</span>
       <div aria-hidden className="grid h-[118px] w-[104px] place-items-center justify-self-center @xs:justify-self-start">
-        <div className="h-[68px] w-[68px] rounded-full border border-[var(--line)]" />
+        <div className="h-[68px] w-[68px] rounded-pill border border-line" />
       </div>
       <SectionBox title="Elements"><div aria-hidden className="h-[141px]" /></SectionBox>
       <SectionBox title="Planets by house"><div aria-hidden className="h-[175px]" /></SectionBox>
@@ -206,8 +207,8 @@ export function OwnPairs({ children }: { children?: ReactNode }) {
   const listed = Children.toArray(children).length > 0;
   return (
     <section className="grid min-w-0 gap-2">
-      <h3 className={`${LABEL} text-[var(--paper-dim)]`}>{`Your ${COMPATIBILITY_REPORT}s`}</h3>
-      {listed ? children : <p className="text-[13px] leading-[1.45] text-muted-foreground">{NO_PAIRS_YET}</p>}
+      <h3 className="m-0"><Eyebrow className="text-paper-dim">{`Your ${COMPATIBILITY_REPORT}s`}</Eyebrow></h3>
+      {listed ? children : <p className="text-small text-muted">{NO_PAIRS_YET}</p>}
     </section>
   );
 }

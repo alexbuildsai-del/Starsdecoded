@@ -26,7 +26,8 @@
     "report:lab": "pnpm --filter @workspace/scripts run report:lab",
     "check:shipped": "pnpm --filter @workspace/scripts run check:shipped",
     "check:callers": "pnpm --filter @workspace/scripts run check:callers",
-    "check:copies": "pnpm --filter @workspace/scripts run check:copies"
+    "check:copies": "pnpm --filter @workspace/scripts run check:copies",
+    "check:ds": "pnpm --filter @workspace/scripts run check:ds"
   },
   "dependencies": {
     "@vercel/functions": "3.9.9"

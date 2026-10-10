@@ -21,8 +21,8 @@ export function MailLink({ address }: { address: string }) {
 export function LegalSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="mb-14 last:mb-0">
-      <h2 className="mb-4 text-[26px] leading-tight">{title}</h2>
-      <div className="space-y-4 text-[16px] leading-[1.7] text-[var(--paper-dim)]">{children}</div>
+      <h2 className="mb-4 text-sheet-title leading-tight">{title}</h2>
+      <div className="space-y-4 text-prose leading-[1.7] text-paper-dim">{children}</div>
     </section>
   );
 }
@@ -30,13 +30,13 @@ export function LegalSection({ id, title, children }: { id?: string; title: stri
 function LegalNav({ here }: { here: PagePath }) {
   return (
     <nav aria-label="Legal pages">
-      <ul className="-my-2 flex flex-wrap gap-x-6 font-label text-[13px] font-medium">
+      <ul className="-my-2 flex flex-wrap gap-x-6 font-label text-small font-medium">
         {LEGAL_LINKS.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
               aria-current={link.href === here ? "page" : undefined}
-              className="inline-block py-2 text-[var(--paper-dim)] no-underline decoration-[var(--indigo-lt)] underline-offset-[6px] hover:text-[var(--paper)] aria-[current=page]:text-[var(--paper)] aria-[current=page]:underline"
+              className="inline-block py-2 text-paper-dim no-underline decoration-indigo-lt underline-offset-[6px] hover:text-paper aria-[current=page]:text-paper aria-[current=page]:underline"
             >
               {link.label}
             </Link>

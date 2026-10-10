@@ -7,13 +7,14 @@
  * the sample account as a profile list and its reports.
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { blindRisingText } from "@/components/dashboard/CardSections";
 import { CENTRE_ID, Orbit, type OrbitLabels } from "@/components/dashboard/Orbit";
 import { SkyCard } from "@/components/dashboard/SkyCard";
 import { TriadRow } from "@/components/TriadRow";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Sheet } from "@/ds/organisms/Sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { pairTitle } from "@/lib/lenses";
 import { orbitPoints, partnersOf, type OrbitProfile, type OrbitReport } from "@/lib/orbit";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
@@ -62,16 +63,9 @@ const LABELS: OrbitLabels = {
   sharedPair: `has a ${COMPATIBILITY_REPORT} with ${first(SELF.name)}`,
 };
 
-const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
-const TAG = "font-numeric text-[10.5px] uppercase leading-none tracking-[0.14em] text-[var(--sd-muted)]";
-const CLOSE =
-  "rounded px-1 py-1 font-label text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
-const FRAME = "min-w-0 rounded-[14px] border border-[#242C3B]";
-
-/** The phone sheet's first stop, as on the dashboard: the card's head and triad, with the circle above still in view to tap. */
-const PEEK = 0.45;
-const SHEET_HEIGHT = 0.96;
-const EASE = [0.16, 1, 0.3, 1] as const;
+const TAG = "font-numeric text-data-sm uppercase leading-none text-muted";
+const CLOSE = "font-label text-label uppercase text-paper-dim";
+const FRAME = "min-w-0 rounded-card border border-line";
 
 /** The dashboard's two verbs, each with its own mark: the waiting gift's teal dashed ring and the share's indigo ring. */
 const WAYS: readonly { title: string; line: string; mark: ReactNode }[] = [
@@ -79,9 +73,9 @@ const WAYS: readonly { title: string; line: string; mark: ReactNode }[] = [
     title: "Gift them a report",
     line: `They get a credit for their own ${PERSONAL_REPORT}, with their own birth details.`,
     mark: (
-      <svg aria-hidden viewBox="0 0 34 34" fill="none" className="size-[34px]">
-        <circle cx="17" cy="17" r="15.5" stroke="#3FA796" strokeDasharray="3 3" />
-        <path d="M11 15h12v8H11zM10 12h14v3H10zM17 12v11M17 12c-2-4-6-3-4 0M17 12c2-4 6-3 4 0" stroke="#3FA796" strokeWidth="1.3" strokeLinejoin="round" />
+      <svg aria-hidden viewBox="0 0 34 34" fill="none" stroke="currentColor" className="size-[34px] text-teal">
+        <circle cx="17" cy="17" r="15.5" strokeDasharray="3 3" />
+        <path d="M11 15h12v8H11zM10 12h14v3H10zM17 12v11M17 12c-2-4-6-3-4 0M17 12c2-4 6-3 4 0" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -89,9 +83,9 @@ const WAYS: readonly { title: string; line: string; mark: ReactNode }[] = [
     title: "Share reports with each other",
     line: "Share yours, read theirs, and you each learn how the other works.",
     mark: (
-      <svg aria-hidden viewBox="0 0 34 34" fill="none" className="size-[34px]">
-        <circle cx="17" cy="17" r="15.5" stroke="#9FA8DA" />
-        <path d="M12 19l10-6M12 19a2.5 2.5 0 1 1 0-.1M22 13a2.5 2.5 0 1 1 0-.1M22 23a2.5 2.5 0 1 1 0-.1M12 19l10 4" stroke="#9FA8DA" strokeWidth="1.3" />
+      <svg aria-hidden viewBox="0 0 34 34" fill="none" stroke="currentColor" className="size-[34px] text-indigo-lt">
+        <circle cx="17" cy="17" r="15.5" />
+        <path d="M12 19l10-6M12 19a2.5 2.5 0 1 1 0-.1M22 13a2.5 2.5 0 1 1 0-.1M22 23a2.5 2.5 0 1 1 0-.1M12 19l10 4" strokeWidth="1.3" />
       </svg>
     ),
   },
@@ -104,9 +98,9 @@ function SamplePairs({ pairs }: { pairs: readonly (readonly [string, string])[] 
   return (
     <ul className="grid gap-2">
       {pairs.map(([x, y]) => (
-        <li key={`${x}:${y}`} className="rounded-xl border border-border/60 bg-card/60 px-3 py-2.5">
-          <span className="mb-1 block font-label text-[10px] font-medium uppercase tracking-[0.16em] text-secondary">{COMPATIBILITY_REPORT}</span>
-          <span className="block font-display text-[15px] leading-snug">{pairTitle(firstOf(x), firstOf(y))}</span>
+        <li key={`${x}:${y}`} className="rounded-card border border-border/60 bg-card/60 px-3 py-2.5">
+          <span className="mb-1 block font-label text-label uppercase text-secondary">{COMPATIBILITY_REPORT}</span>
+          <span className="block font-display text-prose leading-snug">{pairTitle(firstOf(x), firstOf(y))}</span>
         </li>
       ))}
     </ul>
@@ -136,13 +130,15 @@ function IdlePanel() {
   const headingId = useId();
   const name = first(SELF.name);
   return (
-    <section aria-labelledby={headingId} className={cn(FRAME, "rp-root grid gap-3.5 bg-[rgba(17,22,31,.7)] p-[18px]")}>
+    <section aria-labelledby={headingId} className={cn(FRAME, "rp-root grid gap-3.5 bg-surface/70 p-[18px]")}>
       <div className="min-w-0">
-        <p className={EYEBROW}>{`${name}'s circle`}</p>
-        <h3 id={headingId} className="mt-1.5 font-display text-[22px] leading-[1.15] [overflow-wrap:anywhere]">{SELF.name}</h3>
+        <p>
+          <Eyebrow kind="kicker" className="leading-[1.2]">{`${name}'s circle`}</Eyebrow>
+        </p>
+        <h3 id={headingId} className="mt-1.5 font-display text-card-title leading-[1.15] [overflow-wrap:anywhere]">{SELF.name}</h3>
       </div>
       <TriadRow rows={triadRowsOf(SELF.chart, { blind: blindRisingText(SELF.name, false) })} />
-      <p className="text-[13px] leading-[1.45] text-muted-foreground">
+      <p className="text-small leading-[1.45] text-muted-foreground">
         {`Tap a person, or ${name} at the centre, for their chart at a glance. A violet ring marks a ${COMPATIBILITY_REPORT} with ${name}.`}
       </p>
     </section>
@@ -152,147 +148,15 @@ function IdlePanel() {
 /** The desktop panel's frame; the card draws none of its own, so the same card serves the sheet. */
 function CardFrame({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   return (
-    <div className={cn(FRAME, "bg-[rgba(17,22,31,.86)] px-[18px] pb-4 pt-2")}>
+    <div className={cn(FRAME, "bg-surface/86 px-[18px] pb-4 pt-2")}>
       <div className="mb-1 flex items-center justify-between gap-3">
         <span className={TAG}>Sample</span>
-        <button type="button" onClick={onClose} className={CLOSE}>
+        <TextButton onClick={onClose} className={CLOSE}>
           Close
-        </button>
+        </TextButton>
       </div>
       {children}
     </div>
-  );
-}
-
-function glide(reduced: boolean) {
-  return reduced ? { duration: 0 } : { duration: 0.5, ease: EASE };
-}
-
-function useViewportHeight(): number {
-  const [height, setHeight] = useState(() => (typeof window === "undefined" ? 0 : window.innerHeight));
-  useEffect(() => {
-    const measure = () => setHeight(window.innerHeight);
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-  return height;
-}
-
-interface CardSheetProps {
-  open: boolean;
-  /** The open card's point, so each new card rises from the peek with its top in view. */
-  cardKey: string | null;
-  label: string;
-  onClose: () => void;
-  children: ReactNode;
-}
-
-/**
- * The card as a bottom sheet on a phone, the dashboard's sheet in behaviour
- * (dashboard-sky, Layout): a peek, a drag up for the rest, and not modal, so
- * the circle above stays live: a tap on empty space closes it and a tap on
- * someone else swaps the card. The dashboard's sheet lives inside its page,
- * so this one is drawn here to the same measures.
- */
-function CardSheet({ open, cardKey, label, onClose, children }: CardSheetProps) {
-  const reduced = useReducedMotion();
-  const viewport = useViewportHeight();
-  const height = Math.round(viewport * SHEET_HEIGHT);
-  const peekY = height - Math.round(viewport * PEEK);
-  const [full, setFull] = useState(false);
-  const y = useMotionValue(height);
-  const drag = useDragControls();
-  const sheet = useRef<HTMLDivElement>(null);
-  const scroller = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!cardKey) return;
-    setFull(false);
-    scroller.current?.scrollTo({ top: 0 });
-  }, [cardKey]);
-
-  useEffect(() => {
-    if (!open) return;
-    const controls = animate(y, full ? 0 : peekY, glide(reduced));
-    return () => controls.stop();
-  }, [open, full, peekY, reduced, y]);
-
-  // Escape inside the sheet closes it; the circle already answers Escape pressed anywhere outside a dialog.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      if (e.target instanceof Node && sheet.current?.contains(e.target)) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  const settle = (_: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
-    const now = y.get();
-    const speed = info.velocity.y;
-    if (now > peekY + (height - peekY) / 3 || (speed > 600 && !full)) {
-      onClose();
-      return;
-    }
-    const toFull = speed < -400 || (Math.abs(speed) <= 400 && now < peekY / 2);
-    if (toFull === full) animate(y, full ? 0 : peekY, glide(reduced));
-    else setFull(toFull);
-  };
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="sheet"
-          ref={sheet}
-          role="dialog"
-          aria-modal="false"
-          aria-label={label}
-          drag="y"
-          dragControls={drag}
-          // At the peek the whole sheet drags up; once open, only its top does, so the card scrolls.
-          dragListener={!full}
-          dragConstraints={{ top: 0, bottom: height }}
-          dragElastic={{ top: 0.04, bottom: 0.3 }}
-          dragMomentum={false}
-          onDragEnd={settle}
-          exit={{ y: height, transition: reduced ? { duration: 0 } : { duration: 0.35, ease: EASE } }}
-          style={{ y, height }}
-          className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[20px] border border-b-0 border-[#242C3B] bg-[#0E1219] shadow-[0_-12px_40px_rgba(0,0,0,.45)]"
-        >
-          <div
-            onPointerDown={(e) => {
-              if (full) drag.start(e);
-            }}
-            className="relative flex h-10 shrink-0 touch-none items-center justify-center"
-          >
-            <span className={cn(TAG, "absolute left-5 top-1/2 -translate-y-1/2")}>Sample</span>
-            <button
-              type="button"
-              aria-label="Show the whole card"
-              aria-expanded={full}
-              onClick={() => setFull((was) => !was)}
-              className="grid h-8 w-16 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <span aria-hidden className="block h-1 w-9 rounded-full bg-[#3A4356]" />
-            </button>
-            <button type="button" onClick={onClose} className={cn(CLOSE, "absolute right-4 top-1/2 -translate-y-1/2")}>
-              Close
-            </button>
-          </div>
-          <div
-            ref={scroller}
-            className={cn(
-              "min-h-0 flex-1 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
-              full ? "overflow-y-auto overscroll-contain" : "overflow-hidden",
-            )}
-          >
-            {children}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
 
@@ -329,11 +193,11 @@ export default function YourPeople() {
           </p>
           <ul className="m-0 grid max-w-[640px] list-none gap-2 p-0">
             {WAYS.map((way) => (
-              <li key={way.title} className="grid grid-cols-[34px_minmax(0,1fr)] items-start gap-3 rounded-xl border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] p-3">
+              <li key={way.title} className="grid grid-cols-[34px_minmax(0,1fr)] items-start gap-3 rounded-card border border-line-soft bg-void/55 p-3">
                 {way.mark}
                 <div>
-                  <p className="m-0 font-display text-[17px] leading-[1.3] text-[var(--paper)]">{way.title}</p>
-                  <p className="m-0 text-[13px] leading-[1.5] text-[var(--paper-dim)]">{way.line}</p>
+                  <p className="m-0 font-display text-card-title-sm leading-[1.3] text-paper">{way.title}</p>
+                  <p className="m-0 text-small leading-[1.5] text-paper-dim">{way.line}</p>
                 </div>
               </li>
             ))}
@@ -353,7 +217,7 @@ export default function YourPeople() {
             ) : (
               <div aria-hidden className="mx-auto aspect-square w-full max-w-[440px]" />
             )}
-            <figcaption className="mt-1.5 text-center font-numeric text-[10.5px] uppercase leading-[1.5] tracking-[0.14em] text-[var(--sd-muted)]">
+            <figcaption className="mt-1.5 text-center font-numeric text-data-sm uppercase leading-[1.5] text-muted">
               A sample account · tap anyone
             </figcaption>
           </figure>
@@ -362,9 +226,10 @@ export default function YourPeople() {
         </div>
       </div>
       {phone && (
-        <CardSheet open={!!card} cardKey={card ? selected : null} label={card?.label ?? ""} onClose={closeCard}>
+        <Sheet peek open={!!card} onOpenChange={(open) => !open && closeCard()} contentKey={card ? selected : null} label={card?.label ?? ""}>
+          <span className={cn(TAG, "mb-2 block")}>Sample</span>
           {card?.node}
-        </CardSheet>
+        </Sheet>
       )}
     </section>
   );

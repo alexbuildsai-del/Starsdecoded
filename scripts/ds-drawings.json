@@ -1,0 +1,8 @@
+{ "files": [
+  { "file": "web/src/components/timeline/Dial.tsx", "reason": "The Timeline dial is drawn on wheel radii until its ideation settles it (B-103, ADR-442)." },
+  { "file": "web/src/lib/dial.ts", "reason": "The Timeline dial's geometry, drawn on wheel radii with Dial.tsx until its ideation settles it (B-103, ADR-442)." },
+  { "file": "web/src/components/report/ReportHero.tsx", "reason": "The report's opening plate: its look on the Chart (level horizon, ADR-395; 120/72 px Sun and Moon; EAST · RISING) needs an ideation first (ADR-442)." },
+  { "file": "web/src/components/report/hero-layout.ts", "reason": "The opening plate's layout, kept with ReportHero.tsx until that ideation (ADR-395, 442)." },
+  { "file": "web/src/lib/pair-story.ts", "reason": "The Compatibility story's build-in-motion has no ChartStates state, so it places bodies on the wheel's radii itself (ADR-442)." },
+  { "file": "web/src/types/chart.ts", "reason": "Home of the planet and sign glyph tables the chart reads." }
+] }

@@ -12,6 +12,8 @@
  * no slider and no Play, whose planets glide between days while the date runs.
  */
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { tokens } from "@workspace/design";
+import { Button } from "@/ds/atoms/Button";
 import { PLANET_LABELS } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
@@ -46,26 +48,27 @@ export interface DialProps {
   stage?: DialStage;
 }
 
-const GROUND = "#0D1117";
-const RAISED = "#171D29";
-const LINE = "#242C3B";
-const PAPER = "#E8EBF2";
-const GREY = "#AEB6C6";
+const C = tokens.color;
+const GROUND = C.ground;
+const RAISED = C.raised;
+const LINE = C.line;
+const PAPER = C.paper;
+const GREY = C["paper-dim"];
 // A house a setup's gold line reaches fills with the houses' own indigo, as both loading stories light one.
-const INDIGO = "#5C6BC0";
+const INDIGO = C.indigo;
 const LIT_FILL = 0.23;
 // The setup's chart settles from this much larger as it comes in.
 const CHART_SETTLE = 0.25;
 // While the setup's date runs, each planet that can touch the chart drags this many days of its path behind it, as the
 // setup player draws it, so the run reads as motion and not as a jump.
 const STAGE_TRAIL_DAYS = 48;
-const MUTED = "#7E889A";
-const FAINT = "#6E7789";
-const BRASS = "hsl(var(--brass))";
+const MUTED = C.muted;
+const FAINT = C["label-dim"];
+const BRASS = C.brass;
 // A retrograde's dashed ring, in the light indigo both Timeline artifacts give it.
-const RETRO = "#9FA8DA";
+const RETRO = C["indigo-lt"];
 // The R beside it, in the rose the explaining line's badge uses, so the two read as one mark.
-const RETRO_R = "#E3A3AD";
+const RETRO_R = C.back;
 
 // An angle is drawn from `angles` as the R03 marker (ADR-49), never as a natal point's dot, whatever `points` carries.
 const ANGLE_KEYS = new Set(["ascendant", "midheaven", "descendant", "ic"]);
@@ -75,7 +78,7 @@ const ANGLE_KEYS = new Set(["ascendant", "midheaven", "descendant", "ic"]);
 // would cut across the page beside it; non-scaling, so it stays 2 px at any size of dial.
 const FOCUS_RING = {
   fill: "none",
-  stroke: "var(--indigo-lt, #9FA8DA)",
+  stroke: C.focus,
   strokeWidth: 2,
   vectorEffect: "non-scaling-stroke",
   opacity: 0,
@@ -411,14 +414,9 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
         <div className="flex w-full flex-wrap items-center gap-3">
           {showPlay && (
             // Wide enough for its longest word, so nothing beside it moves when Play becomes Pause.
-            <button
-              type="button"
-              aria-controls={`${uid}-day`}
-              onClick={togglePlay}
-              className="inline-flex min-h-11 min-w-[6.5rem] items-center justify-center rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--indigo-lt,#9FA8DA)] motion-reduce:transition-none"
-            >
+            <Button variant="secondary" aria-controls={`${uid}-day`} onClick={togglePlay} className="min-h-11 min-w-[6.5rem]">
               {playing ? "Pause" : at >= last ? "Play again" : "Play"}
-            </button>
+            </Button>
           )}
           {children}
         </div>

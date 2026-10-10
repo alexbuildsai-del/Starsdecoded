@@ -10,11 +10,11 @@ import { formatUpdated } from "@/site/site";
 // The triad plate strokes in the report page's two brass tokens, which the site does not define: both are drawn from the site's brass.
 const PLATE_TOKENS = {
   "--sky": "var(--sd-brass)",
-  "--sky-dim": "color-mix(in srgb, var(--sd-brass) 65%, #000)",
+  "--sky-dim": "color-mix(in srgb, var(--sd-brass) 65%, var(--color-void))",
 } as CSSProperties;
 
 const PLATE =
-  "grid min-w-0 content-start justify-items-center gap-[9px] rounded-[16px] border border-[var(--line)] bg-[rgba(17,22,31,.6)] px-[14px] py-4 text-center";
+  "grid min-w-0 content-start justify-items-center gap-[9px] rounded-card border border-line bg-surface/60 px-[14px] py-4 text-center";
 
 /**
  * Birth time (landing scope 10), set under How it works as the locked design
@@ -61,16 +61,16 @@ export default function BirthTime() {
             <ul className="grid grid-cols-3 gap-[14px] max-[560px]:grid-cols-1">
               {plates.map((plate) => (
                 <li key={plate.mode} className={PLATE}>
-                  <p className="sd-eyebrow text-[10.5px] tracking-[.2em] text-[var(--paper)]">{MODE_LABELS[plate.mode].title}</p>
-                  <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[var(--sd-muted)]">{plateAnswer(plate, clock)}</p>
+                  <p className="sd-eyebrow text-caption tracking-[.2em] text-paper">{MODE_LABELS[plate.mode].title}</p>
+                  <p className="min-h-[2.8em] text-caption leading-[1.4] text-muted">{plateAnswer(plate, clock)}</p>
                   {/* The readout under the plate states its facts, so the drawing stays out of the reading order. */}
                   <div aria-hidden="true">
                     <TriadPlate chart={plate.chart} name={person.name} className="block h-auto w-[150px] max-w-full" />
                   </div>
-                  <p className="sd-mono text-[11px] leading-[1.5] tracking-[.04em] uppercase text-[var(--paper-dim)]">
+                  <p className="sd-mono text-kicker leading-[1.5] tracking-[.04em] uppercase text-paper-dim">
                     {plateReadout(plate, clock)}
                   </p>
-                  <p className="text-[12.5px] leading-[1.45] text-[var(--sd-muted)]">{plateLine(plate)}</p>
+                  <p className="text-caption leading-[1.45] text-muted">{plateLine(plate)}</p>
                 </li>
               ))}
             </ul>

@@ -8,12 +8,14 @@
  * click on a wedge. Both layouts are in the HTML and CSS shows one, so a
  * prerendered page hydrates as it was served; paper gets the wheel and every
  * house in full. A blind chart has no houses to step through: it keeps the
- * wheel and the blind card. NatalWheel is drawn exactly as everywhere else.
+ * wheel and the blind card. Each wheel is the one Chart in its screen's state:
+ * Focus on the house being read, Small in the phone's bar, No birth time.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
-import { NatalWheel } from "@/components/chart/NatalWheel";
 import { houseSign } from "@/components/chart/wheel-geometry";
-import { AddBirthTimeCard, HouseCard, chartRuler } from "@/components/report/HouseCard";
+import { Chart } from "@/ds/organisms/chart/Chart";
+import { Button } from "@/ds/atoms/Button";
+import { AddBirthTimeCard, HouseCard, chartRuler } from "@/ds/organisms/HouseCard";
 import { HousePrimer } from "@/components/report/HousePrimer";
 import { CHAPTERS } from "@/lib/chapters";
 import { chartPatterns } from "@workspace/engine";
@@ -30,6 +32,11 @@ const CHAPTER = CHAPTERS[1];
 // and the site's nav sets --nav.
 const BAR_TOP = "var(--deck-top, calc(var(--nav, 3.5rem) + 0.5rem))";
 const WHEEL_TOP = `calc(${BAR_TOP} + 1rem)`;
+
+/** The wheel's plate in its own units; the desktop and blind wheels fill their column, as the old wheel did. */
+const PLATE = 600;
+/** The phone bar's wheel, in px: under 200 px the chart is Small. */
+const BAR = 92;
 
 // MB-43 provisional: the first localStorage key in the web app. One key, no consent gate, named on the privacy page.
 const HINT_KEY = "sd.explorer.hint";
@@ -65,7 +72,7 @@ function useNudge(ref: RefObject<HTMLElement | null>) {
     const view = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
       view.disconnect();
-      arrow.animate(NUDGE, { duration: 1600, iterations: 3, easing: "cubic-bezier(.16,1,.3,1)" });
+      arrow.animate(NUDGE, { duration: 1600, iterations: 3, easing: "var(--ease)" });
       rememberHint();
     }, { rootMargin: "0px 0px -25% 0px" });
     view.observe(arrow);
@@ -106,7 +113,7 @@ function Ticks({ house, className = "" }: { house: number; className?: string })
     <div aria-hidden className={`grid grid-cols-12 gap-[3px] ${className}`}>
       {HOUSE_NUMBERS.map((t) => {
         const state = tickState(t, house);
-        const fill = state === "on" ? "bg-brass" : state === "seen" ? "bg-brass/45" : "bg-[color:var(--line)]";
+        const fill = state === "on" ? "bg-brass" : state === "seen" ? "bg-brass/45" : "bg-line";
         return <i key={t} className={`block h-[3px] rounded-sm transition-colors duration-300 motion-reduce:transition-none ${fill}`} />;
       })}
     </div>
@@ -115,16 +122,12 @@ function Ticks({ house, className = "" }: { house: number; className?: string })
 
 function StepButton({ to, back = false, onStep }: { to: number; back?: boolean; onStep: (house: number) => void }) {
   return (
-    <button
-      type="button"
-      onClick={() => onStep(to)}
-      className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[color:var(--line)] px-3 font-label text-[13px] font-medium text-[color:var(--paper)] transition-colors hover:border-[color:var(--indigo)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--indigo-lt)] motion-reduce:transition-none pointer-coarse:min-h-11"
-    >
+    <Button variant="secondary" size="compact" onClick={() => onStep(to)} className="gap-1.5">
       {back && <span aria-hidden>←</span>}
       <span className="sr-only">{back ? "Previous: " : "Next: "}</span>
       {houseName(to)}
       {!back && <span aria-hidden>→</span>}
-    </button>
+    </Button>
   );
 }
 
@@ -182,11 +185,11 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
         className="hidden outline-none md:grid md:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] md:items-start md:gap-7 print:block!"
       >
         <div className="min-w-0 md:sticky print:static print:mx-auto print:mb-6 print:max-w-[360px]" style={{ top: WHEEL_TOP }}>
-          <NatalWheel chartData={chart} orbs={orbs} selectedHouse={house} onSelectHouse={setHouse} />
+          <Chart chart={chart} state="focus" size={PLATE} fluid stops orbs={orbs} focus={{ house }} onPickHouse={setHouse} />
           {backwards && <RetrogradeLine className="mt-3" />}
         </div>
         <div className="grid min-w-0 max-w-[62ch] content-start gap-3 print:hidden">
-          <p className="font-mono text-[10.5px] uppercase tracking-[.12em] text-[color:var(--accent)]">
+          <p className="font-mono text-data-sm uppercase tracking-[.12em] text-(--accent)">
             {counter} · {CHAPTER.eyebrow} · {CHAPTER.title}
           </p>
           <Ticks house={house} />
@@ -197,30 +200,30 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
             <StepButton to={stepHouse(house, -1)} back onStep={setHouse} />
             <StepButton to={stepHouse(house, 1)} onStep={setHouse} />
           </div>
-          <p className="-mt-1 text-center font-mono text-[11px] text-[color:var(--paper-dim)]">← → keys work too</p>
+          <p className="-mt-1 text-center font-mono text-data-sm tracking-normal text-paper-dim">← → keys work too</p>
         </div>
       </div>
 
       <div
-        className="sticky z-10 grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[color:var(--line)] bg-background/94 px-3.5 py-3 backdrop-blur-[8px] md:hidden print:hidden"
+        className="sticky z-10 grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3 rounded-card border border-line bg-background/94 px-3.5 py-3 backdrop-blur-[8px] md:hidden print:hidden"
         style={{ top: BAR_TOP }}
       >
         {/* The deck is the control here; the wheel only follows it. */}
         <div inert aria-hidden className="w-[92px]">
-          <NatalWheel chartData={chart} orbs={orbs} selectedHouse={house} stops={false} />
+          <Chart chart={chart} state="small" size={BAR} focus={{ house }} />
         </div>
         <div className="min-w-0">
-          <p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-[color:var(--accent)]">
+          <p className="font-mono text-data-sm font-medium uppercase tracking-[.12em] text-(--accent)">
             {counter} · {CHAPTER.eyebrow}
           </p>
-          <p className="mt-1 font-display text-[22px] leading-[1.1] text-[color:var(--paper)]">{CHAPTER.title}</p>
+          <p className="mt-1 font-display text-sheet-title leading-[1.1] text-paper">{CHAPTER.title}</p>
           <p className="mt-1 text-balance font-mono text-xs text-brass">{houseLine(house, current.sign)}</p>
           <Ticks house={house} className="mt-2" />
         </div>
       </div>
       {/* The one R line for the chapter, as the desktop has it under the wheel; the phone's wheel is the bar. */}
       {backwards && <RetrogradeLine className="mt-3 md:hidden print:hidden" />}
-      <p className="mt-3 flex items-center gap-2 font-label text-xs font-medium text-[color:var(--paper-dim)] md:hidden print:hidden">
+      <p className="mt-3 flex items-center gap-2 font-label text-xs font-medium text-paper-dim md:hidden print:hidden">
         <span ref={arrowRef} aria-hidden className="inline-block h-0.5 w-[22px] shrink-0 rounded-sm bg-brass" />
         Swipe through the houses
       </p>
@@ -229,7 +232,7 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
         role="region"
         aria-label="House cards"
         tabIndex={0}
-        className="relative grid snap-x snap-mandatory grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain rounded-2xl pt-4 pb-[18px] [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--indigo-lt)] md:hidden print:block! print:overflow-visible print:pt-0 [&::-webkit-scrollbar]:hidden"
+        className="relative grid snap-x snap-mandatory grid-flow-col gap-2.5 overflow-x-auto overscroll-x-contain rounded-2xl pt-4 pb-[18px] [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus md:hidden print:block! print:overflow-visible print:pt-0 [&::-webkit-scrollbar]:hidden"
         style={{ gridAutoColumns: "calc(100% - 44px)" }}
       >
         {houses.map((h) => (
@@ -258,7 +261,7 @@ export function HouseDeck({ chart, readings, counter, birthPlace, onAddBirthTime
     return (
       <div className="grid gap-[18px] md:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] md:items-start md:gap-7">
         <div className="mx-auto w-full min-w-0 max-w-[420px] md:max-w-none">
-          <NatalWheel chartData={chart} orbs={orbs} />
+          <Chart chart={chart} state="no-birth-time" size={PLATE} fluid stops orbs={orbs} />
           {chartGoesBackwards(chart) && <RetrogradeLine className="mt-3" />}
         </div>
         <AddBirthTimeCard birthPlace={birthPlace} onAddBirthTime={onAddBirthTime} />

@@ -8,12 +8,18 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { keepPreviousData } from "@tanstack/react-query";
 import { getGetTimelineNowQueryKey, useGetTimelineNow, type TimelineRange } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
 import { MixBar } from "@/components/timeline/MixBar";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { ToneLegend } from "@/components/timeline/ToneLegend";
+import { Button } from "@/ds/atoms/Button";
+import { Chip } from "@/ds/atoms/Chip";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { ToneDot } from "@/ds/atoms/ToneDot";
+import { Card } from "@/ds/molecules/Card";
+import { SegmentedControl } from "@/ds/molecules/SegmentedControl";
 import type { ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
@@ -21,12 +27,10 @@ import {
   BLIND_FIX, BLIND_LINE, QUIET_DAY, RANGES, comingUpTitle, contactOf, nothingNext, nowDay, nowModel, rangeAhead, rangeSpan,
   type EventCard, type NowDay,
 } from "@/lib/now-ahead";
-import { TONE_WORDS, mixOf, toneClass } from "@/lib/timeline-view";
-import { cn } from "@/lib/utils";
+import { DOT_TONE, TONE_WORDS, mixOf } from "@/lib/timeline-view";
 
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#9FA8DA]";
-const QUIET = "text-[13.5px] leading-normal text-[#AEB6C6]";
-const TRY = "inline-flex min-h-10 items-center rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const EYEBROW = "font-label text-label uppercase text-indigo-lt";
+const QUIET = "text-small text-paper-dim";
 // The sky on a chart moves slowly, so a tab coming back soon does not ask again.
 const STALE_MS = 5 * 60_000;
 
@@ -37,50 +41,30 @@ function statusOf(error: unknown): number | undefined {
 
 /** Week · Month · 6 months, a switch of pressed buttons as Your week has it. */
 function RangeSwitch({ range, onChange }: { range: TimelineRange; onChange: (range: TimelineRange) => void }) {
-  return (
-    <div role="group" aria-label="How far ahead" className="inline-flex gap-1 rounded-xl border border-[#242C3B] bg-[#06080C] p-1">
-      {RANGES.map(({ id, label }) => {
-        const on = id === range;
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(id)}
-            className={cn(
-              "min-h-9 rounded-[9px] px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]",
-              on ? "bg-[#171D29] text-[#E8EBF2] shadow-[inset_0_0_0_1px_#242C3B]" : "text-[#AEB6C6] hover:text-[#E8EBF2]",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <SegmentedControl aria-label="How far ahead" options={RANGES} value={range} onChange={onChange} />;
 }
 
 /** The dial's marks in words; every swatch is drawn the way the dial draws it. */
 function DialKey({ range }: { range: TimelineRange }) {
   const item = "inline-flex items-center gap-1.5";
   return (
-    <p className="flex flex-wrap justify-center gap-x-3.5 gap-y-1.5 text-xs text-[#AEB6C6]">
+    <p className="flex flex-wrap justify-center gap-x-3.5 gap-y-1.5 text-xs text-paper-dim">
       {(["easy", "mixed", "intense"] as const).map((tone) => (
-        <span key={tone} className={cn(item, toneClass(tone))}>
-          <i aria-hidden className="block h-3 w-3 rounded-full bg-[var(--sd-tone)]" />
+        <span key={tone} className={item}>
+          <ToneDot tone={DOT_TONE[tone]} className="size-3" />
           {TONE_WORDS[tone]}
         </span>
       ))}
       <span className={item}>
-        <i aria-hidden className="block h-3 w-3 rounded-full border-[1.5px] border-dashed border-[#9FA8DA]" />
+        <i aria-hidden className="block size-3 rounded-full border-[1.5px] border-dashed border-indigo-lt" />
         Retrograde
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-[5px] w-[18px] rounded-full bg-[#AEB6C6] opacity-40" />
+        <i aria-hidden className="block h-[5px] w-[18px] rounded-pill bg-paper-dim opacity-40" />
         Its path {rangeAhead(range)}
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-0.5 w-[18px] bg-[#D4B06A]" />
+        <i aria-hidden className="block h-0.5 w-[18px] bg-brass" />
         Touching your chart
       </span>
     </p>
@@ -90,12 +74,12 @@ function DialKey({ range }: { range: TimelineRange }) {
 /** An eclipse far from every natal point comes with no tone, so its card is the contact card without a tone word. */
 function PlainCard({ card }: { card: EventCard }) {
   return (
-    <article className="relative grid min-w-0 gap-[3px] rounded-xl border border-l-[3px] border-[#242C3B] bg-[#11161F] px-3 py-[11px]">
-      <p className="text-xs text-[#AEB6C6]">{card.lasts}</p>
-      <p className="font-display text-lg leading-[1.25] text-[#E8EBF2]">{card.headline}</p>
-      {card.line ? <p className="text-sm leading-normal text-[#E8EBF2]">{card.line}</p> : null}
-      <p className="pt-0.5 font-numeric text-[11px] leading-normal text-[#7E889A]">{card.facts}</p>
-    </article>
+    <Card as="article" variant="tone" className="relative grid gap-[3px] border-l-muted p-3 sm:p-3">
+      <p className="text-xs text-paper-dim">{card.lasts}</p>
+      <p className="font-display text-card-title-sm text-paper">{card.headline}</p>
+      {card.line ? <p className="text-ui text-paper">{card.line}</p> : null}
+      <p className="pt-0.5 font-mono text-data-sm normal-case tabular-nums tracking-normal text-muted">{card.facts}</p>
+    </Card>
   );
 }
 
@@ -109,10 +93,10 @@ function DayMix({ day }: { day: NowDay }) {
           <MixBar tones={day.tones} />
           <p aria-hidden className="flex flex-wrap gap-x-4 gap-y-1">
             {mix.map(({ tone, count }) => (
-              <span key={tone} className={cn("inline-flex items-center gap-1.5 text-[13px] text-[#AEB6C6]", toneClass(tone))}>
-                <i className="block h-2 w-2 rounded-full bg-[var(--sd-tone)]" />
+              <span key={tone} className="inline-flex items-center gap-1.5 text-small text-paper-dim">
+                <ToneDot tone={DOT_TONE[tone]} className="size-2" />
                 {TONE_WORDS[tone]}
-                <b className="font-numeric font-medium text-[#E8EBF2]">{count}</b>
+                <b className="font-mono font-medium tabular-nums text-paper">{count}</b>
               </span>
             ))}
           </p>
@@ -134,19 +118,18 @@ function ComingUp({ day, range, onDay }: { day: NowDay; range: TimelineRange; on
         <ol role="list" className="m-0 grid list-none p-0">
           {day.next.map((next) => (
             <li key={next.id}>
-              <button
-                type="button"
+              <TextButton
                 onClick={() => onDay(next.index)}
-                className="grid w-full grid-cols-[minmax(84px,auto)_minmax(0,1fr)] items-baseline gap-x-3 border-t border-[#1A202C] py-2.5 text-left text-sm text-[#E8EBF2] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#AEB8F0]"
+                className="grid min-h-0 w-full grid-cols-[minmax(84px,auto)_minmax(0,1fr)] items-baseline gap-x-3 rounded-none border-t border-line-soft px-0 py-2.5 text-left font-normal text-paper hover:text-paper"
               >
-                <span className="font-numeric text-xs text-[#AEB6C6]">
+                <span className="font-mono text-data tabular-nums text-paper-dim">
                   <span className="sr-only">Move the dial to </span>
                   {next.when}
                 </span>
                 <span className="min-w-0">
-                  {next.headline} <span className="text-[12.5px] text-[#7E889A]">{next.change}</span>
+                  <span className="text-ui">{next.headline}</span> <span className="text-data text-muted">{next.change}</span>
                 </span>
-              </button>
+              </TextButton>
             </li>
           ))}
         </ol>
@@ -211,14 +194,14 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
       return (
         <div className="grid justify-items-start gap-3 py-6">
           <p className={QUIET}>We couldn't load what's happening on your chart. Check your connection and try again.</p>
-          <button type="button" onClick={() => void query.refetch()} className={TRY}>
+          <Button variant="secondary" size="compact" onClick={() => void query.refetch()}>
             Try again
-          </button>
+          </Button>
         </div>
       );
     }
     return (
-      <div className="grid min-h-[320px] place-items-center font-label text-sm text-[#AEB6C6]">
+      <div className="grid min-h-[320px] place-items-center font-label text-ui text-paper-dim">
         <StatusDots label="Loading" />
       </div>
     );
@@ -232,30 +215,30 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
       <div className="flex flex-wrap items-center gap-3">
         <RangeSwitch range={range} onChange={setRange} />
         {changing ? (
-          <span className="font-label text-xs text-[#AEB6C6]">
+          <span className="font-label text-xs text-paper-dim">
             <StatusDots label="Loading" />
           </span>
         ) : null}
       </div>
 
       {now.blind ? (
-        <div className="grid max-w-[62ch] gap-1 rounded-xl border border-[#242C3B] bg-[#11161F] px-4 py-3 text-[13.5px] leading-normal">
-          <p className="text-[#E8EBF2]">{BLIND_LINE}</p>
-          <p className="text-[#AEB6C6]">
+        <Card as="div" className="max-w-[62ch] gap-1 px-4 py-3 sm:px-4 sm:py-3">
+          <p className="text-small text-paper">{BLIND_LINE}</p>
+          <p className="text-small text-paper-dim">
             {BLIND_FIX}
             {reportId ? (
               <>
                 {" "}
                 <Link
                   href={`/report/${encodeURIComponent(reportId)}`}
-                  className="rounded text-[#9FA8DA] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded-inner text-indigo-lt underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 >
                   Open your report
                 </Link>
               </>
             ) : null}
           </p>
-        </div>
+        </Card>
       ) : null}
 
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,380px)] md:gap-8">
@@ -272,15 +255,11 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
               label="Your chart"
             >
               {shown.today ? null : (
-                <button
-                  type="button"
-                  onClick={() => setDay(0)}
-                  className="inline-flex min-h-11 items-center rounded-[10px] px-2 font-label text-sm text-[#9FA8DA] hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
-                >
+                <TextButton onClick={() => setDay(0)} className="min-h-11 px-2 font-label">
                   Back to today
-                </button>
+                </TextButton>
               )}
-              <span className="ml-auto font-numeric text-xs text-[#7E889A]">{rangeSpan(now, order)}</span>
+              <span className="ml-auto font-mono text-data tabular-nums text-muted">{rangeSpan(now, order)}</span>
             </Dial>
           </div>
           <DialKey range={now.range} />
@@ -289,8 +268,8 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
 
         <div className="grid content-start gap-5">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="font-display text-[26px] font-normal leading-tight text-[#E8EBF2]">{shown.title}</h3>
-            {shown.today ? <span className="font-label text-[10.5px] uppercase tracking-[0.14em] text-[#9FA8DA]">Today</span> : null}
+            <h3 className="font-display text-sheet-title font-normal text-paper">{shown.title}</h3>
+            {shown.today ? <Chip tone="now">Today</Chip> : null}
           </div>
           <DayMix day={shown} />
           {shown.cards.some((card) => card.tone !== null) ? <ToneLegend /> : null}

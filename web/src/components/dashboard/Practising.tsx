@@ -18,7 +18,8 @@ import {
   type HomePractice,
   type Report,
 } from "@workspace/api-client-react";
-import { Checklist, localTicks, type ChecklistItem, type TickStore } from "@/components/report/Checklist";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { Checklist, localTicks, type ChecklistItem, type TickStore } from "@/ds/organisms/Checklist";
 import { CHAPTERS } from "@/lib/chapters";
 import { ownIds } from "@/lib/home-view";
 import { PAIR_CHAPTER_TITLES } from "@/lib/lenses";
@@ -27,7 +28,6 @@ import { first } from "@/lib/share-card";
 import { pinKey, pinPatch, togglePatch, type WorkbookPatch } from "@/lib/workbook";
 import type { Workbook } from "@/types/chart";
 
-const HEADING = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em] text-[#3FA796]";
 // The section's heading names the list, as the approved mock draws it, so the checklist's own rule and heading stand
 // down, the heading kept for a screen reader as the list's name; and the list runs the row's full width on desktop,
 // as the mock's rows do.
@@ -189,7 +189,7 @@ export function Practising({ items }: { items: HomePractice[] }) {
     if (!sample) return null;
     return (
       <section aria-labelledby={id} className={SECTION}>
-        <h2 id={id} className={HEADING}>What you'll be practising</h2>
+        <h2 id={id} className="m-0"><Eyebrow className="text-teal">What you'll be practising</Eyebrow></h2>
         <div className={BARE}>
           <Checklist key="sample" heading="Practice" items={[sample]} store={sampleTicks} />
         </div>
@@ -211,8 +211,8 @@ export function Practising({ items }: { items: HomePractice[] }) {
   return (
     <section aria-labelledby={id} className={SECTION}>
       <div className="flex items-baseline justify-between gap-2.5">
-        <h2 id={id} className={HEADING}>What you're practising</h2>
-        <p className="min-w-0 text-xs leading-[1.4] text-[#9AA3B5]">
+        <h2 id={id} className="m-0"><Eyebrow className="text-teal">What you're practising</Eyebrow></h2>
+        <p className="min-w-0 text-caption text-paper-dim">
           {offered ? "From your Closing until you pin your own" : "Pinned by you"}
         </p>
       </div>

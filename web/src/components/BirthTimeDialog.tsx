@@ -11,9 +11,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getListProfilesQueryKey, getListReportsQueryKey, useUpdateProfileBirthTime, type BirthTimeUpdateResponse,
 } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BirthTimeControl } from "@/components/BirthTimeControl";
+import { Button } from "@/ds/atoms/Button";
+import { InlineError } from "@/ds/molecules/Alert";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { BirthTimeControl } from "@/ds/molecules/BirthFields";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ds/organisms/Dialog";
 import { fromValue, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 import { refusalLine } from "@/lib/refusals";
 
@@ -72,9 +74,9 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">{title ?? `${profile.name}'s birth time`}</DialogTitle>
+          <DialogTitle>{title ?? `${profile.name}'s birth time`}</DialogTitle>
           <DialogDescription>
             {description ?? "Your birth time gives you your rising sign, your houses and day or night. The report keeps every word it can. We'll show you what changed."}
           </DialogDescription>
@@ -94,23 +96,21 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
           onTimeComplete={() => requestAnimationFrame(() => document.getElementById(saveId)?.focus())}
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            {free ? "Free. We'll show you what changed." : "We'll show you what changed."}
-          </p>
+          <Eyebrow>{free ? "Free. We'll show you what changed." : "We'll show you what changed."}</Eyebrow>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="font-label">Not now</Button>
-            <Button id={saveId} onClick={save} disabled={!value || unchanged || update.isPending} className="font-label">
+            <Button variant="secondary" onClick={onClose}>Not now</Button>
+            <Button id={saveId} onClick={save} disabled={!value || unchanged || update.isPending}>
               {update.isPending ? "Saving…" : "Save and update"}
             </Button>
           </div>
         </div>
         {update.isError && (
-          <p role="alert" className="text-xs text-destructive">
+          <InlineError>
             {refusalLine(update.error) ??
               (update.error instanceof Error && /widened|already running|in_progress/i.test(update.error.message)
                 ? update.error.message
                 : "Could not save the time. Try again in a minute.")}
-          </p>
+          </InlineError>
         )}
       </DialogContent>
     </Dialog>

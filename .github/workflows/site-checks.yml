@@ -125,15 +125,20 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-      # Only the checks' own packages: the pages come built from the preview.
+      # The checks' own packages, plus the web's for the charts harness below; the pages come built from the preview.
       - if: ${{ !cancelled() }}
-        run: pnpm install --frozen-lockfile --filter @workspace/e2e
+        run: pnpm install --frozen-lockfile --filter @workspace/e2e --filter @workspace/web...
       - if: ${{ !cancelled() }}
         run: pnpm --filter @workspace/e2e exec playwright install --with-deps --only-shell chromium
       - if: ${{ !cancelled() }}
         run: pnpm --filter @workspace/e2e test
         env:
           BASE_URL: ${{ needs.preview.outputs.url }}
+      # The Chart part's examples on a dev harness built from the checked-out source, never from the preview: the page is
+      # not part of the build, so it is not deployed. Keyless like the rest of this file (ADR-441).
+      - name: Charts shot (390 and 880 px)
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @workspace/web exec node scripts/charts-harness.mjs ../e2e/test-results/charts
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

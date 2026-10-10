@@ -17,9 +17,12 @@ import {
   type TimelineReading,
 } from "@workspace/api-client-react";
 import { FactCard } from "@/components/FactCard";
-import { StatusDots } from "@/components/StatusDots";
 import { PassStrip } from "@/components/timeline/PassStrip";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/ds/atoms/Button";
+import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/ds/organisms/Sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { buildsOnText, paragraphs } from "@/lib/now-ahead";
@@ -27,7 +30,6 @@ import { CHANGES_HEADING, boldParts, passBlocks, sheetFacts, whyHeading } from "
 import { refusalLine } from "@/lib/refusals";
 import { useShownZone } from "@/lib/reader-zone";
 import { shadowFact } from "@/lib/shadow-fact";
-import { cn } from "@/lib/utils";
 
 /** What a tap on a card hands the sheet. */
 export interface ReadingTarget {
@@ -56,9 +58,7 @@ export const READING_LINES = {
   error: "We couldn't open this reading. Check your connection and try again.",
 } as const;
 
-const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
-const LINK =
-  "justify-self-start rounded text-[14.5px] font-medium text-[#9FA8DA] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const EYEBROW = "font-label text-label uppercase text-indigo-lt";
 
 type Shown =
   | { kind: "opening" }
@@ -88,22 +88,17 @@ export interface ReadingSheetProps {
   event?: TimelineEvent | null;
 }
 
-/** A block under the strip: the rose R, its heading, and its words with the bold marks drawn. */
+/** A block under the strip: the R, its heading, and its words with the bold marks drawn. */
 function PassBlock({ title, text }: { title: string; text: string }) {
   return (
     <div className="grid grid-cols-[22px_minmax(0,1fr)] items-start gap-x-3 gap-y-1.5">
-      <span
-        aria-hidden
-        className="mt-px inline-grid h-[22px] w-[22px] place-items-center rounded-[5px] border border-[#6B3A42] font-numeric text-xs font-semibold leading-none text-[#D98C8C]"
-      >
-        R
-      </span>
+      <RetrogradeBadge className="mt-px" />
       <div className="grid gap-1.5">
-        <h3 className="font-label text-xs font-medium uppercase leading-[1.3] tracking-[0.12em] text-[#D98C8C]">{title}</h3>
-        <p className="max-w-[60ch] text-[14.5px] leading-[1.6] text-[#AEB6C6]">
+        <h3 className="font-label text-label uppercase text-rose">{title}</h3>
+        <p className="max-w-[60ch] text-ui leading-[1.6] text-paper-dim">
           {boldParts(text).map((part, i) =>
             part.bold ? (
-              <strong key={i} className="font-medium text-[#E8EBF2]">
+              <strong key={i} className="font-medium text-paper">
                 {part.text}
               </strong>
             ) : (
@@ -124,7 +119,7 @@ function SkyFacts({ event, zone }: { event: TimelineEvent; zone: string }) {
   const facts = sheetFacts(event, zone, order);
   const shadow = useMemo(() => shadowFact(event, { zone, order, now }), [event, zone, order, now]);
   return (
-    <div className="grid gap-4 border-t border-[#242C3B] pt-4">
+    <div className="grid gap-4 border-t border-line pt-4">
       {blocks ? (
         <>
           <PassStrip event={event} now={now} zone={zone} />
@@ -135,7 +130,7 @@ function SkyFacts({ event, zone }: { event: TimelineEvent; zone: string }) {
       <div className="grid gap-1.5">
         <p className={EYEBROW}>The facts</p>
         {facts.map((line, i) => (
-          <p key={i} className="font-numeric text-[12.5px] leading-normal text-[#9AA3B5]">
+          <p key={i} className="font-mono text-data tabular-nums text-paper-dim">
             {line}
           </p>
         ))}
@@ -208,58 +203,50 @@ export function ReadingSheet({ eventKey, open, onClose, headline, status, report
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side={phone ? "bottom" : "right"}
-        className={cn(
-          "flex flex-col gap-5 overflow-y-auto border-[#242C3B] bg-[#11161F]",
-          phone ? "max-h-[88dvh] rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "w-full sm:max-w-md",
-        )}
+        className={`flex flex-col gap-5 overflow-y-auto ${phone ? "max-h-[88dvh] pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "w-full sm:max-w-md"}`}
       >
         <SheetHeader className="space-y-1.5 pr-8 text-left">
-          <SheetDescription className={EYEBROW}>Your reading</SheetDescription>
-          <SheetTitle className="font-display text-2xl font-normal leading-[1.15] tracking-[-0.01em] text-[#E8EBF2]">
-            {headline ?? "Your reading"}
-          </SheetTitle>
+          <SheetDescription>
+            <span className={EYEBROW}>Your reading</span>
+          </SheetDescription>
+          <SheetTitle>{headline ?? "Your reading"}</SheetTitle>
         </SheetHeader>
 
         {shown.kind === "opening" ? (
-          <p className="font-label text-sm text-[#AEB6C6]">
+          <p className="font-label text-ui text-paper-dim">
             <StatusDots label="Opening" />
           </p>
         ) : shown.kind === "writing" ? (
           <div className="grid gap-2">
-            <p className="font-label text-sm text-[#E8EBF2]">
+            <p className="font-label text-ui text-paper">
               <StatusDots label="Writing" />
             </p>
-            <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{setUp ? READING_LINES.writingSetUp : READING_LINES.writing}</p>
+            <p className="text-small text-paper-dim">{setUp ? READING_LINES.writingSetUp : READING_LINES.writing}</p>
           </div>
         ) : shown.kind === "failed" ? (
           <div className="grid justify-items-start gap-3">
-            <p className="text-[14.5px] leading-normal text-[#AEB6C6]">{shown.line}</p>
-            <button
-              type="button"
-              onClick={() => setAttempt((n) => n + 1)}
-              className="inline-flex min-h-10 items-center rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
+            <p className="text-ui text-paper-dim">{shown.line}</p>
+            <Button variant="secondary" size="compact" onClick={() => setAttempt((n) => n + 1)}>
               Try again
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid gap-4">
-            <p className="font-display text-[19px] leading-[1.5] text-[#E8EBF2]">{shown.reading.line}</p>
+            <p className="font-display text-lede text-paper">{shown.reading.line}</p>
             {paragraphs(shown.reading.body).map((text, i) => (
-              <p key={i} className="max-w-[60ch] whitespace-pre-line text-[15.5px] leading-[1.65] text-[#E8EBF2]">
+              <p key={i} className="max-w-[60ch] whitespace-pre-line text-prose text-paper">
                 {text}
               </p>
             ))}
             {builds ? (
-              <div className="grid gap-2 border-t border-[#242C3B] pt-4">
-                <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{builds.text}</p>
+              <div className="grid gap-2 border-t border-line pt-4">
+                <p className="text-small text-paper-dim">{builds.text}</p>
                 {reportId ? (
-                  <Link
-                    href={`/report/${encodeURIComponent(reportId)}${builds.chapter ? `#chapter-${builds.chapter}` : ""}`}
-                    className={LINK}
-                  >
-                    Read it in your report
-                  </Link>
+                  <TextButton asChild className="justify-self-start">
+                    <Link href={`/report/${encodeURIComponent(reportId)}${builds.chapter ? `#chapter-${builds.chapter}` : ""}`}>
+                      Read it in your report
+                    </Link>
+                  </TextButton>
                 ) : null}
               </div>
             ) : null}

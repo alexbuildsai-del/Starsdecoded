@@ -9,7 +9,7 @@
  * or a bar.
  */
 import { CitedText, newCitationCounter } from "@/components/report/Citation";
-import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
+import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/ds/organisms/Checklist";
 import { fromPersonalReport } from "@/lib/product";
 import { itemKey } from "@/lib/workbook";
 import type { PairChecklist, PairLensChapter, PairPractise } from "@/types/chart";
@@ -42,7 +42,7 @@ function SideBySide({ card, names }: { card: PairLensChapter["card"]; names: Pai
           <div key={side} className="min-w-0">
             <span className="rp-kicker">{personKicker(name)}</span>
             <ul className="mt-2 grid gap-1.5">
-              {lines.map((line, i) => <li key={i} className="text-[14.5px] leading-[1.55]">{line}</li>)}
+              {lines.map((line, i) => <li key={i} className="text-ui">{line}</li>)}
             </ul>
           </div>
         ))}
@@ -70,7 +70,7 @@ export function LensChapterBlock({ s, names, chapter, sceneTitle }: {
       </div>
       <div className="rp-lblk">
         <span className="rp-lab">What just happened</span>
-        <p className="font-display text-[17px] leading-[1.4] text-[var(--paper)]" data-pair-line>{s.card.pair}</p>
+        <p className="font-display text-card-title-sm text-paper" data-pair-line>{s.card.pair}</p>
         <div className="mt-3 grid gap-3">
           <div>
             <span className="rp-kicker">{first(names.a)} · because</span>

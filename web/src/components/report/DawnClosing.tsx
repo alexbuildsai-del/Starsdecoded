@@ -8,11 +8,13 @@
  * Progress is one CSS variable set from the section's own position in the
  * viewport, on a rAF-throttled scroll handler and no timers (MASTERFILE §9).
  * The Sun renders only while --p is above zero, so scrolling away removes it.
- * Reduced motion renders the final frame and listens to nothing.
+ * Reduced motion shows the final frame (--p at 1, nothing moves) while the
+ * chapter is on screen and hides it when it is not (B-12): the Sun sits on the
+ * fixed layer, so a frame that never turned off sat over every chapter.
  */
 import { useEffect, useRef, type ReactNode } from "react";
 import { SUN_HERO } from "@/lib/planet-renders";
-import { Checklist } from "@/components/report/Checklist";
+import { Checklist } from "@/ds/organisms/Checklist";
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
 import { itemKey } from "@/lib/workbook";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -54,8 +56,10 @@ export function DawnClosing({ s, counter, fact }: { s: FocusSection; counter?: C
     if (!root) return;
     if (reduced) {
       root.style.setProperty("--p", "1");
-      root.classList.remove("off");
-      return;
+      // Visibility only, no motion: the observer toggles the final frame as the chapter comes and goes.
+      const seen = new IntersectionObserver(([entry]) => root.classList.toggle("off", !entry.isIntersecting));
+      seen.observe(root);
+      return () => seen.disconnect();
     }
     let frame = 0;
     function place() {

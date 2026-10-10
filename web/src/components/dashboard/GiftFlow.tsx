@@ -21,12 +21,11 @@ import {
   type Gift,
   type GiftCreated,
 } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { FIELD_EDGE, FIELD_LABEL, Input } from "@/ds/atoms/Input";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { InlineError } from "@/ds/molecules/Alert";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/ds/organisms/Sheet";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isPersonName, nameRuleLine } from "@/lib/person-name";
@@ -57,10 +56,6 @@ const NOTE_MAX = 280;
 const HOLD_DAYS = 30;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const LABEL = "font-label text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground";
-const FIELD = "h-10 aria-[invalid=true]:border-destructive";
-const PRIMARY = "min-h-10 font-label text-[13.5px]";
-
 function creditLine(available: number | undefined): string | null {
   if (available === undefined || available < 1) return null;
   return available === 1 ? "your 1 credit" : `1 of your ${available} credits`;
@@ -84,13 +79,13 @@ function Progress({ step }: { step: Step }) {
           <span
             key={i}
             className={cn(
-              "h-1 flex-1 rounded-full transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)]",
-              i < step ? "bg-primary" : "bg-border",
+              "h-1 flex-1 rounded-pill transition-colors duration-[var(--dur-base)] ease-[var(--ease)] motion-reduce:transition-none",
+              i < step ? "bg-indigo" : "bg-line-strong",
             )}
           />
         ))}
       </div>
-      <span className="font-numeric text-[11px] text-muted-foreground">
+      <span className="font-numeric text-data-sm text-muted">
         <span className="sr-only">Step </span>
         {step} of {STEPS}
       </span>
@@ -101,7 +96,7 @@ function Progress({ step }: { step: Step }) {
 /** The helper line under a field, which becomes its error once the step is tried, so the field's description stays one element. */
 function Hint({ id, error, children }: { id: string; error: string | null; children: ReactNode }) {
   return (
-    <p id={id} aria-live="polite" className={cn("text-xs leading-[1.4]", error ? "text-destructive" : "text-muted-foreground")}>
+    <p id={id} aria-live="polite" className={cn("text-caption", error ? "text-error" : "text-muted")}>
       {error ?? children}
     </p>
   );
@@ -180,13 +175,13 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
   const eyebrow = step < SENT && creditLine(available) ? `Gift a report · ${creditLine(available)}` : "Gift a report";
   const header = (title: string, progress: boolean) => (
     <SheetHeader className="space-y-1.5 pr-8 text-left">
-      <SheetDescription className="font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]">
+      <SheetDescription className="font-label text-kicker uppercase text-indigo-lt">
         {eyebrow}
       </SheetDescription>
       <SheetTitle
         ref={titleRef}
         tabIndex={-1}
-        className="font-display text-2xl font-normal leading-[1.1] tracking-[-0.02em] focus:outline-none [overflow-wrap:anywhere]"
+        className="focus:outline-none [overflow-wrap:anywhere]"
       >
         {title}
       </SheetTitle>
@@ -199,12 +194,8 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     return (
       <>
         {header("Sign in to send a gift", false)}
-        <p className="text-sm leading-[1.5] text-muted-foreground">A gift holds one of your credits, so it needs an account.</p>
-        <Button
-          size="lg"
-          className={cn(PRIMARY, "w-full")}
-          onClick={() => navigate(`/sign-in?return_to=${encodeURIComponent(location)}`)}
-        >
+        <p className="text-ui text-paper-dim">A gift holds one of your credits, so it needs an account.</p>
+        <Button full onClick={() => navigate(`/sign-in?return_to=${encodeURIComponent(location)}`)}>
           Sign in
         </Button>
       </>
@@ -216,8 +207,8 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     return (
       <>
         {header("No credits left", false)}
-        <p className="text-sm leading-[1.5] text-muted-foreground">{noCreditLine ?? "A gift uses one credit."}</p>
-        <Button size="lg" className={cn(PRIMARY, "w-full")} onClick={getCredits}>
+        <p className="text-ui text-paper-dim">{noCreditLine ?? "A gift uses one credit."}</p>
+        <Button full onClick={getCredits}>
           Get credits
         </Button>
       </>
@@ -240,18 +231,18 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     return (
       <>
         {header(`Gift sent to ${gift.recipientName}`, false)}
-        <p className="text-[15px] leading-[1.5]">
+        <p className="text-prose text-paper">
           {gift.creditHeld
             ? `One of your credits is held until ${back}. If ${gift.recipientName} hasn't claimed it by then, it comes back to you.`
             : `${gift.recipientName} can claim it until ${back}.`}
         </p>
         {gift.emailDelivered ? (
-          <p className="text-[13px] leading-[1.45] text-muted-foreground">
+          <p className="text-small text-paper-dim">
             Open the gift in your circle to send a reminder or take it back.
           </p>
         ) : (
           <>
-            <p className="text-[13px] leading-[1.45] text-muted-foreground">
+            <p className="text-small text-paper-dim">
               {`The email didn't go through. Copy this link and send it to ${gift.recipientName} yourself. They sign in with ${gift.email} to claim it.`}
             </p>
             <div className="flex gap-2">
@@ -264,10 +255,9 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
                 data-testid="text-gift-link"
               />
               <Button
-                type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={() => copyClaimLink(gift.claimUrl)}
-                className="shrink-0 gap-1.5 font-label"
+                className="h-12 shrink-0"
                 data-testid="button-copy-gift-link"
               >
                 {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -276,7 +266,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             </div>
           </>
         )}
-        <Button size="lg" className={cn(PRIMARY, "w-full")} onClick={onClose}>
+        <Button full onClick={onClose}>
           Done
         </Button>
       </>
@@ -295,20 +285,13 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
       <>
         {header("How it arrives", true)}
         <GiftCover giverName={giver} recipientName={firstName} note={words || null} />
-        <p className="text-[13px] leading-[1.45] text-muted-foreground">
-          It goes to <span className="text-foreground [overflow-wrap:anywhere]">{address}</span>, from {PRODUCT} in your
+        <p className="text-small text-paper-dim">
+          It goes to <span className="text-paper [overflow-wrap:anywhere]">{address}</span>, from {PRODUCT} in your
           name.
         </p>
-        {sendError && (
-          <p role="alert" className="text-[13px] leading-[1.45] text-destructive">
-            {sendError}
-          </p>
-        )}
+        {sendError && <InlineError>{sendError}</InlineError>}
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            className="font-label"
+          <TextButton
             disabled={create.isPending}
             onClick={() => {
               create.reset();
@@ -316,20 +299,16 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             }}
           >
             Back
-          </Button>
+          </TextButton>
           {create.isPending ? (
-            <div className="flex min-h-10 flex-1 items-center justify-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-4 font-label text-[13.5px] font-medium text-[#9FA8DA]">
-              <StatusDots label="Sending" />
-            </div>
+            <Button busy="Sending" className="flex-1" />
           ) : noCredit ? (
-            <Button type="button" size="lg" className={cn(PRIMARY, "flex-1")} onClick={getCredits}>
+            <Button className="flex-1" onClick={getCredits}>
               Get credits
             </Button>
           ) : (
             <Button
-              type="button"
-              size="lg"
-              className={cn(PRIMARY, "flex-1")}
+              className="flex-1"
               onClick={() =>
                 create.mutate({
                   data: {
@@ -346,7 +325,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             </Button>
           )}
         </div>
-        <p className="text-xs leading-[1.45] text-muted-foreground">
+        <p className="text-caption text-muted">
           {`One credit is held for ${HOLD_DAYS} days. If ${firstName} doesn't claim it, it comes back to you.`}
         </p>
       </>
@@ -361,33 +340,29 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     return (
       <>
         {header(`Share your report with ${firstName} too?`, true)}
-        <p className="text-sm leading-[1.5] text-muted-foreground [overflow-wrap:anywhere]">
+        <p className="text-ui text-paper-dim [overflow-wrap:anywhere]">
           {`${firstName} can then read your whole ${PERSONAL_REPORT}, and either of you can make a ${COMPATIBILITY_REPORT} once you can both read each other's. You can stop sharing any time.`}
         </p>
         <div className="grid gap-2.5">
           <Button
-            type="button"
-            size="lg"
-            className={cn(PRIMARY, "min-h-11 w-full")}
+            full
             onClick={() => answer(true)}
             data-testid="button-gift-share-yes"
           >
             Yes, share my report
           </Button>
           <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className={cn(PRIMARY, "min-h-11 w-full")}
+            full
+            variant="secondary"
             onClick={() => answer(false)}
             data-testid="button-gift-share-no"
           >
             Not now
           </Button>
         </div>
-        <Button type="button" variant="ghost" className="self-start font-label" onClick={() => setStep(2)}>
+        <TextButton className="self-start" onClick={() => setStep(2)}>
           Back
-        </Button>
+        </TextButton>
       </>
     );
   }
@@ -403,10 +378,10 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
         {header("A note for the cover", true)}
         <form onSubmit={next} className="grid gap-5">
           <div className="grid gap-1.5">
-            <Label htmlFor={noteId} className={LABEL}>
+            <label htmlFor={noteId} className={FIELD_LABEL}>
               Your note
-            </Label>
-            <Textarea
+            </label>
+            <textarea
               id={noteId}
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -414,22 +389,22 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
               rows={4}
               autoFocus
               aria-describedby={`${noteId}-hint`}
-              className="resize-none"
+              className={cn("block min-h-24 w-full resize-none px-3.5 py-3 text-base", FIELD_EDGE)}
             />
             <div className="flex items-baseline justify-between gap-3">
               <Hint id={`${noteId}-hint`} error={null}>
                 Optional. {firstName} sees it on the cover.
               </Hint>
-              <span className="font-numeric text-[11px] text-muted-foreground">
+              <span className="font-numeric text-data-sm text-muted">
                 {note.length}/{NOTE_MAX}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button type="button" variant="ghost" className="font-label" onClick={() => setStep(1)}>
+            <TextButton onClick={() => setStep(1)}>
               Back
-            </Button>
-            <Button type="submit" size="lg" className={cn(PRIMARY, "flex-1")}>
+            </TextButton>
+            <Button type="submit" className="flex-1">
               Next
             </Button>
           </div>
@@ -452,9 +427,9 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
       {header("Who it's for", true)}
       <form noValidate onSubmit={next} className="grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor={nameId} className={LABEL}>
+          <label htmlFor={nameId} className={FIELD_LABEL}>
             Their first name
-          </Label>
+          </label>
           <Input
             ref={nameRef}
             id={nameId}
@@ -465,16 +440,15 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             autoComplete="off"
             aria-invalid={nameError ? true : undefined}
             aria-describedby={`${nameId}-hint`}
-            className={FIELD}
           />
           <Hint id={`${nameId}-hint`} error={nameError}>
             It goes on the cover.
           </Hint>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={emailId} className={LABEL}>
+          <label htmlFor={emailId} className={FIELD_LABEL}>
             Their email
-          </Label>
+          </label>
           <Input
             ref={emailRef}
             id={emailId}
@@ -485,13 +459,12 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             autoComplete="off"
             aria-invalid={emailError ? true : undefined}
             aria-describedby={`${emailId}-hint`}
-            className={FIELD}
           />
           <Hint id={`${emailId}-hint`} error={emailError}>
             They sign in with this address to claim it.
           </Hint>
         </div>
-        <Button type="submit" size="lg" className={cn(PRIMARY, "w-full")}>
+        <Button type="submit" full>
           Next
         </Button>
       </form>
@@ -513,10 +486,7 @@ export function GiftFlow({ open, onClose, ...rest }: GiftFlowProps) {
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side={phone ? "bottom" : "right"}
-        className={cn(
-          "flex flex-col gap-5 overflow-y-auto",
-          phone ? "max-h-[92dvh] rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "w-full sm:max-w-md",
-        )}
+        className={cn("flex flex-col gap-5 overflow-y-auto", phone && "max-h-[92dvh]")}
       >
         <GiftSteps key={session} onClose={onClose} {...rest} />
       </SheetContent>

@@ -1,0 +1,11 @@
+{
+  "name": "@workspace/design",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/tokens.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./tokens.json": "./src/tokens.json"
+  }
+}

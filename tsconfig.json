@@ -25,6 +25,9 @@
       "path": "./packages/commerce"
     },
     {
+      "path": "./packages/design"
+    },
+    {
       "path": "./tsconfig.middleware.json"
     }
   ]

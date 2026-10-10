@@ -6,13 +6,13 @@ const CHAPTERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 describe("chapterAccent", () => {
   it("gives the ten chapters the six fixed hues, 07 to 10 repeating 01 to 04", () => {
     expect(CHAPTERS.map((c) => chapterAccent(c))).toEqual([
-      "#5C6BC0", "#3F8FD2", "#9575CD", "#3FA796", "#D9668A", "#B565A7",
-      "#5C6BC0", "#3F8FD2", "#9575CD", "#3FA796",
+      "#5c6bc0", "#3f8fd2", "#9575cd", "#3fa796", "#d9668a", "#b565a7",
+      "#5c6bc0", "#3f8fd2", "#9575cd", "#3fa796",
     ]);
   });
 
   it("closes on teal: chapter 10 is Closing (ADR-46)", () => {
-    expect(chapterAccent(10)).toBe("#3FA796");
+    expect(chapterAccent(10)).toBe("#3fa796");
   });
 
   it("never repeats a hue between neighbours", () => {

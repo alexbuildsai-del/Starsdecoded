@@ -96,6 +96,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../packages/db
+      '@workspace/design':
+        specifier: workspace:*
+        version: link:../packages/design
       '@workspace/engine':
         specifier: workspace:*
         version: link:../packages/engine
@@ -272,6 +275,8 @@ importers:
         specifier: 'catalog:'
         version: 25.9.5
 
+  packages/design: {}
+
   packages/launch: {}
 
   scripts:
@@ -331,6 +336,9 @@ importers:
       '@workspace/commerce':
         specifier: workspace:*
         version: link:../packages/commerce
+      '@workspace/design':
+        specifier: workspace:*
+        version: link:../packages/design
       '@workspace/engine':
         specifier: workspace:*
         version: link:../packages/engine

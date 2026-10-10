@@ -15,7 +15,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { LoadingFrame, type LoadingSlots } from "@/components/loading/LoadingFrame";
-import { ProgressBar } from "@/components/loading/ProgressBar";
+import { Button } from "@/ds/atoms/Button";
+import { Progress as Bar } from "@/ds/atoms/Progress";
 import type { Progress } from "@/lib/progress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { TRY_AGAIN } from "@/lib/home-view";
@@ -61,7 +62,7 @@ export function plainSlots(progress: Progress): LoadingSlots {
 }
 
 /** The hero's ground, so the screen is a page of its own and not a veil over one. */
-const GROUND = "radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%)";
+const GROUND = "radial-gradient(120% 92% at 50% 38%, var(--color-surface) 0%, var(--color-ground) 56%, var(--color-void) 100%)";
 
 export function OpeningOverlay({ progress, failureLine, onOpen, onRetry, retrying, slots }: OpeningOverlayProps) {
   const [away, setAway] = useState(false);
@@ -107,13 +108,13 @@ export function OpeningOverlay({ progress, failureLine, onOpen, onRetry, retryin
 
   const retry = onRetry && (
     <div className="door">
-      <button type="button" onClick={onRetry} disabled={retrying} aria-describedby="try-again-free">{retrying ? "Starting…" : TRY_AGAIN.label}</button>
+      <Button variant="secondary" onClick={onRetry} disabled={retrying} aria-describedby="try-again-free">{retrying ? "Starting…" : TRY_AGAIN.label}</Button>
       <small id="try-again-free">{TRY_AGAIN.free}</small>
     </div>
   );
   const openDoor = progress.door && (
     <div className="door">
-      <button ref={start} type="button" onClick={leave}>Start reading →</button>
+      <Button ref={start} onClick={leave}>Start reading →</Button>
       {!progress.complete && <small>We'll finish the last chapters while you read.</small>}
     </div>
   );
@@ -131,7 +132,7 @@ export function OpeningOverlay({ progress, failureLine, onOpen, onRetry, retryin
       <LoadingFrame
         {...slots}
         detail={progress.failed ? <p className="fail">{failureLine ?? INTERNAL_LINE}</p> : slots.detail}
-        pct={progress.failed ? undefined : <ProgressBar {...barOf(progress)} />}
+        pct={progress.failed ? undefined : <Bar {...barOf(progress)} />}
         door={progress.failed ? retry : openDoor}
       />
     </div>

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -51,13 +52,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           </h1>
           <p className="text-muted-foreground text-sm mb-6 break-words">{error.message}</p>
           <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
+            <TextButton
               onClick={() => window.location.reload()}
-              className="text-sm text-primary hover:underline font-label"
+              className="min-h-0 px-0 font-label text-sm font-normal text-primary hover:text-primary hover:underline"
             >
               Reload
-            </button>
+            </TextButton>
             <span className="text-muted-foreground/40">·</span>
             <a href="/" className="text-sm text-primary hover:underline font-label">
               Go home

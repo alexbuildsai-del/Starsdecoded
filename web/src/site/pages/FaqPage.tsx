@@ -45,8 +45,8 @@ function matching(query: string) {
 
 // Under the artifact's 1000 px a 200 px column beside the questions would squeeze them, so the index becomes chips above.
 const TOPIC_LINK =
-  "block rounded-full border border-[color:var(--line)] px-3 py-2.5 text-[13px] leading-tight text-[color:var(--paper-dim)] no-underline hover:border-[rgba(159,168,218,.6)] hover:text-[color:var(--paper)] " +
-  "min-[1000px]:rounded-lg min-[1000px]:border-0 min-[1000px]:px-2.5 min-[1000px]:py-[7px] min-[1000px]:text-[14px] min-[1000px]:leading-normal min-[1000px]:text-[color:var(--sd-muted)] min-[1000px]:hover:bg-[rgba(232,235,242,.04)]";
+  "block rounded-full border border-line px-3 py-2.5 text-small leading-tight text-paper-dim no-underline hover:border-indigo-lt/60 hover:text-paper " +
+  "min-[1000px]:rounded-lg min-[1000px]:border-0 min-[1000px]:px-2.5 min-[1000px]:py-[7px] min-[1000px]:text-ui min-[1000px]:leading-normal min-[1000px]:text-muted min-[1000px]:hover:bg-paper/4";
 
 export default function FaqPage() {
   const [query, setQuery] = useState("");
@@ -60,7 +60,7 @@ export default function FaqPage() {
       head={
         <PageHead page={page}>
           <form role="search" className="relative mt-1.5 w-full max-w-[520px]" onSubmit={(event) => event.preventDefault()}>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[color:var(--sd-muted)]" />
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
             <input
               type="search"
               value={query}
@@ -69,7 +69,7 @@ export default function FaqPage() {
               aria-label="Search the questions"
               autoComplete="off"
               enterKeyHint="search"
-              className="h-12 w-full appearance-none rounded-[10px] border border-[color:var(--line)] bg-[rgba(13,17,23,.7)] pl-10 pr-3.5 text-base text-[color:var(--paper)] placeholder:text-[color:var(--sd-muted)] focus:border-[color:var(--indigo-lt)] focus:outline-none focus:ring-1 focus:ring-[color:var(--indigo-lt)]"
+              className="h-12 w-full appearance-none rounded-control border border-line bg-ground/70 pl-10 pr-3.5 text-base text-paper placeholder:text-muted focus:border-indigo-lt focus:outline-none focus:ring-1 focus:ring-indigo-lt"
             />
           </form>
         </PageHead>
@@ -116,7 +116,7 @@ export default function FaqPage() {
             <div role="status">
               {searching &&
                 (count === 0 ? (
-                  <p className="text-[color:var(--sd-muted)]">{NO_MATCH}</p>
+                  <p className="text-muted">{NO_MATCH}</p>
                 ) : (
                   <p className="sr-only">{count === 1 ? "1 question matches" : `${count} questions match`}</p>
                 ))}
@@ -128,9 +128,9 @@ export default function FaqPage() {
                     {group.topic}
                   </h2>
                   {group.entries.map(({ id, item, more }) => (
-                    <div key={id} id={id} className="grid gap-2 border-t border-[color:var(--line-soft)] py-[18px]">
-                      <h3 className="text-[22px] leading-[1.25]">{item.q}</h3>
-                      <p className="max-w-[64ch] text-base leading-[1.7] text-[color:var(--paper-dim)]">{item.a}</p>
+                    <div key={id} id={id} className="grid gap-2 border-t border-line-soft py-[18px]">
+                      <h3 className="text-sheet-title leading-[1.25]">{item.q}</h3>
+                      <p className="max-w-[64ch] text-base leading-[1.7] text-paper-dim">{item.a}</p>
                       {item.link && more ? (
                         <Link className="sd-more mt-0 justify-self-start py-2" href={item.link}>
                           {more}

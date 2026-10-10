@@ -32,24 +32,24 @@ export function ThingCard({ id, name, promise, why, more, sees, mark, children }
   return (
     <article
       aria-labelledby={id}
-      className="grid min-w-0 gap-3.5 rounded-[18px] border border-[#242C3B] bg-[#11161F] p-5 min-[880px]:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] min-[880px]:items-start min-[880px]:gap-x-9 min-[880px]:p-7"
+      className="grid min-w-0 gap-3.5 rounded-sheet border border-line bg-surface p-5 min-[880px]:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] min-[880px]:items-start min-[880px]:gap-x-9 min-[880px]:p-7"
     >
       <div className="grid min-w-0 content-start gap-3.5">
-        <p className="font-label text-[11px] uppercase leading-none tracking-[.14em] text-[#9FA8DA]">{name}</p>
-        <h3 id={id} className="text-[24px] leading-[1.18] text-[#E8EBF2]">
+        <p className="font-label text-kicker uppercase leading-none tracking-[.14em] text-indigo-lt">{name}</p>
+        <h3 id={id} className="text-sheet-title leading-[1.18] text-paper">
           {promise}
         </h3>
-        <p className="max-w-[58ch] text-[15px] leading-[1.6] text-[#AEB6C6]">{why}</p>
+        <p className="max-w-[58ch] text-prose leading-[1.6] text-paper-dim">{why}</p>
         {more}
       </div>
-      <div className="grid min-w-0 gap-2.5 rounded-[14px] border border-[#1A202C] bg-[#0D1117] p-3.5">
+      <div className="grid min-w-0 gap-2.5 rounded-card border border-line-soft bg-ground p-3.5">
         <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5">
           {typeof sees === "string" ? (
-            <p className="font-label text-[10.5px] uppercase leading-snug tracking-[.16em] text-[#AEB6C6]">{sees}</p>
+            <p className="font-label text-kicker uppercase leading-snug tracking-[.16em] text-paper-dim">{sees}</p>
           ) : (
             sees
           )}
-          <span className="whitespace-nowrap rounded-md border border-dashed border-[#242C3B] px-1.5 py-px font-label text-[10px] uppercase tracking-[.14em] text-[#7E889A]">
+          <span className="whitespace-nowrap rounded-md border border-dashed border-line px-1.5 py-px font-label text-kicker uppercase tracking-[.14em] text-muted">
             {mark}
           </span>
         </div>

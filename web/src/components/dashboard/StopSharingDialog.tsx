@@ -19,7 +19,7 @@ import {
   useStopSharingCompatibility,
   useStopSharingProfile,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +29,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useOpenerFocus } from "@/components/dashboard/RowMenu";
+} from "@/ds/organisms/Confirm";
+import { InlineError } from "@/ds/molecules/Alert";
 import { useToast } from "@/hooks/use-toast";
 import { stopPairLine, stopShareLines, stopSharingLines, stopSharingTitle } from "@/lib/pair-row";
 
@@ -43,19 +43,8 @@ import { stopPairLine, stopShareLines, stopSharingLines, stopSharingTitle } from
  */
 export type StopTarget = { kind: "profile" | "pair" | "share"; id: string; name: string; subject?: string | null };
 
-// The approved mock's dialog: a sheet from the bottom on a phone, where the thumb is; centred from 640 px.
-export const CONSENT_SHEET = [
-  "gap-3.5 border-[#3A4560] bg-[#171D29] px-[18px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5 shadow-[0_-18px_44px_rgba(0,0,0,.65)]",
-  "max-sm:top-auto max-sm:bottom-0 max-sm:translate-y-0 max-sm:rounded-t-[20px]",
-  "max-sm:data-[state=open]:slide-in-from-left-0 max-sm:data-[state=open]:slide-in-from-bottom-8",
-  "max-sm:data-[state=closed]:slide-out-to-left-0 max-sm:data-[state=closed]:slide-out-to-bottom-8",
-  "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
-  "sm:max-w-md sm:rounded-[20px] sm:p-6 sm:shadow-lg",
-].join(" ");
-export const CONSENT_BUTTON = "mt-0 min-h-9 rounded-[10px] px-3 font-label text-[13px] font-medium";
-export const CONSENT_TITLE = "font-display text-[22px] font-normal leading-[1.2] text-[#E8EBF2]";
-export const CONSENT_BODY = "text-[14px] leading-[1.5] text-[#C9CEDA]";
-export const CONSENT_CANCEL = `${CONSENT_BUTTON} bg-transparent text-[#E8EBF2] [border-color:#242C3B]`;
+// ShareWindow draws its own Stop sharing title in the same type.
+export const CONSENT_TITLE = "font-display text-card-title font-normal text-paper";
 
 /**
  * Ask answers written from a report are hidden for whoever can no longer read it (ADR-182, B-32), and a stop
@@ -81,7 +70,6 @@ export function StopSharingDialog({
 }) {
   const client = useQueryClient();
   const { toast } = useToast();
-  const focus = useOpenerFocus();
   // The last target stays drawn while the dialog closes, so its words do not vanish mid-fade.
   const kept = useRef<StopTarget | null>(target);
   if (target) kept.current = target;
@@ -127,28 +115,28 @@ export function StopSharingDialog({
   const lines = waitingAt ? stopped : withAskLine(stopped, shown.name);
   return (
     <AlertDialog open={!!target} onOpenChange={(next) => !next && !pending && onClose()}>
-      <AlertDialogContent className={CONSENT_SHEET} {...focus}>
-        <AlertDialogHeader className="text-left">
-          <AlertDialogTitle className={CONSENT_TITLE}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
             {stopSharingTitle(shown.name, shown.kind === "profile" ? shown.subject : null)}
           </AlertDialogTitle>
-          <AlertDialogDescription asChild className={CONSENT_BODY}>
+          <AlertDialogDescription asChild>
             {lines.length > 1 ? (
-              <ul className="grid list-disc gap-2 pl-[18px]">
+              <ul className="grid list-disc gap-2 pl-[18px] text-ui text-paper-dim">
                 {lines.map((line) => <li key={line}>{line}</li>)}
               </ul>
             ) : (
-              <p>{lines[0]}</p>
+              <p className="text-ui text-paper-dim">{lines[0]}</p>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {failed && (
-          <p role="alert" className="text-sm text-[#E79AB2]">
+          <InlineError>
             We couldn't stop sharing. Try again in a minute.
-          </p>
+          </InlineError>
         )}
-        <AlertDialogFooter className="flex-row flex-wrap justify-end gap-2 sm:space-x-0">
-          <AlertDialogCancel disabled={pending} className={CONSENT_CANCEL}>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>
             Keep sharing
           </AlertDialogCancel>
           <AlertDialogAction
@@ -160,7 +148,6 @@ export function StopSharingDialog({
               // MB-103 provisional: its sender ends the other person's reading of a pair; nothing is deleted.
               else pair.mutate({ id: shown.id });
             }}
-            className={`${CONSENT_BUTTON} border-[#9A3D52] bg-[#7A2E3F] text-[#F2F4F9] hover:bg-[#8A3448]`}
           >
             {pending ? <StatusDots label="Stopping" /> : "Stop sharing"}
           </AlertDialogAction>

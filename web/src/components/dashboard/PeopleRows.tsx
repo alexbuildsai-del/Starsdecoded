@@ -32,9 +32,9 @@ import {
 } from "@workspace/api-client-react";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { HandBackDialog, type HandBackTarget } from "@/components/dashboard/HandBackDialog";
-import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from "@/components/dashboard/RowMenu";
+import { ListRow, MENU_DANGER, MenuItem, ROW_STATUS, RowAction, RowDone } from "@/components/dashboard/RowMenu";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { ShareWindow, type ShareTarget } from "@/components/share/ShareWindow";
 import { useToast } from "@/hooks/use-toast";
@@ -88,48 +88,46 @@ function PersonRow(props: PersonRowProps) {
 
   const actions = [
     view.busy && (
-      <span key="busy" className="font-label text-xs text-[#9FA8DA]">
+      <span key="busy" className="font-label text-caption text-indigo-lt">
         <StatusDots label={view.busy} />
       </span>
     ),
     isFailed(status) && <span key="failed" className={ROW_STATUS}>{failureLine(report)}</span>,
     view.retry && (
       <span key="retry" className="inline-flex flex-col items-start gap-1">
-        <button
-          type="button"
+        <RowAction
           onClick={() => onRetry(person.reportId)}
           disabled={retrying}
           aria-describedby={`free-${person.reportId}`}
-          className={ROW_ACTION}
         >
           {retrying ? <StatusDots label={TRY_AGAIN.starting} /> : TRY_AGAIN.label}
-        </button>
+        </RowAction>
         <span id={`free-${person.reportId}`} className={ROW_STATUS}>{TRY_AGAIN.free}</span>
       </span>
     ),
-    view.self && <span key="self" className={ROW_DONE}>This is me ✓</span>,
+    view.self && <RowDone key="self">This is me ✓</RowDone>,
     view.mark && (
-      <button key="mark" type="button" onClick={() => onMark(person, true)} className={ROW_ACTION}>
+      <RowAction key="mark" onClick={() => onMark(person, true)}>
         This is me
-      </button>
+      </RowAction>
     ),
     view.handedBack && <span key="back" className={ROW_STATUS}>{HANDED_BACK}</span>,
     view.share?.kind === "offer" && send && (
-      <button key="share" type="button" onClick={() => onShare(shareTarget)} className={ROW_ACTION}>
+      <RowAction key="share" onClick={() => onShare(shareTarget)}>
         {view.handedBack ? SEND_AGAIN : shareWith(view.share.name)}
-      </button>
+      </RowAction>
     ),
     view.share?.kind === "waiting" && <span key="waiting" className={ROW_STATUS}>{sharedWaiting(view.share.name)}</span>,
     view.changeAddress && send && (
-      <button key="address" type="button" onClick={() => onShare(shareTarget)} className={ROW_ACTION}>
+      <RowAction key="address" onClick={() => onShare(shareTarget)}>
         Change address
-      </button>
+      </RowAction>
     ),
     view.share?.kind === "joined" && <span key="joined" className={ROW_STATUS}>Joined ✓</span>,
     view.addBirthTime && profile && (
-      <button key="time" type="button" onClick={() => onBirthTime(profile)} className={ROW_ACTION}>
+      <RowAction key="time" onClick={() => onBirthTime(profile)}>
         Add birth time
-      </button>
+      </RowAction>
     ),
   ].filter(Boolean);
 
@@ -226,7 +224,7 @@ export function PeopleRows() {
   return (
     <>
       {people.length === 0 ? (
-        <p className="text-[13px] leading-snug text-[#9AA3B5]">No reports yet.</p>
+        <p className="text-small text-paper-dim">No reports yet.</p>
       ) : (
         <div className="@container">
           <ul className="grid gap-2 @min-[620px]:grid-cols-2">

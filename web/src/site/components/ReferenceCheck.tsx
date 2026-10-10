@@ -5,9 +5,11 @@
  * HTML holds it whole and at rest, which is how reduced motion keeps it.
  */
 import { useLayoutEffect, useRef } from "react";
-import { EvidenceCard } from "@/components/report/EvidenceCard";
+import { EvidenceCard } from "@/ds/organisms/ClaimPopover";
 import { homeClaims } from "@/site/data/claims";
 import { EASE_CSS } from "@/site/lib/sky";
+import { Button } from "@/ds/atoms/Button";
+import { tokens } from "@workspace/design";
 
 const STILL = "(prefers-reduced-motion: reduce)";
 
@@ -25,9 +27,9 @@ const HOLD_MS = 1850;
 const SETTLE_MS = 800;
 
 // Brighter than the report's resting mark while it is drawn, so the eye follows it; it settles to the mark itself.
-const INK = "rgba(92,107,192,.7)";
+const INK = `color-mix(in srgb, ${tokens.color.indigo} 70%, transparent)`;
 // The number as `.rp-cite.open` lights it when a reader opens a card.
-const LIT = { backgroundColor: "#5C6BC0", color: "#fff" };
+const LIT = { backgroundColor: tokens.color.indigo, color: tokens.color["on-indigo"] };
 // A border cannot be drawn from left to right, so the line is a gradient in currentColor on the border's own row of
 // pixels, with the border hidden; when the play ends the border takes over unseen.
 const LINE: Keyframe = {
@@ -155,10 +157,10 @@ export function ReferenceCheck() {
   return (
     <figure ref={figure} className="grid min-w-0 content-start gap-3.5">
       <figcaption className="sd-tag">One line from her report</figcaption>
-      <p className="font-display text-[21px] leading-[1.5] text-[color:var(--paper)]">
+      <p className="font-display text-card-title leading-[1.5] text-paper">
         {/* The mark's own colour is the drawn line's while it plays, so the words keep theirs on a span of their own. */}
         <mark ref={mark} className="rp-claimed">
-          <span className="text-[color:var(--paper)]">{claim.quote}</span>
+          <span className="text-paper">{claim.quote}</span>
         </mark>
         <span ref={chip} aria-hidden="true" className="rp-cite pointer-events-none font-label">
           1
@@ -168,13 +170,13 @@ export function ReferenceCheck() {
           so the overrides set it in the page, at the line height it inherits there. */}
       <div
         ref={card}
-        className="rp-card static z-auto w-full max-w-[344px] max-h-none overflow-visible rounded-[13px] pb-[15px] leading-normal"
+        className="rp-card static z-auto w-full max-w-[344px] max-h-none overflow-visible rounded-card pb-[15px] leading-normal"
       >
         <EvidenceCard claim={claim} />
       </div>
-      <button type="button" onClick={replay} className="sd-btn sd-btn-g sd-btn-sm justify-self-start motion-reduce:hidden">
+      <Button variant="secondary" size="compact" onClick={replay} className="justify-self-start motion-reduce:hidden">
         Play it again
-      </button>
+      </Button>
     </figure>
   );
 }

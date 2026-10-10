@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Card } from "@/ds/molecules/Card";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Select } from "@/ds/atoms/Select";
+import { Button } from "@/ds/atoms/Button";
 import { LabApiError, cents, labApi, type CompareResponse, type FixturesStatus, type LabRunRow } from "@/lib/labApi";
 
 /**
@@ -46,36 +48,36 @@ function FixturesRun({ onLanded }: { onLanded: () => void }) {
     }
   };
 
-  if (!status) return error ? <p className="text-xs text-destructive">Fixtures: {error}</p> : null;
+  if (!status) return error ? <p className="text-xs text-error">Fixtures: {error}</p> : null;
   const total = status.charts.length + 1;
   const last = status.last;
   const written = last ? last.natalRunKeys.length + (last.pairRunKey ? 1 : 0) : 0;
   return (
-    <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-2">
-      <p className="font-label text-xs tracking-wide text-primary">Fixtures · the {status.charts.length} charts and their pair, written fresh</p>
-      <p className="text-xs text-muted-foreground">This doesn't release anything. Each run shows in the list below once it's written.</p>
+    <Card as="div" className="p-3">
+      <p className="font-label text-xs tracking-wide text-indigo-lt">Fixtures · the {status.charts.length} charts and their pair, written fresh</p>
+      <p className="text-xs text-paper-dim">This doesn't release anything. Each run shows in the list below once it's written.</p>
       <div className="flex items-center gap-3 flex-wrap">
-        <Button size="sm" disabled={starting || writing || !status.stagingOnly || status.overBudget} onClick={run}>
+        <Button size="compact" disabled={starting || writing || !status.stagingOnly || status.overBudget} onClick={run}>
           {starting ? "Starting" : "Run the fixtures"}
         </Button>
-        <p className={`text-xs font-numeric ${status.overBudget ? "text-destructive" : "text-muted-foreground"}`}>
+        <p className={`text-xs font-numeric ${status.overBudget ? "text-error" : "text-paper-dim"}`}>
           about {cents(status.estimateUsd)} · spent {cents(status.spentUsd)} of {cents(status.budgetUsd)}{status.overBudget ? " · over budget, refused" : ""}
         </p>
       </div>
-      {!status.stagingOnly && <p className="text-xs text-muted-foreground">Runs on staging only.</p>}
+      {!status.stagingOnly && <p className="text-xs text-paper-dim">Runs on staging only.</p>}
       {status.running && (
         <p role="status" className="text-xs font-numeric flex items-center gap-1.5">
-          <Loader2 className="h-3 w-3 animate-spin text-primary" aria-hidden="true" /> Writing {status.running.label}: {status.running.landed.length} of {total} done
+          <Loader2 className="h-3 w-3 animate-spin text-indigo-lt" aria-hidden="true" /> Writing {status.running.label}: {status.running.landed.length} of {total} done
         </p>
       )}
       {!status.running && last && (
-        <p role="status" className={`text-xs font-numeric ${last.failed.length ? "text-destructive" : "text-muted-foreground"}`}>
+        <p role="status" className={`text-xs font-numeric ${last.failed.length ? "text-error" : "text-paper-dim"}`}>
           {last.label}: {written === total ? `all ${total}` : `${written} of ${total}`} written, {cents(last.costUsd)}
           {last.failed.length ? `. Failed: ${last.failed.map((f) => `${f.fixture} (${f.error.slice(0, 80)})`).join(", ")}` : ""}
         </p>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+      {error && <p className="text-xs text-error">{error}</p>}
+    </Card>
   );
 }
 
@@ -136,50 +138,44 @@ export function RunsView() {
     }
   };
 
-  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-primary/40" />;
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin text-muted" />;
+  if (error) return <p className="text-sm text-error">{error}</p>;
 
   return (
     <div className="flex flex-col gap-6">
       <FixturesRun onLanded={() => { void load(); }} />
       <div className="flex items-end gap-2 flex-wrap">
-        <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">
-          Compare
-          <select value={labelA} onChange={(e) => setLabelA(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-sm text-foreground">
+        <Select label="Compare" value={labelA} onChange={(e) => setLabelA(e.target.value)} className="h-10 w-auto min-w-32">
             <option value="">label a</option>
             {labels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-        <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">
-          against
-          <select value={labelB} onChange={(e) => setLabelB(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-sm text-foreground">
+          </Select>
+        <Select label="against" value={labelB} onChange={(e) => setLabelB(e.target.value)} className="h-10 w-auto min-w-32">
             <option value="">label b</option>
             {labels.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </label>
-        <Button size="sm" variant="outline" disabled={!labelA || !labelB || comparing} onClick={compare}>
+          </Select>
+        <Button size="compact" variant="secondary" disabled={!labelA || !labelB || comparing} onClick={compare}>
           {comparing ? "Comparing" : "Compare"}
         </Button>
-        <Button size="sm" variant="outline" disabled={importing} onClick={importBaseline} className="ml-auto">
+        <Button size="compact" variant="secondary" disabled={importing} onClick={importBaseline} className="ml-auto">
           {importing ? "Importing" : "Import r05 and r06"}
         </Button>
       </div>
-      {imported && <p className="text-xs text-muted-foreground">{imported}</p>}
+      {imported && <p className="text-xs text-paper-dim">{imported}</p>}
 
       {compared && compared.map((c) => (
-        <div key={`${c.a}-${c.b}`} className="rounded-lg border border-border/60 bg-card/40 p-3">
-          <p className="font-label text-xs tracking-wide text-primary mb-2">{c.a} → {c.b} · {cents(c.costUsd[0])} → {cents(c.costUsd[1])} · {c.worse.length} worse, {c.better.length} better</p>
+        <div key={`${c.a}-${c.b}`} className="rounded-card border border-line bg-surface p-3">
+          <p className="font-label text-xs tracking-wide text-indigo-lt mb-2">{c.a} → {c.b} · {cents(c.costUsd[0])} → {cents(c.costUsd[1])} · {c.worse.length} worse, {c.better.length} better</p>
           <table className="w-full text-xs font-numeric">
-            <thead className="text-muted-foreground"><tr><th className="text-left">section</th><th className="text-left">model</th><th>words</th><th>¢</th><th>s</th><th className="text-left">verdict</th></tr></thead>
+            <thead className="text-paper-dim"><tr><th className="text-left">section</th><th className="text-left">model</th><th>words</th><th>¢</th><th>s</th><th className="text-left">verdict</th></tr></thead>
             <tbody>
               {c.rows.map((r) => (
-                <tr key={r.section} className="border-t border-border/30">
+                <tr key={r.section} className="border-t border-line">
                   <td>{r.section}</td>
                   <td>{r.model[0] === r.model[1] ? r.model[0] : `${r.model[0]}→${r.model[1]}`}</td>
                   <td className="text-center">{r.words[0]}→{r.words[1]}</td>
                   <td className="text-center">{cents(r.costUsd[0])}→{cents(r.costUsd[1])}</td>
                   <td className="text-center">{r.seconds[0].toFixed(1)}→{r.seconds[1].toFixed(1)}</td>
-                  <td className={/WORSE/.test(r.verdict) ? "text-destructive" : r.verdict === "better" ? "text-primary" : "text-muted-foreground"}>{r.verdict}</td>
+                  <td className={/WORSE/.test(r.verdict) ? "text-error" : r.verdict === "better" ? "text-indigo-lt" : "text-paper-dim"}>{r.verdict}</td>
                 </tr>
               ))}
             </tbody>
@@ -187,7 +183,7 @@ export function RunsView() {
         </div>
       ))}
 
-      {byRun.length === 0 && <p className="text-sm text-muted-foreground">No run yet. Import r05 and r06 above; they come from the public report-lab branches.</p>}
+      {byRun.length === 0 && <p className="text-sm text-paper-dim">No run yet. Import r05 and r06 above; they come from the public report-lab branches.</p>}
 
       {byRun.map(([runKey, rows]) => {
         const total = rows.filter((r) => r.section !== "foundation").reduce((n, r) => n + r.words, 0);
@@ -196,25 +192,25 @@ export function RunsView() {
         const faults = rows.reduce((n, r) => n + r.faults.length, 0);
         const head = rows[0];
         return (
-          <details key={runKey} className="rounded-lg border border-border/60 bg-card/40">
+          <details key={runKey} className="rounded-card border border-line bg-surface">
             <summary className="cursor-pointer px-3 py-2 flex flex-wrap items-baseline gap-x-3 text-sm">
-              <span className="font-label text-primary">{runKey}</span>
-              <span className="text-muted-foreground text-xs">{head.source}{head.subjectName ? ` · ${head.subjectName}` : ""} · {new Date(head.createdAt).toISOString().slice(0, 10)}</span>
-              <span className="font-numeric text-xs ml-auto">{total} words · {cents(cost)} · {seconds.toFixed(0)} s · {faults ? <span className="text-destructive">{faults} faults</span> : "no fault"}</span>
+              <span className="font-label text-indigo-lt">{runKey}</span>
+              <span className="text-paper-dim text-xs">{head.source}{head.subjectName ? ` · ${head.subjectName}` : ""} · {new Date(head.createdAt).toISOString().slice(0, 10)}</span>
+              <span className="font-numeric text-xs ml-auto">{total} words · {cents(cost)} · {seconds.toFixed(0)} s · {faults ? <span className="text-error">{faults} faults</span> : "no fault"}</span>
             </summary>
             <table className="w-full text-xs font-numeric mb-2">
-              <thead className="text-muted-foreground"><tr><th className="text-left pl-3">section</th><th className="text-left">model</th><th>tier</th><th>words</th><th>¢</th><th>s</th><th className="text-left">code</th><th className="text-left">faults</th></tr></thead>
+              <thead className="text-paper-dim"><tr><th className="text-left pl-3">section</th><th className="text-left">model</th><th>tier</th><th>words</th><th>¢</th><th>s</th><th className="text-left">code</th><th className="text-left">faults</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/30">
+                  <tr key={r.id} className="border-t border-line">
                     <td className="pl-3">{r.section}</td>
                     <td>{r.model}{r.reasoningEffort ? ` · ${r.reasoningEffort}` : ""}</td>
                     <td className="text-center">{r.serviceTier}</td>
                     <td className="text-center">{r.status === "done" ? r.words : r.status}</td>
                     <td className="text-center">{cents(r.costUsd)}</td>
                     <td className="text-center">{r.seconds?.toFixed(1) ?? "-"}</td>
-                    <td className={r.failureCode ? "text-destructive" : "text-muted-foreground"}>{r.failureCode ?? "-"}</td>
-                    <td className={r.faults.length ? "text-destructive" : "text-muted-foreground"}>{r.error ?? (r.faults.join(" ") || "-")}</td>
+                    <td className={r.failureCode ? "text-error" : "text-paper-dim"}>{r.failureCode ?? "-"}</td>
+                    <td className={r.faults.length ? "text-error" : "text-paper-dim"}>{r.error ?? (r.faults.join(" ") || "-")}</td>
                   </tr>
                 ))}
               </tbody>

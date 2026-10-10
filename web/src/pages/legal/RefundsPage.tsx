@@ -10,7 +10,7 @@ export default function RefundsPage() {
   return (
     <LegalLayout path="/refunds">
       <LegalSection title="How refunds work">
-        <ol className="list-decimal space-y-3 pl-5 marker:text-[var(--sd-muted)]">
+        <ol className="list-decimal space-y-3 pl-5 marker:text-muted">
           {REFUND_RULES.map((rule) => (
             <li key={rule}>{rule}</li>
           ))}

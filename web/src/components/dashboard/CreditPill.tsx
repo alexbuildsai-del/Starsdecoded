@@ -7,11 +7,10 @@
  */
 import { CREDIT_LINE } from "@workspace/commerce";
 import { useGetCredits } from "@workspace/api-client-react";
+import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { creditDots } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
-
-const PRESS = "active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100";
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export interface CreditPillProps {
   /** Opens the credits sheet. */
@@ -26,30 +25,27 @@ export function CreditPill({ onOpen, className }: CreditPillProps) {
   // A balance still loading reads as neither a number nor zero.
   const grey = !loaded || count === 0;
   return (
-    <button
-      type="button"
+    <TextButton
       onClick={onOpen}
       disabled={!loaded}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-label text-[11.5px] font-medium",
-        "transition-[background-color,border-color,color,transform] duration-300 disabled:cursor-default",
-        PRESS,
-        FOCUS,
+        "h-7 min-h-0 shrink-0 whitespace-nowrap rounded-full border px-2.5 font-label text-caption font-medium",
+        "transition-[background-color,border-color,color,transform] duration-[var(--dur-base)] active:scale-[.97] motion-reduce:active:scale-100 disabled:cursor-default",
         grey
-          ? "border-border bg-transparent text-muted-foreground hover:border-[#9FA8DA]/40"
-          : "border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.1)] text-[#9FA8DA] hover:border-[rgba(92,107,192,.6)]",
+          ? "border-line bg-transparent text-muted hover:border-indigo-lt/40"
+          : "border-indigo/35 bg-indigo-tint text-indigo-lt hover:border-indigo/60",
         className,
       )}
     >
       {loaded ? (
         <>
-          <span className={cn("font-numeric text-xs", grey ? "text-muted-foreground" : "text-foreground")}>{count}</span>{" "}
+          <span className={cn("font-numeric text-caption", grey ? "text-muted" : "text-paper")}>{count}</span>{" "}
           {count === 1 ? "credit" : "credits"}
         </>
       ) : (
         "Credits"
       )}
-    </button>
+    </TextButton>
   );
 }
 
@@ -68,9 +64,9 @@ export function CreditDots({ count, className }: CreditDotsProps) {
   return (
     <div aria-hidden="true" className={cn("flex flex-wrap items-center gap-1.5", className)}>
       {Array.from({ length: lit }, (_, i) => (
-        <i key={i} className="block h-[9px] w-[9px] rounded-full bg-[#9575CD] shadow-[0_0_8px_rgba(149,117,205,.53)]" />
+        <i key={i} className="block h-[9px] w-[9px] rounded-full bg-violet shadow-[0_0_8px_var(--color-violet)]" />
       ))}
-      {more > 0 && <span className="ml-0.5 font-numeric text-xs text-[#9FA8DA]">+{more}</span>}
+      {more > 0 && <span className="ml-0.5 font-numeric text-caption text-indigo-lt">+{more}</span>}
     </div>
   );
 }
@@ -90,32 +86,23 @@ export function CreditRow({ onGetCredits, className }: CreditRowProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2.5 rounded-xl border border-border bg-[rgba(20,24,31,.6)] px-3 py-2.5",
+        "flex items-center justify-between gap-2.5 rounded-card border border-line bg-surface-glass px-3 py-2.5",
         className,
       )}
     >
       <div className="min-w-0">
-        <p className="text-[13.5px] leading-snug text-foreground">
+        <p className="text-small leading-snug text-paper">
           {zero ? "No credits left" : (
             <>
               <span className="font-numeric">{count}</span> {count === 1 ? "credit" : "credits"} left
             </>
           )}
         </p>
-        <p className="text-xs leading-snug text-muted-foreground">{CREDIT_LINE}</p>
+        <p className="text-caption leading-snug text-muted">{CREDIT_LINE}</p>
       </div>
-      <button
-        type="button"
-        onClick={onGetCredits}
-        className={cn(
-          "inline-flex h-[30px] shrink-0 items-center rounded-md px-[11px] font-label text-xs font-medium transition duration-200",
-          PRESS,
-          FOCUS,
-          zero ? "bg-primary text-white hover:brightness-110" : "border border-border text-foreground hover:border-[#9FA8DA]/55",
-        )}
-      >
+      <Button size="compact" variant={zero ? "primary" : "secondary"} onClick={onGetCredits}>
         {zero ? "Get credits" : "Get more"}
-      </button>
+      </Button>
     </div>
   );
 }

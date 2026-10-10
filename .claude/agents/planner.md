@@ -28,7 +28,8 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    Haiku for docs-only and mechanical edits (colours, spacing, renames, config), never user-facing words (ADR-420). A done-when names a test only for a step of the buyer flow the card changes or a bug that came
    back (ADR-273); otherwise typecheck and the critical tier. Cut cards so they
    touch disjoint files, in at most three parallel groups listed explicitly
-   (ADR-283). A card never mixes prompt changes with UI changes.
+   (ADR-283). A card never mixes prompt changes with UI changes. A UI card uses only the design system parts its locked spec names;
+   a part the spec does not settle goes back to ideation as a question, never invented in the round (the Owner, 2026-10-09).
 3. **Risks**: schema changes, new dependencies, anything user-visible without a
    locked spec, anything that changes report content (USER-FACING), and any
    card, or kind of card, escalated to Opus in two rounds running, named with

@@ -16,7 +16,7 @@ import {
   type ReportSummary,
 } from "@workspace/api-client-react";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { ListRow, MENU_DANGER, MenuItem, ROW_STATUS, RowChip } from "@/components/dashboard/RowMenu";
 import { ShareWindow, type ShareTarget } from "@/components/share/ShareWindow";
 import { useHome } from "@/hooks/useHome";
@@ -76,7 +76,7 @@ function PairRow({ pair, report, own, onShare }: PairRowProps) {
     );
   } else if (state === "pair_writing") {
     actions.push(
-      <span key="writing" className="font-label text-xs text-[#9FA8DA]">
+      <span key="writing" className="font-label text-caption text-indigo-lt">
         <StatusDots label="Writing" />
       </span>,
       <span key="why" className={ROW_STATUS}>{PAIR_ROW_COPY.pair_writing}</span>,
@@ -129,7 +129,7 @@ export function CompatibilityRows() {
   return (
     <>
       {pairs.length === 0 ? (
-        <p className="text-[13px] leading-snug text-[#9AA3B5]">No {COMPATIBILITY_REPORT}s yet.</p>
+        <p className="text-small text-paper-dim">No {COMPATIBILITY_REPORT}s yet.</p>
       ) : (
         <div className="@container">
           <ul className="grid gap-2 @min-[620px]:grid-cols-2">

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { Alert } from "@/ds/molecules/Alert";
+import { SegmentedControl } from "@/ds/molecules/SegmentedControl";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
 import { BASE_URL } from "@/lib/api";
-import { Wordmark } from "@/components/Wordmark";
+import { AdminDenied, AdminLoading, AdminShell } from "@/components/lab/AdminShell";
 import { ClerkStalledPage } from "@/components/ClerkStalled";
 import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { usePageTitle } from "@/lib/page-title";
@@ -59,82 +61,46 @@ export default function AdminLabPage() {
 
   if (clerkStalled) return <ClerkStalledPage />;
 
-  if (!isLoaded || isAdmin === null) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
-        {error ? <p className="text-sm text-destructive">{error}</p> : <Loader2 className="h-8 w-8 animate-spin text-primary/40" />}
-      </div>
-    );
-  }
+  if (!isLoaded || isAdmin === null) return <AdminLoading error={error} />;
 
   if (isAdmin === false) {
-    return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
-          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
-          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/report-lab` })}>Sign out</Button>
-        </div>
-      </div>
-    );
+    return <AdminDenied onSignOut={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/report-lab` })} />;
   }
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <button type="button" onClick={() => navigate("/dashboard")}><Wordmark /></button>
-          <span className="font-label text-xs tracking-[0.15em] uppercase text-muted-foreground hidden sm:block">Admin</span>
+    <AdminShell
+      current="/admin/report-lab"
+      title="Report lab"
+      lede="Stored runs, the spot and the dry, the blind reading room, the failure log and the release. Nothing generates before you press a button that shows its price."
+      aside={
+        <div className="text-right font-numeric text-small">
+          <Eyebrow className="block">Lab spend {spend?.month ?? ""}</Eyebrow>
+          <p className="m-0">{spend ? <>{cents(spend.spentUsd)} of {cents(spend.budgetUsd)} · {spend.runs} runs</> : "-"}</p>
         </div>
-      </nav>
+      }
+    >
+      {readOnly && (
+        <Alert tone="notice" className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-brass" />
+          <p className="m-0">Read-only here. Spots, sessions and releases run on staging only.</p>
+        </Alert>
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-20 flex gap-6">
-        <aside className="hidden md:flex flex-col gap-1 w-48 shrink-0 pt-2">
-          <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2 px-3">Admin</p>
-          <button type="button" onClick={() => navigate("/admin/prompts")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Prompts</button>
-          <button type="button" onClick={() => navigate("/admin/report-lab")} className="text-left px-3 py-2 rounded-lg text-sm font-label bg-primary/10 text-primary">Lab</button>
-          <button type="button" onClick={() => navigate("/admin/waitlist")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Waitlist</button>
-        </aside>
+      <SegmentedControl<Tab>
+        aria-label="Lab views"
+        className="w-fit max-w-full flex-wrap"
+        options={TABS.map(([id, label]) => ({ id, label }))}
+        value={tab}
+        onChange={setTab}
+      />
 
-        <main className="flex-1 min-w-0">
-          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
-              <h1 className="font-display text-2xl">Report lab</h1>
-              <p className="text-sm text-muted-foreground mt-1">Stored runs, the spot and the dry, the blind reading room, the failure log and the release. Nothing generates before you press a button that shows its price.</p>
-            </div>
-            <div className="text-right font-numeric text-sm">
-              <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Lab spend {spend?.month ?? ""}</p>
-              <p>{spend ? <>{cents(spend.spentUsd)} of {cents(spend.budgetUsd)} · {spend.runs} runs</> : "-"}</p>
-            </div>
-          </div>
-
-          {readOnly && (
-            <div role="status" className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 flex items-start gap-3 text-amber-200">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm leading-relaxed">Read-only here. Spots, sessions and releases run on staging only.</p>
-            </div>
-          )}
-
-          <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
-            {TABS.map(([t, name]) => (
-              <button key={t} type="button" onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-md text-xs font-label tracking-wide transition-colors ${tab === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                {name}
-              </button>
-            ))}
-          </div>
-
-          {tab === "runs" && <RunsView />}
-          {tab === "spot" && <SpotView readOnly={readOnly} />}
-          {tab === "spawn" && <SpawnView onSpawned={(id) => { setSessionId(id); setTab("room"); }} />}
-          {tab === "room" && <ReadingRoom sessionId={sessionId} onSession={onSession} onReveal={(id) => { setSessionId(id); setTab("reveal"); }} />}
-          {tab === "reveal" && <RevealView sessionId={sessionId} onSession={onSession} />}
-          {tab === "failures" && <FailuresView />}
-          {tab === "release" && <ReleaseView readOnly={readOnly} />}
-        </main>
-      </div>
-    </div>
+      {tab === "runs" && <RunsView />}
+      {tab === "spot" && <SpotView readOnly={readOnly} />}
+      {tab === "spawn" && <SpawnView onSpawned={(id) => { setSessionId(id); setTab("room"); }} />}
+      {tab === "room" && <ReadingRoom sessionId={sessionId} onSession={onSession} onReveal={(id) => { setSessionId(id); setTab("reveal"); }} />}
+      {tab === "reveal" && <RevealView sessionId={sessionId} onSession={onSession} />}
+      {tab === "failures" && <FailuresView />}
+      {tab === "release" && <ReleaseView readOnly={readOnly} />}
+    </AdminShell>
   );
 }

@@ -17,12 +17,16 @@ import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } 
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { tokens } from "@workspace/design";
+import { Button } from "@/ds/atoms/Button";
+import { PlanetBody } from "@/ds/atoms/PlanetBody";
+import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { InlineError } from "@/ds/molecules/Alert";
 import { AccountMenu } from "@/components/AccountMenu";
 import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport, type SendState } from "@workspace/api-client-react";
 import LoadingState from "@/components/LoadingState";
 import {
-  PLANET_GLYPHS,
   PLANET_LABELS,
   isCurrentInterpretation,
   rewriteOffer,
@@ -65,22 +69,22 @@ import { useTimelineAccess } from "@/lib/timeline-access";
 const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
 const TOTAL = CHAPTERS.length;
-const OPENING_ACCENT = "#5C6BC0";
+const OPENING_ACCENT = tokens.color["chapter-1"];
 
 function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlanet; meaning?: string }) {
   return (
-    <div id={`planet-${name}`} className="py-3 border-b border-border/30 last:border-0 scroll-mt-24">
+    <div id={`planet-${name}`} className="py-3 border-b border-line-soft last:border-0 scroll-mt-24">
       <div className="flex items-center gap-3">
-        <span className="w-6 text-center text-lg text-primary/80">{PLANET_GLYPHS[name] ?? "·"}</span>
-        <span className="font-label text-sm w-24 text-muted-foreground">{PLANET_LABELS[name] ?? name}</span>
-        <span className="font-numeric text-base flex-1">
+        <span className="grid w-6 place-items-center"><PlanetBody body={name} size={20} /></span>
+        <span className="font-label text-ui w-24 text-muted">{PLANET_LABELS[name] ?? name}</span>
+        <span className="font-numeric text-ui flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
         </span>
-        {planet.house && <span className="font-numeric text-xs text-muted-foreground">{houseWithWord(planet.house)}</span>}
-        {planet.retrograde && <span className="text-xs text-amber-400 font-label">Rx</span>}
+        {planet.house && <span className="font-numeric text-caption text-muted">{houseWithWord(planet.house)}</span>}
+        {planet.retrograde && <RetrogradeBadge size="small" label="Retrograde" />}
       </div>
       {meaning && (
-        <p className="mt-2 ml-9 pr-2 text-sm leading-relaxed text-foreground/80 whitespace-pre-line">{meaning}</p>
+        <p className="mt-2 ml-9 pr-2 text-ui text-paper-dim whitespace-pre-line">{meaning}</p>
       )}
     </div>
   );
@@ -88,7 +92,7 @@ function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlane
 
 function Centred({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-ground flex items-center justify-center">
       <div className="text-center max-w-md px-6">{children}</div>
     </div>
   );
@@ -98,25 +102,25 @@ function Centred({ children }: { children: React.ReactNode }) {
 function OutdatedLine({ onRegenerate, pending, error }: { onRegenerate?: () => void; pending: boolean; error: string | null }) {
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-[#242C3B] bg-[rgba(20,24,31,.6)] px-3 py-2.5"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-card border border-line bg-surface-glass px-3 py-2.5"
       data-testid="outdated-line"
     >
-      <p id="outdated-line-text" className="min-w-0 flex-1 basis-[200px] text-[13.5px] leading-snug text-foreground">
+      <p id="outdated-line-text" className="min-w-0 flex-1 basis-[200px] text-small text-paper">
         The birth time was updated after this report was written.
       </p>
       {onRegenerate && (
         <Button
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="compact"
           disabled={pending}
           onClick={onRegenerate}
           aria-describedby="outdated-line-text"
-          className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
+          className="shrink-0 text-indigo-lt"
         >
           {pending ? "Starting…" : "Regenerate"}
         </Button>
       )}
-      {error && <p role="alert" className="basis-full text-xs text-destructive">{error}</p>}
+      {error && <InlineError className="basis-full">{error}</InlineError>}
     </div>
   );
 }
@@ -136,25 +140,25 @@ function SendLine({ send, onSend }: { send: SendState | null | undefined; onSend
   const offered = send.state === "can_send" || send.state === "can_grant" || send.state === "handed_back";
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-[#242C3B] bg-[rgba(20,24,31,.6)] px-3 py-2.5"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-card border border-line bg-surface-glass px-3 py-2.5"
       data-testid="send-line"
       data-state={send.state}
     >
       <div className="min-w-0 flex-1 basis-[200px]">
-        <p className="text-[13.5px] leading-snug text-foreground">{title}</p>
-        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{note}</p>
+        <p className="text-small text-paper">{title}</p>
+        <p className="mt-0.5 text-caption text-muted">{note}</p>
       </div>
       {send.state === "joined" && (
-        <span className="inline-flex h-[30px] shrink-0 items-center rounded-md border border-[rgba(127,176,139,.4)] px-[11px] font-label text-xs text-[#7FB08B]">
+        <span className="inline-flex h-[30px] shrink-0 items-center rounded-inner border border-element-earth/40 px-[11px] font-label text-caption text-element-earth">
           Joined ✓
         </span>
       )}
       {offered && (
         <Button
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="compact"
           onClick={onSend}
-          className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
+          className="shrink-0 text-indigo-lt"
           data-testid="button-send-to"
         >
           {send.state === "handed_back" ? SEND_AGAIN : shareWith(send.firstName)}
@@ -211,8 +215,8 @@ export default function ReportPage() {
   if (live.isError || !report) {
     return (
       <Centred>
-        <p className="text-muted-foreground mb-4">Report not found.</p>
-        <Button onClick={() => navigate("/chart")} variant="outline">Start over</Button>
+        <p className="text-muted mb-4">Report not found.</p>
+        <Button onClick={() => navigate("/chart")} variant="secondary">Start over</Button>
       </Centred>
     );
   }
@@ -231,16 +235,16 @@ export default function ReportPage() {
   if (!writing && interpretation && !isCurrentInterpretation(interpretation)) {
     return (
       <Centred>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted mb-4">
           This report was made with an older version. Write it again to read it.
         </p>
         {offer.regenerate && (
-          <Button variant="outline" disabled={regenerate.isPending} onClick={rewrite}>
+          <Button variant="secondary" disabled={regenerate.isPending} onClick={rewrite}>
             {regenerate.isPending ? "Starting…" : "Regenerate"}
           </Button>
         )}
         {regenerateError && (
-          <p role="alert" className="text-sm text-destructive mt-3">{regenerateError}</p>
+          <InlineError className="mt-3">{regenerateError}</InlineError>
         )}
       </Centred>
     );
@@ -327,20 +331,17 @@ export default function ReportPage() {
       {/* The opening screen draws its own grid to the top edge, so the chrome waits for the door and then takes a ground once the reading starts. */}
       {!showOverlay && <nav
         className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
-          onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
+          onHero ? "border-transparent bg-transparent" : "border-line bg-ground/90 backdrop-blur-md"
         }`}
       >
         <div className="max-w-[880px] mx-auto px-6 h-14 flex items-center justify-between">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-sm font-label"
-          >
+          <TextButton onClick={() => navigate("/dashboard")} className="text-muted">
             <ArrowLeft className="h-4 w-4" />
-            Dashboard
-          </button>
+            <span className="font-label text-ui">Dashboard</span>
+          </TextButton>
           <div className="flex items-center gap-2">
             {/* Export reads the same status the door reads and flips at complete (ADR-48). */}
-            <Button variant="outline" size="sm" disabled={writing} onClick={handlePrint} className="font-label text-xs gap-1.5">
+            <Button variant="secondary" size="compact" disabled={writing} onClick={handlePrint} className="gap-1.5">
               <Download className="h-3.5 w-3.5" />
               {revising ? "Revising…" : writing ? "Writing…" : "Export PDF"}
             </Button>
@@ -409,36 +410,36 @@ export default function ReportPage() {
               const planet = chartData.planets[name];
               if (!text || !planet) return null;
               return (
-                <div key={name} className="p-5 rounded-xl border border-border/60 bg-card/40">
+                <div key={name} className="p-5 rounded-card border border-line bg-surface/40">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-primary text-base">{PLANET_GLYPHS[name]}</span>
-                      <span className="font-display text-base text-foreground">
+                      <PlanetBody body={name} size={16} />
+                      <span className="font-display text-ui text-paper">
                         {PLANET_LABELS[name]} in {planet.sign}
                       </span>
                     </div>
-                    {planet.house && <span className="font-numeric text-[11px] text-muted-foreground">{houseWithWord(planet.house)}</span>}
+                    {planet.house && <span className="font-numeric text-data-sm text-muted">{houseWithWord(planet.house)}</span>}
                   </div>
-                  <p className="text-sm leading-relaxed text-foreground/80">{text}</p>
+                  <p className="text-ui text-paper-dim">{text}</p>
                 </div>
               );
             })}
             {angles && !blind && (
-              <div className="p-5 rounded-xl border border-border/60 bg-card/40">
-                <p className="font-label text-xs text-muted-foreground tracking-wider uppercase mb-2">Angles</p>
-                <p className="text-sm leading-relaxed text-foreground/80">{angles.ascendant.firstImpression}</p>
-                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.ascendant.orientationStyle}</p>
-                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.midheaven.publicDirection}</p>
-                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.midheaven.whereYouThrive}</p>
+              <div className="p-5 rounded-card border border-line bg-surface/40">
+                <p className="font-label text-caption text-muted tracking-wider uppercase mb-2">Angles</p>
+                <p className="text-ui text-paper-dim">{angles.ascendant.firstImpression}</p>
+                <p className="text-ui text-paper-dim mt-2">{angles.ascendant.orientationStyle}</p>
+                <p className="text-ui text-paper-dim mt-2">{angles.midheaven.publicDirection}</p>
+                <p className="text-ui text-paper-dim mt-2">{angles.midheaven.whereYouThrive}</p>
               </div>
             )}
           </div>
 
           {/* Placement table, print only; the PDF is the one place every degree appears. */}
           <div className="hidden print:block print:mt-8">
-            <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
-              <div className="px-5 py-3 bg-muted/20">
-                <p className="font-label text-xs text-muted-foreground tracking-wider uppercase">Personal Planets</p>
+            <div className="rounded-card border border-line bg-surface/40 divide-y divide-line-soft overflow-hidden">
+              <div className="px-5 py-3 bg-raised/60">
+                <p className="font-label text-caption text-muted tracking-wider uppercase">Personal Planets</p>
               </div>
               <div className="px-5">
                 {mainPlanets.map((name) => {
@@ -447,8 +448,8 @@ export default function ReportPage() {
                   return <PlanetRow key={name} name={name} planet={planet} meaning={interpretation.personalPlanets?.[name]} />;
                 })}
               </div>
-              <div className="px-5 py-3 bg-muted/20">
-                <p className="font-label text-xs text-muted-foreground tracking-wider uppercase">Points</p>
+              <div className="px-5 py-3 bg-raised/60">
+                <p className="font-label text-caption text-muted tracking-wider uppercase">Points</p>
               </div>
               <div className="px-5">
                 {minorPlanets.map((name) => {

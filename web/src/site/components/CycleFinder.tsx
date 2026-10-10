@@ -9,7 +9,7 @@
  */
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { CycleId } from "@workspace/engine";
-import { BirthDateField } from "@/components/BirthDateField";
+import { BirthDateField } from "@/ds/molecules/BirthFields";
 import { AgeRing } from "@/components/timeline/AgeRing";
 import { CycleCard } from "@/components/timeline/CycleCard";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { localDay } from "@/lib/date-entry";
 import { cycleDates, cycleWhen, type CycleView } from "@/lib/life-view";
 import { MIRA } from "@/site/data/timeline/mira";
+import { Button } from "@/ds/atoms/Button";
 
 /** The four cards in the page's order, each with the why line locked with it (timeline-page §3). */
 export const FINDER_CARDS: readonly { id: CycleId; why: string }[] = [
@@ -85,7 +86,7 @@ const NOT_LOADED = "Your dates didn't load. Reload the page and try again.";
 
 // The artifact's sample tag, dashed so it reads as a note on the field rather than a control.
 const TAG =
-  "inline-block whitespace-nowrap rounded-md border border-dashed border-[color:var(--line)] px-1.5 py-px font-label text-[10px] leading-snug tracking-[.14em] text-[color:var(--sd-muted)]";
+  "inline-block whitespace-nowrap rounded-md border border-dashed border-line px-1.5 py-px font-label text-caption leading-snug tracking-[.14em] text-muted";
 
 export function CycleFinder() {
   const uid = useId();
@@ -151,7 +152,7 @@ export function CycleFinder() {
   return (
     <section id="finder" className="sd-pg-sec sd-sec-b sd-line" aria-labelledby={headingId}>
       <div className="sd-wrap">
-        <div className="grid gap-[18px] rounded-[18px] border border-[color:var(--line)] bg-[color:var(--surface)] p-[18px] min-[880px]:p-7">
+        <div className="grid gap-[18px] rounded-sheet border border-line bg-surface p-[18px] min-[880px]:p-7">
           <div className="grid gap-[18px] min-[880px]:grid-cols-[minmax(0,1fr)_240px] min-[880px]:items-center min-[880px]:gap-9">
             <div className="grid min-w-0 gap-3">
               <p className="sd-eyebrow">Try it free</p>
@@ -165,7 +166,7 @@ export function CycleFinder() {
               <form className="mt-1 grid min-w-0 gap-2" onSubmit={submit} noValidate>
                 <Label
                   htmlFor={fieldId}
-                  className="flex flex-wrap items-center gap-2 font-label text-xs uppercase tracking-wide text-muted-foreground"
+                  className="flex flex-wrap items-center gap-2 font-label text-xs uppercase tracking-wide text-muted"
                 >
                   Birth date
                   {shown.example ? <span className={TAG}>Mira's, as an example</span> : null}
@@ -175,16 +176,16 @@ export function CycleFinder() {
                   <div className="min-w-0 flex-[1_1_200px]">
                     <BirthDateField id={fieldId} value={value} min={EARLIEST} max={today} onChange={change} describedBy={hintId} />
                   </div>
-                  <button type="submit" className="sd-btn h-12">
+                  <Button type="submit" className="h-12">
                     Show my dates
-                  </button>
+                  </Button>
                 </div>
                 {problem ? (
-                  <p id={hintId} role="alert" className="text-[13px] leading-snug text-[#E9A0A0]">
+                  <p id={hintId} role="alert" className="text-small leading-snug text-error">
                     {problem}
                   </p>
                 ) : (
-                  <p id={hintId} className="text-[13px] leading-snug text-[color:var(--sd-muted)]">
+                  <p id={hintId} className="text-small leading-snug text-muted">
                     No birth time or place needed.
                   </p>
                 )}
@@ -193,21 +194,21 @@ export function CycleFinder() {
 
             <div className="grid min-w-0 justify-items-center gap-2" aria-busy={busy || undefined}>
               {ring ? <AgeRing age={ring.age} progress={ring.progress} label={ring.label} /> : null}
-              <p className="grid gap-[3px] text-center text-[13px] leading-normal text-[color:var(--paper-dim)]">
+              <p className="grid gap-[3px] text-center text-small leading-normal text-paper-dim">
                 {lines.map((cycle) => (
                   <span key={cycle.key}>
-                    At {cycle.age}: <span className="font-numeric text-[color:var(--indigo-lt)]">{cycleDates(cycle, order)}</span>
+                    At {cycle.age}: <span className="font-numeric text-indigo-lt">{cycleDates(cycle, order)}</span>
                     {behind(cycle) ? " · behind you" : null}
                   </span>
                 ))}
               </p>
-              <p className="flex flex-wrap justify-center gap-x-3.5 gap-y-1 text-[11.5px] leading-normal text-[color:var(--sd-muted)]">
+              <p className="flex flex-wrap justify-center gap-x-3.5 gap-y-1 text-caption leading-normal text-muted">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden="true" className="size-2 rounded-full bg-[#D4B06A]" />
+                  <span aria-hidden="true" className="size-2 rounded-full bg-brass" />
                   Saturn when you were born
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden="true" className="size-2 rounded-full bg-[#9FA8DA]" />
+                  <span aria-hidden="true" className="size-2 rounded-full bg-indigo-lt" />
                   Saturn today
                 </span>
               </p>

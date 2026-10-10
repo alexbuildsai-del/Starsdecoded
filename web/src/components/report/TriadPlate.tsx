@@ -1,62 +1,12 @@
 /**
- * The ringed triad plate: a small ring with the Sun, the Moon and the rising
- * marker at their true degrees, the Moon's band as an arc, no rows. The
- * compatibility hero drew it until R09 and no longer does (ADR-99); it lives
- * here because the dashboard sky card keeps its ring (ADR-92, MB-86), and
- * home's and Learn's birth-time plates draw it too.
+ * The small Sun, Moon and rising plate the dashboard sky card and the birth-time plates print. It is the one chart in
+ * its Sun, Moon and rising state (TriadRing), so it keeps no ring, horizon or marker of its own; callers keep its props.
  */
-import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
-import { pointAt } from "@/components/chart/wheel-geometry";
-import { heroTheta, layoutHero, moonArc, type PlacedBody } from "@/components/report/hero-layout";
-import { AngleGlyphShape } from "@/components/report/AngleGlyph";
+import { TriadRing } from "@/ds/atoms/TriadRing";
 import type { ChartData } from "@/types/chart";
 
-const SKY = "var(--sky)";
-const SKY_DIM = "var(--sky-dim)";
-
-const W = 220;
-const R = 72;
-const SUN_SIZE = 44;
-export const MOON_SIZE = 28;
-/** Clear air between the Moon's picture and its day arc. */
-const ARC_GAP = 5;
-/**
- * The room between the ring and the plate's edge. The report hero's step would put a Sun within 12° of the Moon off
- * this plate (MB-171), so here it steps only as far as the plate allows, and the two pictures may still overlap.
- */
-const SUN_STEP = W / 2 - R - SUN_SIZE / 2;
-
-/**
- * The degree drawn at east: the Ascendant, or 0° Aries on a chart drawn without one. Every call frames on that degree
- * itself, as the report hero does (ADR-395); on the wheel's frame, the start of its sign, the dotted horizon leans by
- * the Ascendant's degree in its sign.
- */
-function frameOf(chart: ChartData): number {
-  return chart.angles?.ascendant?.absoluteDegree ?? 0;
-}
-
-/** Where the plate draws the Sun and the Moon; pure, so a test can hold the drawing to the plate's edges (MB-171). */
-export function triadBodies(chart: ChartData): PlacedBody[] {
-  const sun = chart.planets.sun;
-  const moon = chart.planets.moon;
-  return layoutHero({
-    cx: W / 2, cy: W / 2, ringRadius: R, frameDegree: frameOf(chart), frameOn: "degree", outsideStep: SUN_STEP,
-    bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: SUN_SIZE },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: MOON_SIZE },
-    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
-    labelWidth: 0, labelHeight: 0, obstacles: [],
-  }).bodies;
-}
-
-/**
- * The Moon's day arc, drawn just outside the picture. On the ring itself a
- * band of a few degrees is shorter than the picture is wide, so the Moon
- * covers all of it and the plate shows nothing (MB-126 provisional).
- */
-export function moonDayArc(cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }) {
-  return moonArc(cx, cy, ringRadius + MOON_SIZE / 2 + ARC_GAP, frameDegree, band, "degree");
-}
+/** The plate's side in px as the dashboard prints it; under 200 px the ring carries no sign names. */
+const PLATE = 104;
 
 export interface TriadPlateProps {
   chart: ChartData;
@@ -65,38 +15,7 @@ export interface TriadPlateProps {
 }
 
 export function TriadPlate({ chart, name, className }: TriadPlateProps) {
-  const blind = !chart.angles?.ascendant;
-  const moon = chart.planets.moon;
-  const cx = W / 2;
-  const cy = W / 2;
-  const frame = frameOf(chart);
-  const ascTheta = heroTheta(frame, frame, "degree");
-  const ascAt = pointAt(cx, cy, R, ascTheta);
-  const arc = moon?.band ? moonDayArc(cx, cy, R, frame, moon.band) : null;
-  const bodies = triadBodies(chart);
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${W}`}
-      className={className ?? "block w-[min(220px,40vw)] h-auto"}
-      role="img"
-      aria-label={`${name}: Sun, Moon and rising at their true positions${blind ? "; the horizon is not drawn" : ""}`}
-      data-side-blind={blind || undefined}
-    >
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
-      {!blind && (
-        <line
-          x1={pointAt(cx, cy, R + 14, ascTheta).x.toFixed(1)} y1={pointAt(cx, cy, R + 14, ascTheta).y.toFixed(1)}
-          x2={pointAt(cx, cy, R + 14, heroTheta(frame + 180, frame, "degree")).x.toFixed(1)} y2={pointAt(cx, cy, R + 14, heroTheta(frame + 180, frame, "degree")).y.toFixed(1)}
-          stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
-        />
-      )}
-      {arc && <path d={arc.d} fill="none" stroke={SKY} strokeOpacity={0.7} strokeWidth={2.5} strokeLinecap="round" data-moon-arc />}
-      {bodies.map((b) => (
-        <image key={b.key} href={b.key === "sun" ? SUN_HERO : PLANET_RENDERS[b.key]} x={b.x - b.size / 2} y={b.y - b.size / 2} width={b.size} height={b.size} />
-      ))}
-      {!blind && <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={7} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.3} />}
-    </svg>
-  );
+  return <TriadRing chart={chart} name={name} size={PLATE} className={className ?? "block h-auto w-[min(220px,40vw)]"} />;
 }
 
 export default TriadPlate;

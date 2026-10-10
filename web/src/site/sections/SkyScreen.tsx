@@ -12,6 +12,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { LAUNCHED } from "@workspace/launch";
+import { Button, buttonStyles } from "@/ds/atoms/Button";
+import { useOpenerReturn } from "@/ds/organisms/Dialog";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { CHAPTERS } from "@/lib/chapters";
@@ -73,6 +75,17 @@ export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScr
   const closeButton = useRef<HTMLButtonElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const keepForForm = useKeepForForm(to.birth);
+  // "Try another date" sends focus to the date field (the page does it), so only the other ways out go back to the opener.
+  const another = useRef(false);
+  const focus = useOpenerReturn({
+    onOpenAutoFocus: (event) => {
+      event.preventDefault();
+      content.current?.focus({ preventScroll: true });
+    },
+    onCloseAutoFocus: (event) => {
+      if (another.current) event.preventDefault();
+    },
+  });
 
   // The lift: the screen's wheel starts where the page's is and eases into its own place. It runs once, from the page
   // as it stood when the screen opened.
@@ -126,6 +139,7 @@ export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScr
 
   const close = (keep: boolean) => {
     if (stage !== "shown") return;
+    another.current = !keep;
     setStage("closing");
     setLit(false);
     const el = square.current;
@@ -155,11 +169,8 @@ export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScr
         <Dialog.Content
           ref={content}
           tabIndex={-1}
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            content.current?.focus({ preventScroll: true });
-          }}
-          onCloseAutoFocus={(event) => event.preventDefault()}
+          onOpenAutoFocus={focus.onOpenAutoFocus}
+          onCloseAutoFocus={focus.onCloseAutoFocus}
           onEscapeKeyDown={(event) => {
             event.preventDefault();
             close(true);
@@ -177,15 +188,16 @@ export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScr
               <Dialog.Title className="sd-eyebrow">Your chart</Dialog.Title>
               <Dialog.Description className="sd-tag">{birth ? summaryLine(birth, clock) : ""}</Dialog.Description>
             </div>
-            <button
+            <Button
               ref={closeButton}
-              type="button"
+              variant="secondary"
+              size="compact"
               onClick={() => close(true)}
               aria-label="Close and go back to the page"
-              className="grid h-10 w-10 flex-none cursor-pointer place-items-center rounded-full border border-[color:var(--line)] bg-[rgba(13,17,23,.7)] text-[color:var(--paper)] transition-colors hover:border-[rgba(159,168,218,.6)]"
+              className="size-11 flex-none rounded-pill bg-ground/70 px-0"
             >
-              <X aria-hidden="true" className="h-4 w-4" />
-            </button>
+              <X aria-hidden="true" />
+            </Button>
           </div>
           <div className="relative mx-auto grid min-h-0 w-full max-w-[1320px] grid-cols-[minmax(0,1fr)_minmax(0,400px)] items-center gap-12 px-14 pb-7 @max-[900px]:grid-cols-1 @max-[900px]:content-start @max-[900px]:items-start @max-[900px]:gap-2.5 @max-[900px]:overflow-y-auto @max-[900px]:px-4 @max-[900px]:pb-[max(20px,env(safe-area-inset-bottom))]">
             {/* Where the margin beside the ring is too narrow for them, the horizon's words go and its line stays. */}
@@ -212,29 +224,29 @@ function Reading({ sky, keepForForm, onAgain }: { sky: Sky; keepForForm: () => v
   ];
   return (
     <>
-      <h3 className="text-[clamp(26px,3.2cqw,36px)] leading-[1.12] @max-[900px]:text-2xl">{plainLine(chart)}</h3>
+      <h3 className="text-sheet-title md:text-section leading-[1.12] @max-[900px]:text-2xl">{plainLine(chart)}</h3>
       <dl className="grid">
         {rows.map(([name, value, measured]) => (
-          <div key={name} className="grid grid-cols-[76px_minmax(0,1fr)] items-baseline gap-3 border-t border-[color:var(--line-soft)] py-2.5 last:border-b">
-            <dt className="font-label text-[11px] uppercase tracking-[.16em] text-[color:var(--sd-muted)]">{name}</dt>
-            <dd className={measured ? "font-numeric text-[14px] text-[color:var(--paper)]" : "text-[14px] text-[color:var(--paper-dim)]"}>{value}</dd>
+          <div key={name} className="grid grid-cols-[76px_minmax(0,1fr)] items-baseline gap-3 border-t border-line-soft py-2.5 last:border-b">
+            <dt className="font-label text-kicker uppercase tracking-[.16em] text-muted">{name}</dt>
+            <dd className={measured ? "font-numeric text-ui text-paper" : "text-ui text-paper-dim"}>{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="text-[15.5px] leading-normal text-[color:var(--paper-dim)]">
+      <p className="text-prose leading-normal text-paper-dim">
         {chart.angles
           ? `Your ${PERSONAL_REPORT} goes through all of this in ${COUNTS[CHAPTERS.length] ?? CHAPTERS.length} chapters.`
           : `You can still get a full ${PERSONAL_REPORT}. Without a birth time it leaves out your rising sign and houses, and says so. You can add the time later, free.`}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <span className="contents" onClickCapture={keepForForm}>
-          <ReportCta source="sky-screen" className="sd-btn" />
+          <ReportCta source="sky-screen" className={buttonStyles()} />
         </span>
-        <button type="button" className="sd-btn sd-btn-g" onClick={onAgain}>
+        <Button variant="secondary" onClick={onAgain}>
           Try another date
-        </button>
+        </Button>
       </div>
-      <p className="text-[12.5px] leading-snug text-[color:var(--sd-muted)]">Nothing is saved. Close this to go back to the page.</p>
+      <p className="text-caption leading-snug text-muted">Nothing is saved. Close this to go back to the page.</p>
     </>
   );
 }

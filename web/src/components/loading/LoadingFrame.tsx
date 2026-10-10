@@ -1,12 +1,8 @@
 import type { ReactNode } from "react";
+import { LoadingStory, type LoadingStorySlots } from "@/ds/templates/LoadingStory";
 
 /** What a loading screen puts on the grid (ADR-351); the slot's place is the frame's, never the content's. */
-export interface LoadingSlots {
-  counter?: ReactNode;
-  title: ReactNode;
-  subtitle?: ReactNode;
-  stage: ReactNode;
-  detail?: ReactNode;
+export interface LoadingSlots extends Omit<LoadingStorySlots, "pct" | "door"> {
   /** After the frame, outside the grid, for what a screen adds below it. */
   below?: ReactNode;
 }
@@ -18,21 +14,15 @@ export interface LoadingFrameProps extends LoadingSlots {
 }
 
 /**
- * The one grid every loading screen shares. Each slot is placed at its share
- * of the frame's height (see `.lf` in index.css), so a long title or a missing
- * subtitle never moves the part under it, on a phone or on a computer.
+ * The stories' own slots plus `below`, which the template does not have: the card band under the Personal story
+ * sits in a column with the grid, so the grid takes what the band leaves.
  */
-export function LoadingFrame({ counter, title, subtitle, stage, detail, below, pct, door }: LoadingFrameProps) {
+export function LoadingFrame({ below, ...slots }: LoadingFrameProps) {
+  if (!below) return <LoadingStory {...slots} />;
   return (
-    <div className="lf-wrap">
-      <div className="lf">
-        {counter && <div className="lf-counter">{counter}</div>}
-        <h2 className="lf-title">{title}</h2>
-        {subtitle && <p className="lf-subtitle">{subtitle}</p>}
-        <div className="lf-stage">{stage}</div>
-        {detail && <div className="lf-detail">{detail}</div>}
-        {pct && <div className="lf-pct top-[85%] h-[5.5%]">{pct}</div>}
-        {door && <div className="lf-door">{door}</div>}
+    <div className="flex h-full flex-col items-center">
+      <div className="min-h-0 w-full flex-1">
+        <LoadingStory {...slots} />
       </div>
       {below}
     </div>
