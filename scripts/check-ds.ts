@@ -28,7 +28,7 @@ const CHART_GEOMETRY = "web/src/components/chart/wheel-geometry.ts";
 export const CHART_COLOURS = ["line-easy", "line-tense", "back", "rose", "teal", "brass"] as const;
 const NEUTRALS = new Set([
   "void", "ground", "surface", "surface-glass", "raised", "line", "line-soft", "line-strong", "control-edge",
-  "paper", "paper-dim", "muted", "label-dim",
+  "paper", "paper-dim", "muted", "label-dim", "focus",
 ]);
 
 const isTest = (name: string): boolean => /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(name) || /^test(?:[A-Z._-]|$)/.test(name) || name.endsWith(".d.ts");

@@ -27,12 +27,12 @@ function spot(cx: number, r: number, angle: number): Point {
   return { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100 };
 }
 
-// MB-196 provisional: the chart's focus is the brass outline ChartStates draws for its interactive Full chart, not the
-// site's focus colour; a non-scaling 1.5 px line in the stop's own shape, since a CSS outline round an SVG group is a
-// box across its neighbours.
+// MB-196 provisional: keyboard focus on the chart takes the site's focus colour, never brass, since brass already
+// means lit; a non-scaling 1.5 px line in the stop's own shape, since a CSS outline round an SVG group is a box across
+// its neighbours.
 const FOCUS_OUTLINE = {
   fill: "none",
-  stroke: c.brass,
+  stroke: c.focus,
   strokeWidth: 1.5,
   vectorEffect: "non-scaling-stroke",
   opacity: 0,

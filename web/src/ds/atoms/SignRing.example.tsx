@@ -9,7 +9,7 @@ export default function SignRingExample() {
   return (
     <div className="grid gap-8" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
       <figure>
-        <figcaption>Today: the wheel's brass band</figcaption>
+        <figcaption>The wheel, now drawn by the Chart part</figcaption>
         <NatalWheel chartData={known} stops={false} />
       </figure>
       <figure>
