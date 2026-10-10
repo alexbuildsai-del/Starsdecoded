@@ -28,12 +28,12 @@ function spot(cx: number, r: number, angle: number): Point {
 }
 
 // MB-196 provisional: keyboard focus on the chart takes the site's focus colour, never brass, since brass already
-// means lit; a non-scaling 1.5 px line in the stop's own shape, since a CSS outline round an SVG group is a box across
+// means lit; a non-scaling 2 px line in the stop's own shape, since a CSS outline round an SVG group is a box across
 // its neighbours.
 const FOCUS_OUTLINE = {
   fill: "none",
   stroke: c.focus,
-  strokeWidth: 1.5,
+  strokeWidth: 2,
   vectorEffect: "non-scaling-stroke",
   opacity: 0,
   className: "group-focus-visible/stop:opacity-100",
@@ -336,7 +336,8 @@ export function Chart({
             tabIndex: 0,
             role: "button",
             "aria-label": `${PLANET_LABELS[b.id] ?? b.id} ${p.degree.toFixed(1)} degrees ${p.sign}${p.house ? `, house ${p.house}` : ""}`,
-            className: "group/stop cursor-pointer outline-none",
+            // A dimmed body comes up to full while it has focus, so its ring reads.
+            className: "group/stop cursor-pointer outline-none focus-visible:opacity-100",
             onFocus: show,
             onBlur: hide,
             onClick: () => { if (p.house) pick(p.house); },
@@ -360,6 +361,8 @@ export function Chart({
                   data-ring
                 />
               )}
+              {/* Outside the brass ring a focused body also shows, so the two never draw over each other. */}
+              {stops && <circle cx={at.x} cy={at.y} r={b.size * 0.88} {...FOCUS_OUTLINE} />}
             </g>
           );
         })}

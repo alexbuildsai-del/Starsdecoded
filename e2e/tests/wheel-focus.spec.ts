@@ -8,8 +8,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
  */
 const DESKTOP = { width: 1440, height: 900 };
 
-// MB-196 provisional: --indigo-lt, the colour `.sd :focus-visible` draws, never brass.
-const FOCUS = [0x9f, 0xa8, 0xda] as const;
+// MB-196 provisional: the `focus` token the Chart part draws its rings in (ADR-444), never brass.
+const FOCUS = [0xae, 0xb8, 0xf0] as const;
 
 /** Audrey Hepburn's chart: twelve houses and thirteen bodies. */
 const SAMPLE_STOPS = 25;
@@ -124,7 +124,8 @@ test("home: Tab goes past the wheel, which takes no stop", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   // The wheel is drawn on the client; under reduced motion it holds her chart still.
-  const wheel = page.locator("svg[data-horizon]");
+  // The hero's own wheel: the plates further down the page are the same Chart part.
+  const wheel = page.locator(".sd-h-wheel svg[data-horizon]");
   await expect(wheel).toHaveCount(1);
   await expect(wheel.locator("[tabindex]"), "no stop in the wheel").toHaveCount(0);
   await expect(page.getByRole("link", { name: "Skip past the chart wheel" }), "nothing to skip").toHaveCount(0);
