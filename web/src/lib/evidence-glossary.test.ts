@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HOUSE_NAMES, HOUSE_THEMES, HOUSE_WORDS, glossFor, houseWithWord, houseWord, sourceLines, withHouseWords } from "./evidence-glossary";
 import * as houses from "./houses";
-import { whySentence } from "@/components/report/Checklist";
+import { whySentence } from "@/ds/organisms/Checklist";
 
 describe("the house set's names, read from here (ADR-321)", () => {
   it("are the house set's own arrays, so an import from either file prints the same words", () => {

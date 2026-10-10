@@ -9,6 +9,7 @@
  * so every glyph above lands on a card on view, then the brief's order,
  * strongest first.
  */
+import { tokens } from "@workspace/design";
 import { ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { linkAnchor, linkOf, type LedgerLink } from "@/lib/ledger";
 import { PLANET_LABELS, type PairLink, type PairTwoCharts } from "@/types/chart";
@@ -43,7 +44,7 @@ export const BODY_WORDS: Readonly<Record<string, string>> = {
 export const MEET_TAGS: Readonly<Record<MeetTag, string>> = { comes: "Comes naturally", challenge: "Challenge" };
 
 /** The report's own teal and rose, so a tag looks the same in the ledger and on a card. */
-export const MEET_COLOURS: Readonly<Record<MeetTag, string>> = { comes: "#3FA796", challenge: "#D9668A" };
+export const MEET_COLOURS: Readonly<Record<MeetTag, string>> = { comes: tokens.color.teal, challenge: tokens.color.rose };
 
 export const LEAD_PER_TAG = 3;
 

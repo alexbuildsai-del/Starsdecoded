@@ -12,6 +12,7 @@
     "check:shipped": "tsx ./check-shipped.ts",
     "check:callers": "tsx ./check-callers.ts",
     "check:copies": "tsx ./check-single-copies.ts",
+    "check:ds": "tsx ./check-ds.ts",
     "test": "node ./test-critical.mjs",
     "test:deep": "node --import tsx --test 'src/**/*.test.ts'",
     "generate:vocabulary": "tsx ./src/generate-vocabulary.ts"

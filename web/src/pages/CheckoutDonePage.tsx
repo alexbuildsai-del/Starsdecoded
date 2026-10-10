@@ -18,8 +18,12 @@ import {
   getGetTimelineSetupQueryOptions,
   type CheckoutState,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
-import { Wordmark } from "@/components/Wordmark";
+import { Button } from "@/ds/atoms/Button";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { Wordmark } from "@/ds/atoms/Wordmark";
+import { Card } from "@/ds/molecules/Card";
+import { TopBar } from "@/ds/organisms/TopBar";
 import {
   CHECKOUT_LINES,
   DEFAULT_RETURN,
@@ -34,11 +38,6 @@ import {
 import { usePageTitle } from "@/lib/page-title";
 import { sentZone } from "@/lib/reader-zone";
 import { TIMELINE_APP, setupParams } from "@/lib/timeline-setup";
-
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-none tracking-[.14em] text-[#9AA3B5]";
-const MUTED = "text-[13.5px] leading-snug text-[#AEB6C6]";
-const BUTTON =
-  "inline-flex min-h-10 items-center justify-center rounded-[10px] px-4 text-[13.5px] font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /** A slow read of the new balance doesn't hold the reader here: the step that asked reads it again as it opens. */
 const REFRESH_MS = 3_000;
@@ -189,45 +188,44 @@ export default function CheckoutDonePage() {
   const backTo = phase === "missing" ? DEFAULT_RETURN : target;
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground">
-      <main className="mx-auto grid w-full max-w-[440px] gap-4 px-4 pb-12 pt-5 sm:pt-10">
-        <header className="flex items-center justify-between gap-3">
-          <Wordmark className="text-[17px]" />
-          <p className={EYEBROW}>{CHECKOUT_LINES.eyebrow}</p>
-        </header>
-        <section aria-live="polite" className="grid gap-3 rounded-[10px] border border-[#242C3B] bg-[#11161F] p-5">
+    <div className="min-h-[100dvh] bg-ground text-paper">
+      <TopBar
+        version="checkout"
+        widthClass="max-w-[440px]"
+        left={<Wordmark size={17} />}
+        right={<Eyebrow>{CHECKOUT_LINES.eyebrow}</Eyebrow>}
+      />
+      <main className="mx-auto grid w-full max-w-[440px] gap-4 px-4 pb-12 pt-5 sm:pt-8">
+        <Card aria-live="polite" className="gap-3 p-5">
           <h1
             ref={heading}
             tabIndex={-1}
             data-checkout-done=""
-            className="font-display text-[22px] font-normal leading-snug text-[#E8EBF2] focus:outline-none"
+            className="m-0 font-display text-sheet-title text-paper focus:outline-none"
           >
             {view.title}
           </h1>
-          {view.body && <p className={MUTED}>{view.body}</p>}
+          {view.body && <p className="m-0 text-small text-paper-dim">{view.body}</p>}
           {view.status && (
-            <p className="text-[13px] text-[#9AA3B5]">
+            <p className="m-0 text-small text-paper-dim">
               <StatusDots label={view.status} />
             </p>
           )}
           {(view.retry || view.back) && (
             <div className="flex flex-wrap gap-2 pt-1">
               {view.retry && (
-                <Link href={view.retry} className={`${BUTTON} bg-primary text-white hover:brightness-110`}>
-                  {CHECKOUT_LINES.tryAgain}
-                </Link>
+                <Button asChild>
+                  <Link href={view.retry}>{CHECKOUT_LINES.tryAgain}</Link>
+                </Button>
               )}
               {view.back && (
-                <Link
-                  href={backTo}
-                  className={`${BUTTON} border border-[#242C3B] bg-[#171D29] text-[#E8EBF2] hover:border-[#5C6BC0]`}
-                >
-                  {view.back}
-                </Link>
+                <Button asChild variant="secondary">
+                  <Link href={backTo}>{view.back}</Link>
+                </Button>
               )}
             </div>
           )}
-        </section>
+        </Card>
       </main>
     </div>
   );

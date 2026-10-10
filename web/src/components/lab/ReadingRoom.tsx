@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { Card } from "@/ds/molecules/Card";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Chip } from "@/ds/atoms/Chip";
+import { Select } from "@/ds/atoms/Select";
+import { Button } from "@/ds/atoms/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { labApi, type CardDetail, type SessionDetail, type SessionSummary } from "@/lib/labApi";
 import { EMPTY_PICKS, blocksOf, groupOf, isJudged, nextCard, orderCards, tie, toggleBest, toggleNotShip, untie, type Picks } from "@/lib/labCards";
@@ -71,58 +74,57 @@ export function ReadingRoom({ sessionId, onSession, onReveal }: { sessionId: str
     if (after) open(session.id, after.id);
   };
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
-  if (!sessions.length) return <p className="text-sm text-muted-foreground">No session yet. Spawn one first.</p>;
+  if (error) return <p className="text-sm text-error">{error}</p>;
+  if (!sessions.length) return <p className="text-sm text-paper-dim">No session yet. Spawn one first.</p>;
 
   return (
     <div className="flex flex-col gap-4 text-sm">
       <div className="flex flex-wrap items-center gap-3">
-        <select value={sessionId ?? ""} onChange={(e) => onSession(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+        <Select value={sessionId ?? ""} onChange={(e) => onSession(e.target.value)} className="h-10 w-auto min-w-32">
           {sessions.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.judged}/{s.cards}{s.revealedAt ? " · revealed" : s.ready ? "" : " · writing"}</option>)}
-        </select>
-        {session && <span className="font-numeric text-xs text-muted-foreground">{session.judged} of {session.cards} judged</span>}
-        {session && <Button size="sm" variant="outline" disabled={session.judged < session.cards} onClick={() => onReveal(session.id)}>Reveal</Button>}
+        </Select>
+        {session && <span className="font-numeric text-data text-paper-dim">{session.judged} of {session.cards} judged</span>}
+        {session && <Button size="compact" variant="secondary" disabled={session.judged < session.cards} onClick={() => onReveal(session.id)}>Reveal</Button>}
       </div>
 
-      {session && !session.ready && <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> replays still writing; cards open as they land</p>}
+      {session && !session.ready && <p className="text-xs text-paper-dim flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> replays still writing; cards open as they land</p>}
 
       {session && (
         <div className="flex flex-wrap gap-1">
           {orderCards(session.list).map((c) => (
-            <button key={c.id} type="button" onClick={() => open(session.id, c.id)}
-              className={`px-2 py-0.5 rounded text-[11px] font-label border ${card?.id === c.id ? "border-primary text-primary" : c.judged ? "border-border/40 text-muted-foreground" : "border-border/80 text-foreground"}`}>
+            <Chip key={c.id} quiet selected={card?.id === c.id} className={c.judged ? "text-paper-dim" : undefined} onClick={() => open(session.id, c.id)}>
               {c.section} · {c.fixture}
-            </button>
+            </Chip>
           ))}
         </div>
       )}
 
       {card && (
         <div className="flex flex-col gap-3">
-          <p className="font-label text-primary">{card.section} · {card.fixture}</p>
+          <p className="font-label text-indigo-lt">{card.section} · {card.fixture}</p>
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(card.variants.length, 3)}, minmax(0, 1fr))` }}>
             {card.variants.map((v, i) => {
               const best = picks.best.includes(i), bad = picks.notShip.includes(i), group = groupOf(picks, i);
               return (
-                <div key={v.letter} className={`rounded-lg border p-3 flex flex-col gap-2 ${best ? "border-primary/70" : bad ? "border-destructive/60" : "border-border/60"} bg-card/40`}>
+                <div key={v.letter} className={`rounded-card border p-3 flex flex-col gap-2 ${best ? "border-indigo-lt" : bad ? "border-error/60" : "border-line"} bg-surface`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-display text-lg">{v.letter}</span>
-                    {group && <span className="text-[11px] text-muted-foreground">same as {group.filter((x) => x !== i).map((x) => card.variants[x]?.letter).join(", ")}</span>}
+                    {group && <span className="text-data-sm text-paper-dim">same as {group.filter((x) => x !== i).map((x) => card.variants[x]?.letter).join(", ")}</span>}
                     <span className="ml-auto flex gap-1">
-                      <Button size="sm" variant={best ? "default" : "outline"} disabled={saving} onClick={() => save(toggleBest(picks, i))}>best</Button>
-                      <Button size="sm" variant={bad ? "destructive" : "outline"} disabled={saving} onClick={() => save(toggleNotShip(picks, i))}>would not ship</Button>
+                      <Button size="compact" variant={best ? "primary" : "secondary"} disabled={saving} onClick={() => save(toggleBest(picks, i))}>best</Button>
+                      <Button size="compact" variant={bad ? "danger" : "secondary"} disabled={saving} onClick={() => save(toggleNotShip(picks, i))}>would not ship</Button>
                       {tying === null
-                        ? <Button size="sm" variant="ghost" disabled={saving} onClick={() => setTying(i)}>same as…</Button>
+                        ? <Button size="compact" variant="secondary" disabled={saving} onClick={() => setTying(i)}>same as…</Button>
                         : tying === i
-                          ? <Button size="sm" variant="ghost" onClick={() => setTying(null)}>cancel</Button>
-                          : <Button size="sm" variant="ghost" disabled={saving} onClick={() => { save(tie(picks, tying, i)); setTying(null); }}>= {card.variants[tying]?.letter}</Button>}
-                      {group && <Button size="sm" variant="ghost" disabled={saving} onClick={() => save(untie(picks, i))}>untie</Button>}
+                          ? <Button size="compact" variant="secondary" onClick={() => setTying(null)}>cancel</Button>
+                          : <Button size="compact" variant="secondary" disabled={saving} onClick={() => { save(tie(picks, tying, i)); setTying(null); }}>= {card.variants[tying]?.letter}</Button>}
+                      {group && <Button size="compact" variant="secondary" disabled={saving} onClick={() => save(untie(picks, i))}>untie</Button>}
                     </span>
                   </div>
                   <div className="prose-sm max-h-[60vh] overflow-y-auto pr-1 flex flex-col gap-1.5 leading-relaxed">
                     {blocksOf(v.text).map((b, k) =>
-                      b.kind === "heading" ? <p key={k} className="font-label text-[10px] tracking-[0.15em] uppercase text-muted-foreground mt-2">{b.text}</p>
-                        : b.kind === "bullet" ? <p key={k} className="pl-3 border-l border-border/40">{b.text}</p>
+                      b.kind === "heading" ? <p key={k} className="font-label text-label tracking-[0.15em] uppercase text-paper-dim mt-2">{b.text}</p>
+                        : b.kind === "bullet" ? <p key={k} className="pl-3 border-l border-line">{b.text}</p>
                           : <p key={k}>{b.text}</p>)}
                   </div>
                 </div>
@@ -130,12 +132,12 @@ export function ReadingRoom({ sessionId, onSession, onReveal }: { sessionId: str
             })}
           </div>
           <label className="flex flex-col gap-1">
-            <span className="font-label text-xs text-muted-foreground">Note</span>
+            <span className="font-label text-xs text-paper-dim">Note</span>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== (card.note ?? "")) save(picks, note); }} rows={2} />
           </label>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={goNext} disabled={saving}>Next unjudged</Button>
-            {saving && <span className="text-xs text-muted-foreground">saving</span>}
+            <Button size="compact" onClick={goNext} disabled={saving}>Next unjudged</Button>
+            {saving && <span className="text-xs text-paper-dim">saving</span>}
           </div>
         </div>
       )}

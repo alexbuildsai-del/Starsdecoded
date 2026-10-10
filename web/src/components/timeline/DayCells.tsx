@@ -6,7 +6,8 @@
  */
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { ToneWord } from "@/components/timeline/ContactCard";
-import { TONE_ORDER, dayLabel, dayNumber, dayTones, toneClass, weekdayOf, type DayView } from "@/lib/timeline-view";
+import { ToneDot } from "@/ds/atoms/ToneDot";
+import { DOT_TONE, TONE_ORDER, dayLabel, dayNumber, dayTones, weekdayOf, type DayView } from "@/lib/timeline-view";
 
 export function DayCells({ days, keyed = false }: { days: readonly DayView[]; keyed?: boolean }) {
   const { order } = useEntryFormat();
@@ -17,17 +18,17 @@ export function DayCells({ days, keyed = false }: { days: readonly DayView[]; ke
         {days.map((day) => (
           <li
             key={day.date}
-            className="grid min-w-0 justify-items-center gap-1.5 rounded-lg border border-[#1A202C] bg-[#11161F] px-0.5 pb-2.5 pt-2"
+            className="grid min-w-0 justify-items-center gap-1.5 rounded-control border border-line-soft bg-surface px-0.5 pb-2.5 pt-2"
           >
-            <span aria-hidden className="font-label text-[9.5px] uppercase leading-none tracking-[.1em] text-[#7E889A]">
+            <span aria-hidden className="font-label text-data-sm uppercase leading-none tracking-[.1em] text-muted">
               {weekdayOf(day.date)}
             </span>
-            <span aria-hidden className="font-numeric text-[13px] leading-none text-[#E8EBF2]">
+            <span aria-hidden className="font-mono text-small tabular-nums leading-none text-paper">
               {dayNumber(day.date)}
             </span>
             <span aria-hidden className="flex min-h-[7px] flex-wrap justify-center gap-[3px]">
               {dayTones(day.tones).map((tone) => (
-                <i key={tone} className={`${toneClass(tone)} block h-[7px] w-[7px] rounded-full bg-[var(--sd-tone)]`} />
+                <ToneDot key={tone} tone={DOT_TONE[tone]} className="size-[7px]" />
               ))}
             </span>
             <span className="sr-only">{dayLabel(day, order)}</span>

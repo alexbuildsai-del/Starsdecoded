@@ -14,7 +14,9 @@ import {
   useGetTimelineNow,
   useOpenTimelineReading,
 } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { Chip } from "@/ds/atoms/Chip";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { CycleRing } from "@/components/timeline/AgeRing";
 import { OpenCard } from "@/components/timeline/ContactCard";
 import { CycleCard } from "@/components/timeline/CycleCard";
@@ -26,8 +28,8 @@ import { WAVE_UNTIL, cycleScience, lineStamp, nearestStop, ringTarget, type Cycl
 import { lifeModel, paragraphs, type AgeCard, type LifeModel } from "@/lib/now-ahead";
 import { SERVED_WEEK, sentZone } from "@/lib/reader-zone";
 
-const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#9FA8DA]";
-const QUIET = "text-[13.5px] leading-normal text-[#AEB6C6]";
+const EYEBROW = "font-label text-label uppercase text-indigo-lt";
+const QUIET = "text-small text-paper-dim";
 const WHY_TITLE = "Some planets come back only a few times in a life";
 const WHY_TEXT =
   "When one comes back to where it was the day you were born, astrology reads it as a checkpoint. Four of them come at ages most people already know.";
@@ -37,7 +39,6 @@ const WAVES_TEXT =
   "Each line is a planet moving away from where it was when you were born, then coming back. At the bottom of a wave it's back where it started: a return. At the top it's as far away as it gets.";
 // The day's sky does not move a life's cycles, and the ring's progress moves by a hair a day.
 const STALE_MS = 30 * 60_000;
-const TRY = "inline-flex min-h-10 items-center rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function statusOf(error: unknown): number | undefined {
   const status = (error as { status?: unknown } | null)?.status;
@@ -47,16 +48,14 @@ function statusOf(error: unknown): number | undefined {
 function Age({ age, onOpen }: { age: AgeCard; onOpen: (target: ReadingTarget) => void }) {
   const opens = age.opens;
   return (
-    <article className="relative grid h-full min-w-0 content-start gap-2 rounded-2xl border border-[#242C3B] bg-[#11161F] p-4 transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-[#171D29]">
+    <article className="relative grid h-full min-w-0 content-start gap-2 rounded-2xl border border-line bg-surface p-4 transition-colors duration-[var(--dur-base)] ease-[var(--ease)] hover:bg-raised">
       <div className="flex items-start justify-between gap-2.5">
-        <p className="font-display text-[19px] leading-tight text-[#E8EBF2]">{age.name}</p>
+        <p className="font-display text-card-title-sm text-paper">{age.name}</p>
         <CycleRing progress={age.progress} target={ringTarget({ id: age.id, age: 0 })} size={56} />
       </div>
-      <span className="justify-self-start rounded-full border border-[#242C3B] px-2.5 py-[3px] font-label text-[10.5px] uppercase leading-snug tracking-[.14em] text-[#AEB6C6]">
-        {age.word}
-      </span>
-      <p className="text-[13.5px] leading-[1.55] text-[#AEB6C6]">{age.about}</p>
-      <p className="font-numeric text-[12.5px] leading-normal text-[#9FA8DA]">{age.yours}</p>
+      <Chip className="justify-self-start">{age.word}</Chip>
+      <p className="text-small leading-[1.55] text-paper-dim">{age.about}</p>
+      <p className="font-numeric text-caption text-indigo-lt">{age.yours}</p>
       {opens ? (
         <OpenCard
           headline={age.name}
@@ -71,25 +70,25 @@ function Age({ age, onOpen }: { age: AgeCard; onOpen: (target: ReadingTarget) =>
 function WaveKey() {
   const item = "inline-flex items-center gap-1.5";
   return (
-    <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#AEB6C6]">
+    <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-paper-dim">
       <span className={item}>
-        <i aria-hidden className="block h-2.5 w-2.5 rounded-full bg-[#D4B06A]" />
+        <i aria-hidden className="block h-2.5 w-2.5 rounded-full bg-brass" />
         A return
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-2 w-2 rounded-full bg-[#D4B06A]" />
+        <i aria-hidden className="block h-2 w-2 rounded-full bg-brass" />
         Halfway round
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-1.5 w-1.5 rounded-full bg-[#D4B06A]" />
+        <i aria-hidden className="block h-1.5 w-1.5 rounded-full bg-brass" />
         A quarter of the way round
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-2.5 w-2.5 rounded-full bg-[#8A7343]" />
+        <i aria-hidden className="block h-2.5 w-2.5 rounded-full bg-brass-dim" />
         Already happened
       </span>
       <span className={item}>
-        <i aria-hidden className="block h-3 w-5 rounded-[3px] border border-[#242C3B] bg-[#171D29]" />
+        <i aria-hidden className="block h-3 w-5 rounded-inner border border-line bg-raised" />
         Already lived
       </span>
     </p>
@@ -258,7 +257,7 @@ function LifeGraph({
         control={{ age: line.age, label: stamp.text, stops: model.stops, selected: line.key, onSeek: seek, onPick: pick }}
       />
       <div className="grid gap-1">
-        <label htmlFor={sliderId} className="text-[12.5px] text-[#AEB6C6]">
+        <label htmlFor={sliderId} className="text-caption text-paper-dim">
           Age on the line
         </label>
         <input
@@ -276,7 +275,7 @@ function LifeGraph({
           }}
           onPointerUp={release}
           onPointerCancel={release}
-          className="m-0 h-11 w-full cursor-pointer accent-[#D4B06A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="m-0 h-11 w-full cursor-pointer accent-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
       {cycle ? (
@@ -326,14 +325,14 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
       return (
         <div className="grid justify-items-start gap-3 py-6">
           <p className={QUIET}>We couldn't load your life's cycles. Check your connection and try again.</p>
-          <button type="button" onClick={() => void query.refetch()} className={TRY}>
+          <Button variant="secondary" onClick={() => void query.refetch()}>
             Try again
-          </button>
+          </Button>
         </div>
       );
     }
     return (
-      <div className="grid min-h-[240px] place-items-center font-label text-sm text-[#AEB6C6]">
+      <div className="grid min-h-[240px] place-items-center font-label text-sm text-paper-dim">
         <StatusDots label="Loading" />
       </div>
     );
@@ -347,10 +346,10 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
       <section aria-labelledby={whyId} className="grid gap-3.5">
         <div className="grid max-w-[62ch] gap-1.5">
           <p className={EYEBROW}>Why it matters</p>
-          <h3 id={whyId} className="font-display text-2xl font-normal leading-tight text-[#E8EBF2]">
+          <h3 id={whyId} className="font-display text-sheet-title text-paper">
             {WHY_TITLE}
           </h3>
-          <p className="text-[15px] leading-normal text-[#AEB6C6]">{WHY_TEXT}</p>
+          <p className="text-prose leading-normal text-paper-dim">{WHY_TEXT}</p>
         </div>
         <ul role="list" className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-4">
           {model.ages.map((age) => (
@@ -359,7 +358,7 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
             </li>
           ))}
         </ul>
-        <p className="max-w-[70ch] text-[12.5px] leading-normal text-[#AEB6C6]">{RING_KEY}</p>
+        <p className="max-w-[70ch] text-caption text-paper-dim">{RING_KEY}</p>
       </section>
 
       <section aria-labelledby={wavesId} className="grid gap-3">
@@ -367,9 +366,9 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
           <h3 id={wavesId} className={EYEBROW}>
             Your whole life, birth to 90
           </h3>
-          <p className="text-[12.5px] text-[#7E889A]">Drag the line or the slider</p>
+          <p className="text-caption text-muted">Drag the line or the slider</p>
         </div>
-        <p className="max-w-[70ch] text-[15px] leading-normal text-[#AEB6C6]">{WAVES_TEXT}</p>
+        <p className="max-w-[70ch] text-prose leading-normal text-paper-dim">{WAVES_TEXT}</p>
         <WaveKey />
         <LifeGraph
           model={model}
@@ -383,7 +382,7 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
       </section>
 
       <section aria-labelledby={cyclesId} className="grid gap-3.5">
-        <h3 id={cyclesId} className="font-display text-2xl font-normal leading-tight text-[#E8EBF2]">
+        <h3 id={cyclesId} className="font-display text-sheet-title text-paper">
           Your cycles
         </h3>
         {model.ahead.length ? (
@@ -394,7 +393,7 @@ export function Life({ zone, today, onOpen, onNoReport, onNoAccess }: LifeProps)
         ) : null}
         {model.behind.length ? (
           <details className="group">
-            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded font-label text-[11px] font-medium uppercase tracking-[0.18em] text-[#9FA8DA] hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded font-label text-label uppercase text-indigo-lt hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
               <ChevronRight
                 aria-hidden="true"
                 className="h-3.5 w-3.5 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"

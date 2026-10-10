@@ -9,11 +9,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { SIGNS, elementOf } from "./sky.mjs";
-import { openWheels, webTokens } from "./wheel.mjs";
+import { openWheels, webTokens, slideColours } from "./wheel.mjs";
+
+const TOKENS = JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../../../packages/design/src/tokens.json"), "utf8")).color;
 
 const KIT = path.dirname(new URL(import.meta.url).pathname);
 const SIZES = { "3x4": [1080, 1440], "4x5": [1080, 1350], "9x16": [1080, 1920] };
-const HUE = { fire: "#E0845C", earth: "#7FB08B", air: "#8FC5E0", water: "#6B7FD7" };
+const HUE = { fire: TOKENS["element-fire"], earth: TOKENS["element-earth"], air: TOKENS["element-air"], water: TOKENS["element-water"] };
 const esc = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function chrome() {
@@ -32,12 +34,12 @@ function stars(w, h, seed) {
   let dots = "";
   for (let i = 0, n = Math.round((w * h) / 7200); i < n; i++) {
     const r = rnd() < 0.93 ? 0.5 + rnd() * 0.9 : 1.4 + rnd() * 0.9, o = r > 1.3 ? 0.55 + rnd() * 0.3 : 0.14 + rnd() * 0.36;
-    dots += `<circle cx="${(rnd() * w).toFixed(1)}" cy="${(rnd() * h).toFixed(1)}" r="${r.toFixed(2)}" fill="#E8EBF2" opacity="${o.toFixed(2)}"/>`;
+    dots += `<circle cx="${(rnd() * w).toFixed(1)}" cy="${(rnd() * h).toFixed(1)}" r="${r.toFixed(2)}" fill="${TOKENS.paper}" opacity="${o.toFixed(2)}"/>`;
   }
   return `<svg class="stars" viewBox="0 0 ${w} ${h}" aria-hidden="true">${dots}</svg>`;
 }
 
-const mark = () => `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#7C83D4" stroke-width="3"/><line x1="10" y1="32" x2="54" y2="32" stroke="#7C83D4" stroke-width="2.6" stroke-linecap="round"/><circle cx="10" cy="32" r="4.6" fill="#D4B06A"/></svg>`;
+const mark = () => `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="${TOKENS["indigo-lt"]}" stroke-width="3"/><line x1="10" y1="32" x2="54" y2="32" stroke="${TOKENS["indigo-lt"]}" stroke-width="2.6" stroke-linecap="round"/><circle cx="10" cy="32" r="4.6" fill="${TOKENS.brass}"/></svg>`;
 const sig = () => `<div class="sig">${mark()}Stars Decoded</div>`;
 const kicker = (k) => (k ? `<p class="kicker">${esc(k)}</p>` : "");
 const hm = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -51,15 +53,15 @@ function strip({ width, segs, from, to, win, height = 56, big = false, marks = [
     const a = Math.max(g.from, from), b = Math.min(g.to, to);
     if (b <= a) continue;
     const inside = win && g.to > win[0] && g.from < win[1], xa = x(a) + 2, xb = x(b) - 2, w = xb - xa;
-    s += `<rect x="${xa.toFixed(1)}" y="0" width="${Math.max(1, w).toFixed(1)}" height="${height}" rx="6" fill="${inside ? "#D4B06A" : "#171D29"}" stroke="${inside ? "#D4B06A" : "rgba(255,255,255,.14)"}" stroke-width="1.5"/>`;
+    s += `<rect x="${xa.toFixed(1)}" y="0" width="${Math.max(1, w).toFixed(1)}" height="${height}" rx="6" fill="${inside ? TOKENS.brass : TOKENS.raised}" stroke="${inside ? TOKENS.brass : "rgba(255,255,255,.14)"}" stroke-width="1.5"/>`;
     const fs = big ? 30 : 22, fits = (n) => w > n * fs * 0.56 + 18, label = fits(g.sign.length) ? g.sign : fits(3) ? g.sign.slice(0, 3) : "";
-    if (label) s += `<text x="${((xa + xb) / 2).toFixed(1)}" y="${height / 2 + fs * 0.36}" text-anchor="middle" fill="${inside ? "#1a1408" : "#AEB6C6"}" font-family="Space Grotesk" font-weight="500" font-size="${fs}">${label}</text>`;
+    if (label) s += `<text x="${((xa + xb) / 2).toFixed(1)}" y="${height / 2 + fs * 0.36}" text-anchor="middle" fill="${inside ? "#1a1408" : TOKENS["paper-dim"]}" font-family="Space Grotesk" font-weight="500" font-size="${fs}">${label}</text>`;
   }
-  if (win && outline) s += `<rect x="${(x(win[0]) - 5).toFixed(1)}" y="-6" width="${(x(win[1]) - x(win[0]) + 10).toFixed(1)}" height="${height + 12}" rx="10" fill="none" stroke="#D4B06A" stroke-width="2.5" stroke-dasharray="8 7"/>`;
+  if (win && outline) s += `<rect x="${(x(win[0]) - 5).toFixed(1)}" y="-6" width="${(x(win[1]) - x(win[0]) + 10).toFixed(1)}" height="${height + 12}" rx="10" fill="none" stroke="${TOKENS.brass}" stroke-width="2.5" stroke-dasharray="8 7"/>`;
   const kept = marks.filter((m, i) => i === 0 || (x(m.t) - x(marks[i - 1].t) > 88 && (i < marks.length - 1 || x(m.t) - x(marks[i - 1].t) > 150)));
   kept.forEach((m, i) => {
     const anchor = i === 0 ? "start" : x(m.t) > width - 40 ? "end" : "middle";
-    s += `<text x="${x(m.t).toFixed(1)}" y="${height + 44}" text-anchor="${anchor}" fill="#AEB6C6" font-family="IBM Plex Mono" font-size="28">${m.label}</text>`;
+    s += `<text x="${x(m.t).toFixed(1)}" y="${height + 44}" text-anchor="${anchor}" fill="${TOKENS["paper-dim"]}" font-family="IBM Plex Mono" font-size="28">${m.label}</text>`;
   });
   return s + "</svg>";
 }
@@ -150,7 +152,7 @@ function page(slide, f, seed) {
   const [w, h] = SIZES[f];
   const fill = TEMPLATES[slide.type];
   if (!fill) throw new Error(`Unknown slide type ${slide.type}`);
-  return `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${KIT}/slide.css"><style>.wheelbox{${webTokens()}}</style></head>`
+  return `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${KIT}/slide.css"><style>${slideColours()} .wheelbox{${webTokens()}}</style></head>`
     + `<body class="f${f}"><div class="slide">${stars(w, h, seed)}<div class="inner">${fill(slide, f)}</div></div></body></html>`;
 }
 
@@ -183,7 +185,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
     const cols = f === "9x16" ? 6 : 5, tw = 216, [w, h] = SIZES[f], th = Math.round((tw * h) / w), rows = Math.ceil(pngs.length / cols);
     const sheet = path.join(out, `sheet-${f}.html`);
-    fs.writeFileSync(sheet, `<!doctype html><html><body style="margin:0;background:#06080C;display:grid;grid-template-columns:repeat(${cols},${tw}px);gap:8px;padding:8px">${pngs.map((p) => `<img src="file://${p}" width="${tw}" height="${th}">`).join("")}</body></html>`);
+    fs.writeFileSync(sheet, `<!doctype html><html><body style="margin:0;background:${TOKENS.void};display:grid;grid-template-columns:repeat(${cols},${tw}px);gap:8px;padding:8px">${pngs.map((p) => `<img src="file://${p}" width="${tw}" height="${th}">`).join("")}</body></html>`);
     shoot(bin, sheet, path.join(out, `sheet-${f}.png`), [cols * (tw + 8) + 8, rows * (th + 8) + 8]);
     console.log(`${f}: ${pngs.length} slides in ${dir}, contact sheet ${path.join(out, `sheet-${f}.png`)}`);
   }

@@ -42,7 +42,7 @@ pnpm run typecheck                    # the type gate; build does not typecheck
 pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test   # the critical tier; pnpm test:deep runs the archive
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
-pnpm check:shipped · pnpm --filter @workspace/web run csp:write   # shipped-code check; CSP hashes after JSON-LD
+pnpm check:shipped · pnpm check:ds · pnpm --filter @workspace/web run csp:write   # shipped code, tokens and parts; CSP after JSON-LD
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
 pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
@@ -111,10 +111,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   research that area. New tests only for a change to the flow, a bug that came back, or a fix the Owner asked for twice. No lint step; each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-09)
+## Current focus (2026-10-10)
 
-1. R19 (explain-like-a-friend, sharing and the circle, the QA agent's own account, the loading bar that waits for Start reading)
-   is on staging once its PR merges, and production is R11 to R14. Next: /qa on staging, the Owner's look
-   (`docs/annex/R19-words.md`), then the first Release when the Owner says promote. Locked, unplanned: `design-system` (R20, R21).
+1. R20 (the design system: tokens, parts with a page each at `/admin/design`, the Chart part, every screen on them) is on
+   staging once its PR merges; production is R11 to R14. Next: /qa on staging, the Owner's look (the before and after
+   pictures in `docs/rounds/R20-report.md`), then the first Release when the Owner says promote. New UI uses `web/src/ds`.
 2. Before the first live sale: MB-228, 114 and 115. Before Timeline sells on production: B-03.
 3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).

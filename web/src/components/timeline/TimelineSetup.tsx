@@ -20,8 +20,9 @@ import {
   type Week,
 } from "@workspace/api-client-react";
 import { DidYouKnow } from "@/components/loading/DidYouKnow";
-import { LoadingFrame } from "@/components/loading/LoadingFrame";
-import { ProgressBar } from "@/components/loading/ProgressBar";
+import { Button } from "@/ds/atoms/Button";
+import { Progress } from "@/ds/atoms/Progress";
+import { LoadingStory } from "@/ds/templates/LoadingStory";
 import { Dial } from "@/components/timeline/Dial";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
@@ -225,18 +226,21 @@ function Ticks({ ticks, labelledBy }: { ticks: readonly SetupTick[]; labelledBy?
             aria-hidden
             className={cn(
               "mt-[0.3em] block h-2 w-2 flex-none rounded-full border transition-colors duration-300 motion-reduce:transition-none",
-              tick.state === "done" ? "border-[#9FA8DA] bg-[#9FA8DA]" : tick.state === "live" ? "border-[#9FA8DA]" : "border-[#3A4356]",
+              tick.state === "done" ? "border-indigo-lt bg-indigo-lt" : tick.state === "live" ? "border-indigo-lt" : "border-line-strong",
             )}
           />
           <span className="grid min-w-0 leading-[1.15]">
             <span
-              className={cn("truncate text-[length:min(13px,2.2cqh)]", tick.state === "waiting" ? "text-[#7E889A]" : "text-[#E8EBF2]")}
+              className={cn("truncate", tick.state === "waiting" ? "text-muted" : "text-paper")}
+              style={{ fontSize: "min(var(--text-small),2.2cqh)" }}
             >
               {tick.name}
               {tick.state === "done" ? <span className="sr-only">, done</span> : null}
             </span>
             {tick.note ? (
-              <span className="truncate font-numeric text-[length:min(11px,1.85cqh)] text-[#7E889A]">{tick.note}</span>
+              <span className="truncate font-numeric text-muted" style={{ fontSize: "min(var(--text-data-sm),1.85cqh)" }}>
+                {tick.note}
+              </span>
             ) : null}
           </span>
         </li>
@@ -245,8 +249,9 @@ function Ticks({ ticks, labelledBy }: { ticks: readonly SetupTick[]; labelledBy?
   );
 }
 
+// The story's pill door, in the indigo tint that fills solid on hover, as the report's Start reading is.
 const DOOR =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-[rgba(92,107,192,.55)] bg-[rgba(92,107,192,.22)] px-[22px] font-label text-[12px] font-medium uppercase tracking-[.22em] text-[#E8EBF2] transition-colors hover:bg-[#5C6BC0] focus-visible:bg-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06080C] motion-reduce:transition-none";
+  "min-h-11 rounded-full border-indigo/55 bg-indigo/20 px-[22px] font-label text-data uppercase tracking-[.22em] hover:border-indigo hover:bg-indigo";
 const noDay = () => undefined;
 
 export interface TimelineSetupProps {
@@ -322,7 +327,7 @@ function SetupFrame({ setup, screen, natal, run, span, ids, onIn, onSeen, onMovi
   return (
     <>
       <div className="h-[calc(100dvh-3.5rem)] min-h-[32rem]">
-        <LoadingFrame
+        <LoadingStory
           counter={screen === "setup" ? <span id={ids.counter}>{SETUP_LINES.counter}</span> : undefined}
           title={<span id={ids.title}>{words.title}</span>}
           subtitle={words.subtitle}
@@ -345,18 +350,18 @@ function SetupFrame({ setup, screen, natal, run, span, ids, onIn, onSeen, onMovi
                   <div className="aspect-square w-full" />
                 )}
               </div>
-              <p className="min-h-[1.4em] font-numeric text-[length:min(12px,1.9cqh)] text-[#AEB6C6]" aria-hidden>
+              <p className="min-h-[1.4em] font-numeric text-paper-dim" style={{ fontSize: "min(var(--text-data),1.9cqh)" }} aria-hidden>
                 {line}
               </p>
             </div>
           }
           detail={<Ticks ticks={ticks} labelledBy={screen === "setup" ? ids.counter : ids.title} />}
-          pct={bar ? <ProgressBar {...bar} /> : undefined}
+          pct={bar ? <Progress {...bar} /> : undefined}
           door={
             words.door ? (
-              <button ref={door} type="button" onClick={onIn} className={DOOR}>
+              <Button ref={door} onClick={onIn} className={DOOR}>
                 {words.door.label}
-              </button>
+              </Button>
             ) : undefined
           }
         />

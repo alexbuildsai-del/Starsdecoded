@@ -7,6 +7,7 @@
  */
 import { Fragment, useState } from "react";
 import type { AskCard } from "@workspace/api-client-react";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { CycleCard } from "@/components/timeline/CycleCard";
 import { DayCells } from "@/components/timeline/DayCells";
@@ -16,17 +17,17 @@ import { WINDOW_SHOWN, cardView, legendAfter, type AskCardView, type EventView }
 import { useShownZone } from "@/lib/reader-zone";
 import { dayIn } from "@/lib/timeline-view";
 
-const HEAD = "font-label text-[10.5px] uppercase leading-snug tracking-[.14em] text-[#7E889A]";
-const NOTE = "text-[13.5px] leading-normal text-[#AEB6C6]";
+const HEAD = "font-label text-label uppercase text-muted";
+const NOTE = "text-small text-paper-dim";
 
 /** ContactCard's own frame, for the one event it can't take: an eclipse with no tone, which shows no tone word. */
 function ToneFreeCard({ event }: { event: EventView }) {
   return (
-    <article className="relative grid min-w-0 gap-[3px] rounded-xl border border-l-[3px] border-[#242C3B] bg-[#11161F] px-3 py-[11px]">
-      <span className="text-xs text-[#AEB6C6]">{event.lasts}</span>
-      <p className="font-display text-lg leading-[1.25] text-[#E8EBF2]">{event.headline}</p>
-      {event.line ? <p className="text-sm leading-normal text-[#E8EBF2]">{event.line}</p> : null}
-      <p className="pt-0.5 font-numeric text-[11px] leading-normal text-[#7E889A]">{event.facts}</p>
+    <article className="relative grid min-w-0 gap-[3px] rounded-xl border border-l-[3px] border-line bg-surface px-3 py-[11px]">
+      <span className="text-xs text-paper-dim">{event.lasts}</span>
+      <p className="font-display text-lg leading-[1.25] text-paper">{event.headline}</p>
+      {event.line ? <p className="text-sm leading-normal text-paper">{event.line}</p> : null}
+      <p className="pt-0.5 font-numeric text-data text-muted">{event.facts}</p>
     </article>
   );
 }
@@ -49,14 +50,9 @@ function WindowCard({ view }: { view: Extract<AskCardView, { kind: "window" }> }
       <p className={HEAD}>{view.title}</p>
       <DayCells days={long && !all ? view.days.slice(0, WINDOW_SHOWN) : view.days} keyed />
       {long ? (
-        <button
-          type="button"
-          aria-expanded={all}
-          onClick={() => setAll((was) => !was)}
-          className="justify-self-start rounded text-[13px] text-[#9FA8DA] hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FA8DA]"
-        >
+        <TextButton aria-expanded={all} onClick={() => setAll((was) => !was)} className="justify-self-start">
           {all ? "Show fewer days" : `Show all ${view.days.length} days`}
-        </button>
+        </TextButton>
       ) : null}
     </div>
   );
@@ -69,7 +65,7 @@ function CardOf({ view }: { view: AskCardView }) {
         <div role="group" aria-label={view.title} className="grid min-w-0 gap-2">
           <div className="grid gap-0.5">
             <p className={HEAD}>{view.title}</p>
-            <p className="text-[13px] leading-snug text-[#AEB6C6]">{view.moon}</p>
+            <p className="text-small leading-snug text-paper-dim">{view.moon}</p>
           </div>
           <EventCards events={view.events} />
           {view.quiet ? <p className={NOTE}>{view.quiet}</p> : null}
@@ -89,9 +85,9 @@ function CardOf({ view }: { view: AskCardView }) {
       return <CycleCard cycle={view.cycle} />;
     case "quote":
       return (
-        <figure className="m-0 grid min-w-0 rounded-[13px] border border-[#242C3B] bg-[#171D29] px-4 py-[15px] text-[#E8EBF2]">
+        <figure className="m-0 grid min-w-0 rounded-card border border-line bg-raised px-4 py-[15px] text-paper">
           <blockquote className="m-0 font-display text-sm italic leading-normal">“{view.text}”</blockquote>
-          <figcaption className="mt-3 border-t border-[#1A202C] pt-2.5 font-label text-[9.5px] uppercase tracking-[.14em] text-[#AEB6C6]">
+          <figcaption className="mt-3 border-t border-line-soft pt-2.5 font-label text-label uppercase text-paper-dim">
             {view.source}
           </figcaption>
         </figure>

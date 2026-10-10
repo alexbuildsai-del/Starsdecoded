@@ -39,7 +39,9 @@ import {
 } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
-import { Mark } from "@/components/Mark";
+import { Mark } from "@/ds/atoms/Mark";
+import { Button } from "@/ds/atoms/Button";
+import { tokens } from "@workspace/design";
 import { PLANET_LABELS, type ChartData, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { PERSONAL_REPORT } from "@/lib/product";
@@ -49,6 +51,10 @@ import type { Ring } from "@/lib/gather";
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
 const PAPER = "var(--paper)";
+const c = tokens.color;
+const font = tokens.fontFamily;
+/** The legend's grey for a value: paper at 62%. */
+const VALUE = { fill: c.paper, fillOpacity: 0.62 } as const;
 /** How far the plate's diagram moves per px scrolled, in plate units, and the centred name, in px: two depths. */
 const DIAGRAM_RATE = 0.12 * 1.6;
 const NAME_RATE = 0.05 * 1.6;
@@ -57,9 +63,15 @@ const MONTHS = [
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
 ];
 
-/** Four stops, transparent by about 1.6 Sun diameters out. */
+/**
+ * Four stops, transparent by about 1.6 Sun diameters out. The three warm ones are the Sun's own light, which no token
+ * names: the palette has no orange, and brass would turn the glow into geometry.
+ */
 const GLOW = "radial-gradient(circle closest-side, rgba(255,196,118,.46) 0%, rgba(236,142,62,.22) 24%,"
-  + " rgba(150,82,38,.08) 56%, rgba(6,8,12,0) 100%)";
+  + " rgba(150,82,38,.08) 56%, transparent 100%)";
+/** The name's halo, in the raised surface so the ring reads through around it. */
+const HALO = "radial-gradient(ellipse closest-side at center, color-mix(in srgb, var(--color-raised) 94%, transparent) 0%,"
+  + " color-mix(in srgb, var(--color-raised) 64%, transparent) 54%, transparent 100%)";
 const GLOW_DIAMETERS = 3.2;
 
 /** The name's own ladder: it is page type, so it never scales with the plate. A phone gets a smaller rung of the same ladder. */
@@ -135,7 +147,7 @@ function Label({ x, y, anchor, size, fill, children }: {
   return (
     <text
       x={x.toFixed(1)} y={y.toFixed(1)} textAnchor={anchor}
-      fontFamily="Space Grotesk, monospace" fontSize={size} letterSpacing="2.4" fill={fill}
+      fontFamily={font.label} fontSize={size} letterSpacing="2.4" fill={fill}
     >
       {children}
     </text>
@@ -161,7 +173,7 @@ function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean
 
 /** Under the name, in the legend's small grey: it fades with the plate, as the name does. */
 function WrittenOn({ text, textRef, style }: { text: string; textRef?: React.Ref<HTMLParagraphElement>; style?: React.CSSProperties }) {
-  return <p ref={textRef} className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]" style={style}>{text}</p>;
+  return <p ref={textRef} className="m-0 font-numeric text-data-sm tracking-[0.04em] text-paper/62" style={style}>{text}</p>;
 }
 
 function samePlace(a: NamePlace | null, b: NamePlace | null): boolean {
@@ -483,7 +495,7 @@ export function ReportHero({
                 {ascText && (
                   <text
                     x={east.x.toFixed(1)} y={(east.y + eastDrop + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
-                    fontFamily="IBM Plex Mono, monospace" fontSize={phone ? 15 : 16} fill="rgba(232,235,242,.62)"
+                    fontFamily={font.mono} fontSize={phone ? 15 : 16} {...VALUE}
                   >
                     {ascText}
                   </text>
@@ -495,14 +507,14 @@ export function ReportHero({
                 <Label x={east.x - 6} y={east.y + eastDrop + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
                 <text
                   x={(east.x - 6).toFixed(1)} y={(east.y + eastDrop + 44).toFixed(1)} textAnchor="end"
-                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                  fontFamily={font.mono} fontSize={11.5} {...VALUE}
                 >
                   {ascText}
                 </text>
                 <Label x={west.x + 6} y={west.y + westDrop + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
                 <text
                   x={(west.x + 6).toFixed(1)} y={(west.y + westDrop + 44).toFixed(1)} textAnchor="start"
-                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                  fontFamily={font.mono} fontSize={11.5} {...VALUE}
                 >
                   {dsc ? `${dsc.degree.toFixed(2)}° ${dsc.sign}` : ""}
                 </text>
@@ -526,7 +538,7 @@ export function ReportHero({
                 </Label>
                 <text
                   x={l.x.toFixed(1)} y={(l.y + 13).toFixed(1)} textAnchor={l.anchor}
-                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                  fontFamily={font.mono} fontSize={11.5} {...VALUE}
                 >
                   {bodyValue(l.key)}
                 </text>
@@ -535,7 +547,7 @@ export function ReportHero({
 
             {!blind && (
               // The R03 marker: ring, centre point, a tick outward along the horizon (ADR-49).
-              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={MARKER_RADIUS} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={MARKER_STROKE} />
+              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={MARKER_RADIUS} direction={ascTheta} stroke={SKY} fill={c.ground} strokeWidth={MARKER_STROKE} />
             )}
             {blind && !narrow && (
               <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{ADD_TIME.toUpperCase()}</Label>
@@ -543,14 +555,9 @@ export function ReportHero({
           </g>
         </svg>
         {blind && !narrow && onAddBirthTime && (
-          <button
-            type="button"
-            onClick={onAddBirthTime}
-            className="absolute left-1/2 -translate-x-1/2 rounded-full border border-brass/50 px-4 py-2 font-label text-[11px] uppercase tracking-[0.2em] text-brass hover:bg-brass/10"
-            style={{ bottom: "4%" }}
-          >
+          <Button variant="secondary" size="compact" onClick={onAddBirthTime} className="absolute left-1/2 -translate-x-1/2" style={{ bottom: "4%" }}>
             Add my birth time
-          </button>
+          </Button>
         )}
         {!phone && (
         <div ref={nameRef} className="rp-hname" style={standing !== null ? { transform: `translateY(calc(${shift}))` } : undefined}>
@@ -560,11 +567,7 @@ export function ReportHero({
             <div
               aria-hidden
               className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-              style={{
-                width: "156%", height: "240%",
-                background: "radial-gradient(ellipse closest-side at center, rgba(18,24,38,.94) 0%,"
-                  + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
-              }}
+              style={{ width: "156%", height: "240%", background: HALO }}
             />
             <h1 ref={h1Ref} className="relative" style={{ fontSize: `${nameSize}px` }}>
               {nameRows.map((line, i) => (
@@ -637,7 +640,7 @@ export function ReportHero({
             <Mark className="h-[18px] w-[18px]" point="currentColor" />
             Stars Decoded
           </p>
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{PERSONAL_REPORT}</p>
+          <p className="font-label text-kicker tracking-[0.28em] uppercase">{PERSONAL_REPORT}</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}

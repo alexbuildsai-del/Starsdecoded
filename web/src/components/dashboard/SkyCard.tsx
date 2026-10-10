@@ -12,8 +12,8 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { StatusDots } from "@/components/StatusDots";
+import { Button } from "@/ds/atoms/Button";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import {
   CardHeader,
   ChartPending,
@@ -78,11 +78,11 @@ export function SkyCard({ person, self = false, compatibility, nudge, send, cred
       {send}
       {credit}
       {writing ? (
-        <div className="flex min-h-10 w-full items-center justify-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-4 font-label text-[13.5px] font-medium text-[var(--indigo-lt)]">
+        <div className="flex min-h-10 w-full items-center justify-center rounded-control border border-indigo/35 bg-indigo-tint px-4 font-label text-button-compact text-indigo-lt">
           <StatusDots label={writingText(name, self)} />
         </div>
       ) : primary ? (
-        <Button asChild size="lg" className="w-full whitespace-normal px-4 text-center font-label text-[13.5px]">
+        <Button asChild full className="h-auto min-h-[46px] whitespace-normal px-4 py-2 text-center">
           <Link href={primary.href}>
             {doorText(name, self)}
             <ArrowRight aria-hidden />

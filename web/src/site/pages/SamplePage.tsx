@@ -16,8 +16,8 @@ import {
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
 import { ChevronDown, X } from "lucide-react";
 import { Link } from "wouter";
-import { Checklist, localTicks, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
-import { EvidenceCard } from "@/components/report/EvidenceCard";
+import { Checklist, localTicks, type ChecklistHeading, type ChecklistItem } from "@/ds/organisms/Checklist";
+import { EvidenceCard } from "@/ds/organisms/ClaimPopover";
 import { HouseDeck } from "@/components/report/HouseDeck";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { chapterAccent } from "@/lib/chapter-accent";
@@ -38,6 +38,8 @@ import {
 import Differences from "../sections/Differences";
 import { SiteLayout } from "../SiteLayout";
 import { pageFor } from "../site";
+import { buttonStyles } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 const page = pageFor("/sample");
 
@@ -153,9 +155,9 @@ function Mark({ cite }: { cite: Cite }) {
   const on = openId === cite.id;
   return (
     <>
-      <mark className={cn("rp-claimed", on && "bg-[rgba(92,107,192,.18)] text-[color:var(--paper)]")}>{cite.text}</mark>
-      <button
-        type="button"
+      <mark className={cn("rp-claimed", on && "bg-indigo/18 text-paper")}>{cite.text}</mark>
+      <TextButton
+        bare
         // The number is small, so its hit area reaches past it for a thumb.
         className={cn("rp-cite relative after:absolute after:-inset-[7px] after:content-['']", on && "open")}
         aria-label={`Where line ${cite.n} comes from`}
@@ -164,7 +166,7 @@ function Mark({ cite }: { cite: Cite }) {
         onClick={(event) => toggle(cite, event.currentTarget)}
       >
         {cite.n}
-      </button>
+      </TextButton>
     </>
   );
 }
@@ -184,14 +186,14 @@ function Words({ printed: text }: { printed: Printed }) {
   );
 }
 
-const LABEL = "font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:var(--sd-muted)]";
-const PROSE = "text-[16.5px] leading-[1.75] text-[color:var(--paper-dim)] max-[760px]:text-base";
-const CARD = "grid content-start gap-2 rounded-[14px] border border-[color:var(--line)] bg-[rgba(17,22,31,.45)] p-4";
+const LABEL = "font-label text-kicker font-medium uppercase leading-[1.2] tracking-[.18em] text-muted";
+const PROSE = "text-prose leading-[1.75] text-paper-dim max-[760px]:text-base";
+const CARD = "grid content-start gap-2 rounded-card border border-line bg-surface/45 p-4";
 const TITLE = "text-2xl leading-tight";
 
 function Lede({ printed: text }: { printed: Printed }) {
   return (
-    <p className="font-display text-[22px] leading-[1.5] text-[color:var(--paper)]">
+    <p className="font-display text-sheet-title leading-[1.5] text-paper">
       <Words printed={text} />
     </p>
   );
@@ -230,7 +232,7 @@ const BODIES: Record<OpenChapter, Body> = {
         <Block label="What stands out" printed={r.take(s.concentration)} />
         <Block label="How you get through your days" printed={r.take(s.temperament)} />
         <Block label="What makes it unusual" printed={r.take(s.distinctive)} />
-        <p className="border-l-2 border-[color:var(--accent)] pl-[18px] font-display text-[20px] leading-[1.5] text-[color:var(--paper)]">
+        <p className="border-l-2 border-[color:var(--accent)] pl-[18px] font-display text-card-title leading-[1.5] text-paper">
           <Words printed={r.take(s.bridge)} />
         </p>
       </>
@@ -284,7 +286,7 @@ const BODIES: Record<OpenChapter, Body> = {
             <p className={PROSE}>
               <Words printed={p.tension} />
             </p>
-            <p className="mt-1 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
+            <p className="mt-1 font-label text-kicker font-medium uppercase leading-[1.2] tracking-[.18em] [color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
               What helps
             </p>
             <p className={PROSE}>
@@ -300,7 +302,7 @@ const BODIES: Record<OpenChapter, Body> = {
 // Under the strip of chapter chips on a narrow screen, so a chapter the rail jumps to starts below it.
 const ANCHOR = "max-[1000px]:scroll-mt-[calc(var(--nav)+var(--rail-strip)+16px)]";
 // An open chapter or a run of dimmed ones, each closed by the same rule and space, the last by none.
-const STRETCH = "mb-14 border-b border-[color:var(--line-soft)] pb-[72px] last:mb-0 last:border-b-0 last:pb-0";
+const STRETCH = "mb-14 border-b border-line-soft pb-[72px] last:mb-0 last:border-b-0 last:pb-0";
 
 function ChapterSection({ index, section, chart }: { index: number; section: OpenChapter; chart: ChartData }) {
   const chapter = CHAPTERS[index];
@@ -318,10 +320,10 @@ function ChapterSection({ index, section, chart }: { index: number; section: Ope
       // reading keeps its measure; the deck takes the column's width, for its wheel and card side by side.
       className={cn(STRETCH, ANCHOR, "grid grid-cols-[minmax(0,1fr)] gap-[22px]", section !== "houses" && "max-w-[70ch]")}
     >
-      <p className="font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.22em] text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
+      <p className="font-label text-kicker font-medium uppercase leading-[1.2] tracking-[.22em] [color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
         <span className="font-numeric">{counter(index + 1)}</span> · {chapter.eyebrow}
       </p>
-      <h2 id={`${id}-title`} className="text-[clamp(32px,3.4vw,44px)] leading-[1.08]">
+      <h2 id={`${id}-title`} className="text-page-title md:text-hero leading-[1.08]">
         {chapter.title}
       </h2>
       {body}
@@ -343,23 +345,23 @@ function DimmedSection({ index, section }: { index: number; section: DimmedChapt
       id={id}
       aria-labelledby={`${id}-title`}
       style={{ "--accent": chapterAccent(index + 1) } as CSSProperties}
-      className={cn(ANCHOR, "rounded-[12px] border border-[color:var(--line)]")}
+      className={cn(ANCHOR, "rounded-card border border-line")}
     >
       <div className={cn("grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 px-3 pt-[11px]", first ? "pb-1" : "pb-[11px]")}>
-        <span className="font-numeric text-[12px] font-medium text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">{two(index + 1)}</span>
+        <span className="font-numeric text-caption font-medium [color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">{two(index + 1)}</span>
         <div className="grid min-w-0 gap-0.5">
-          <h2 id={`${id}-title`} className="font-sans text-[15px] leading-[1.35] tracking-normal text-[color:var(--paper-dim)]">
+          <h2 id={`${id}-title`} className="font-sans text-prose leading-[1.35] tracking-normal text-paper-dim">
             {chapter.title}
           </h2>
-          <p className="text-[12.5px] leading-[1.45] text-[color:var(--sd-muted)]">{DIMMED_LINES[section]}</p>
+          <p className="text-caption leading-[1.45] text-muted">{DIMMED_LINES[section]}</p>
         </div>
-        <span className="font-label text-[10px] font-medium uppercase leading-[1.3] tracking-[.12em] text-[color:var(--sd-muted)]">
+        <span className="font-label text-kicker font-medium uppercase leading-[1.3] tracking-[.12em] text-muted">
           {DIMMED_STATUS}
         </span>
       </div>
       {first && (
         <details className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 pb-[11px] pl-[58px] pr-3 pt-1 font-label text-[12.5px] font-medium text-[color:var(--indigo-lt)] transition-colors hover:text-[color:var(--paper)] pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 pb-[11px] pl-[58px] pr-3 pt-1 font-label text-caption font-medium text-indigo-lt transition-colors hover:text-paper pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">Read the first paragraph</span>
             <span className="hidden group-open:inline">Show less</span>
             <span className="sr-only">{` of ${chapter.title}`}</span>
@@ -427,7 +429,7 @@ function EvidenceLayer({ open, onClose }: { open: Opened | null; onClose: (refoc
     if (!open || open.sheet || !el) return;
     const mark = open.from.getBoundingClientRect();
     markTop.current = mark.top;
-    const nav = document.querySelector(".sd-nav")?.getBoundingClientRect().bottom ?? 0;
+    const nav = document.querySelector("header[data-version=site]")?.getBoundingClientRect().bottom ?? 0;
     const below = mark.bottom + 10;
     const above = mark.top - el.offsetHeight - 10;
     const top =
@@ -509,15 +511,14 @@ function EvidenceLayer({ open, onClose }: { open: Opened | null; onClose: (refoc
             onKeyDown={onCardKey}
           >
             <div onPointerDown={(event) => drag.start(event)} className="relative -mt-1 mb-1.5 flex h-9 touch-none items-center justify-center">
-              <span aria-hidden="true" className="block h-1 w-9 rounded-full bg-[#3A4356]" />
-              <button
+              <span aria-hidden="true" className="block h-1 w-9 rounded-full bg-line-strong" />
+              <TextButton
                 ref={closer}
-                type="button"
                 onClick={() => onClose(true)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 rounded px-2 py-2 font-label text-[10.5px] font-medium uppercase tracking-[0.14em] text-[color:var(--paper-dim)] transition-colors hover:text-[color:var(--paper)]"
+                className="absolute right-0 top-1/2 -translate-y-1/2 px-2 font-label text-kicker uppercase tracking-[0.14em] text-paper-dim"
               >
                 Close
-              </button>
+              </TextButton>
             </div>
             <EvidenceCard claim={open.cite.claim} />
           </motion.div>
@@ -531,15 +532,14 @@ function EvidenceLayer({ open, onClose }: { open: Opened | null; onClose: (refoc
             className="rp-card [&_.q]:pr-8"
             onKeyDown={onCardKey}
           >
-            <button
+            <TextButton
               ref={closer}
-              type="button"
               aria-label="Close"
               onClick={() => onClose(true)}
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md text-[color:var(--paper-dim)] transition-colors hover:bg-[rgba(232,235,242,.06)] hover:text-[color:var(--paper)]"
+              className="absolute right-2 top-2 size-8 justify-center rounded-inner px-0 text-paper-dim hover:bg-paper/6"
             >
-              <X aria-hidden="true" className="h-4 w-4" />
-            </button>
+              <X aria-hidden="true" className="size-4" />
+            </TextButton>
             <EvidenceCard claim={open.cite.claim} />
           </div>
         ))}
@@ -558,8 +558,8 @@ function SampleEnd() {
           <p>All you need is your birth date and where you were born. Add your birth time if you know it.</p>
         </div>
         <div className="sd-cta-acts">
-          <ReportCta source="sample" className="sd-btn" />
-          <Link href="/method" className="sd-btn sd-btn-g">
+          <ReportCta source="sample" className={buttonStyles()} />
+          <Link href="/method" className={buttonStyles({ variant: "secondary" })}>
             How we make your report
           </Link>
         </div>
@@ -599,7 +599,7 @@ export default function SamplePage() {
   return (
     <SiteLayout page={page} head={<SampleHead page={page} />} end={<SampleEnd />}>
       <CardContext.Provider value={api}>
-        <div className="border-t border-[color:var(--line-soft)] pb-16 pt-[72px] max-[760px]:pb-12 max-[760px]:pt-12">
+        <div className="border-t border-line-soft pb-16 pt-[72px] max-[760px]:pb-12 max-[760px]:pt-12">
           <div
             style={{ "--rail-strip": RAIL_STRIP } as CSSProperties}
             className={cn("sd-wrap grid grid-cols-[220px_minmax(0,1fr)] items-start gap-14 max-[1000px]:grid-cols-1 max-[1000px]:gap-7", PINS)}

@@ -98,9 +98,9 @@ export default function TimelineLine() {
             <h2 className="sd-eyebrow" id="timeline-line-h">
               {LAUNCHED ? "Timeline" : "Coming soon · Timeline"}
             </h2>
-            <p className="font-display text-[19px] leading-[1.4] text-pretty text-[color:var(--paper)] min-[760px]:text-[22px]">
+            <p className="font-display text-card-title leading-[1.4] text-pretty text-paper min-[760px]:text-sheet-title">
               See when the planets reach your chart, from your Saturn return to this week.{" "}
-              <Link href="/timeline" className="ml-1 whitespace-nowrap font-sans text-[14px]">
+              <Link href="/timeline" className="ml-1 whitespace-nowrap font-sans text-ui">
                 What's in it <span aria-hidden="true">›</span>
               </Link>
             </p>

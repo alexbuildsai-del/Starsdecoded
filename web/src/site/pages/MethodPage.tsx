@@ -48,18 +48,18 @@ const HUE: Record<NoteKind, string> = {
   modality: "var(--indigo-lt)",
 };
 const CHIP =
-  "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-[4px] border border-[var(--line)] bg-[rgba(6,8,12,.4)] px-[9px] py-[5px] text-[10.5px] leading-[1.3] font-medium tracking-[.06em] uppercase text-[var(--paper-dim)]";
-const PROSE = "max-w-[54ch] text-[16.5px] leading-[1.7] text-[var(--paper-dim)]";
+  "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-inner border border-line bg-void/40 px-[9px] py-[5px] text-kicker leading-[1.3] font-medium tracking-[.06em] uppercase text-paper-dim";
+const PROSE = "max-w-[54ch] text-prose leading-[1.7] text-paper-dim";
 
 /** Text left and the sample's data right; they stack before the data would be squeezed. */
 function Step({ n, title, figure, children }: { n: number; title: string; figure: ReactNode; children: ReactNode }) {
   return (
-    <li className="grid items-start gap-x-14 gap-y-7 border-t border-[var(--line-soft)] py-11 first:border-t-0 first:pt-0 last:pb-0 min-[1000px]:grid-cols-2">
+    <li className="grid items-start gap-x-14 gap-y-7 border-t border-line-soft py-11 first:border-t-0 first:pt-0 last:pb-0 min-[1000px]:grid-cols-2">
       <div className="grid min-w-0 gap-3.5">
-        <p className="sd-mono text-[12px] tracking-[.1em] text-[var(--indigo-lt)]" aria-hidden="true">
+        <p className="sd-mono text-caption tracking-[.1em] text-indigo-lt" aria-hidden="true">
           {two(n)}
         </p>
-        <h2 className="text-[clamp(26px,2.6vw,32px)] leading-[1.15]">{title}</h2>
+        <h2 className="text-sheet-title md:text-page-title leading-[1.15]">{title}</h2>
         {children}
       </div>
       {figure}
@@ -69,7 +69,7 @@ function Step({ n, title, figure, children }: { n: number; title: string; figure
 
 function Shown({ caption, children }: { caption: string; children: ReactNode }) {
   return (
-    <figure className="grid min-w-0 content-start gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(17,22,31,.55)] p-[18px]">
+    <figure className="grid min-w-0 content-start gap-3 rounded-2xl border border-line bg-surface/55 p-[18px]">
       <figcaption className="sd-tag">{caption}</figcaption>
       {children}
     </figure>
@@ -152,9 +152,9 @@ function Steps() {
                   {CHAPTERS.map((chapter, i) => (
                     <li
                       key={chapter.section}
-                      className="grid grid-cols-[24px_minmax(0,1fr)] border-t border-[var(--line-soft)] py-[5px] text-[13.5px] leading-[1.5] text-[var(--paper-dim)]"
+                      className="grid grid-cols-[24px_minmax(0,1fr)] border-t border-line-soft py-[5px] text-small leading-[1.5] text-paper-dim"
                     >
-                      <span aria-hidden="true" className="sd-mono text-[10.5px] leading-[1.9] font-medium" style={{ color: chapterAccent(i + 1) }}>
+                      <span aria-hidden="true" className="sd-mono text-caption leading-[1.9] font-medium" style={{ color: chapterAccent(i + 1) }}>
                         {two(i + 1)}
                       </span>
                       <span className="min-w-0">{chapter.title}</span>
@@ -216,8 +216,8 @@ function FactsAndAi() {
 
         {/* Word for word the FAQ's "How is the report written?", the only other place AI is named; faq.test.ts keeps them equal. */}
         <div className="mt-14 grid max-w-[64ch] gap-2.5">
-          <h2 className="text-[clamp(26px,2.6vw,32px)] leading-[1.15]">How is the report written?</h2>
-          <p className="text-[16px] leading-[1.7] text-[var(--paper-dim)]">
+          <h2 className="text-sheet-title md:text-page-title leading-[1.15]">How is the report written?</h2>
+          <p className="text-prose leading-[1.7] text-paper-dim">
             We work out your chart and note what stands out in it. Then AI helps us write your report from those notes,
             following our own rules. We check every claim against your chart before you see it.
           </p>

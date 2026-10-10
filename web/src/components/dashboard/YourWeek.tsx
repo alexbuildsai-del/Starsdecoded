@@ -9,7 +9,11 @@ import { useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { keepPreviousData } from "@tanstack/react-query";
 import { getGetTimelineNowQueryKey, useGetTimelineNow, type TimelineRange, type Week } from "@workspace/api-client-react";
-import { StatusDots } from "@/components/StatusDots";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
+import { StatusDots } from "@/ds/atoms/StatusDots";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Card } from "@/ds/molecules/Card";
+import { SegmentedControl } from "@/ds/molecules/SegmentedControl";
 import { Dial } from "@/components/timeline/Dial";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { WeekBars } from "@/components/timeline/WeekBars";
@@ -17,40 +21,10 @@ import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
 import { RANGES } from "@/lib/now-ahead";
 import { dayIn } from "@/lib/timeline-view";
-import { cn } from "@/lib/utils";
 import { dialWhen, loadLine, nowSource, weekSource, weekSpan } from "@/lib/week-view";
 
-const HEADING = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em] text-[#D4B06A]";
-const TEXT_BUTTON =
-  "inline-flex min-h-8 items-center rounded px-1 text-[12.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]";
 // The sky on a chart moves slowly, as Timeline's own page reads it.
 const STALE_MS = 5 * 60_000;
-
-/** Week · Month · 6 months, pressed buttons as Now and ahead has them, narrow enough to sit beside Play under a 300 px dial. */
-function RangeSwitch({ range, onChange }: { range: TimelineRange; onChange: (range: TimelineRange) => void }) {
-  return (
-    <div role="group" aria-label="How far ahead" className="inline-flex gap-0.5 rounded-[10px] border border-[#242C3B] bg-[#0B0F15] p-[3px]">
-      {RANGES.map(({ id, label }) => {
-        const on = id === range;
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(id)}
-            className={cn(
-              "min-h-9 rounded-[7px] px-1.5 font-label text-[12.5px] font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]",
-              on ? "bg-[#171D29] text-[#E8EBF2]" : "text-[#9AA3B5] hover:text-[#E8EBF2]",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export interface YourWeekProps {
   week: Week;
@@ -101,17 +75,17 @@ export function YourWeek({ week, zone }: YourWeekProps) {
   return (
     <section aria-labelledby={id} className="grid min-w-0 gap-2.5">
       <div className="flex items-baseline justify-between gap-2.5">
-        <h2 id={id} className={HEADING}>
-          Your week
+        <h2 id={id} className="m-0">
+          <Eyebrow className="text-brass">Your week</Eyebrow>
         </h2>
-        <p className="min-w-0 text-right text-xs leading-[1.4] text-[#9AA3B5]">{span} · Timeline</p>
+        <p className="min-w-0 text-right text-caption text-paper-dim">{span} · Timeline</p>
       </div>
-      <div className="grid gap-5 rounded-[12px] border border-[#242C3B] bg-[rgba(17,22,31,.55)] p-[18px] md:grid-cols-[300px_minmax(0,1fr)] md:items-start">
+      <Card variant="glass" as="div" className="gap-5 md:grid md:grid-cols-[300px_minmax(0,1fr)] md:items-start">
         <div className="grid min-w-0 content-start gap-3 md:col-start-2 md:row-start-1">
           <WeekBars week={week} zone={zone} />
           <Link
             href="/dashboard/timeline"
-            className="justify-self-start rounded text-[13.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
+            className="justify-self-start rounded-inner text-button-compact text-indigo-lt transition-colors duration-(--dur-fast) hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus"
           >
             Open Timeline <span aria-hidden="true">→</span>
           </Link>
@@ -129,33 +103,33 @@ export function YourWeek({ week, zone }: YourWeekProps) {
               trail="range"
               label="Your chart"
             >
-              <RangeSwitch range={range} onChange={setRange} />
+              <SegmentedControl<TimelineRange> aria-label="How far ahead" options={RANGES} value={range} onChange={setRange} />
             </Dial>
           </div>
           {anyRetrograde(frames) ? <RetrogradeLine className="w-full max-w-[300px]" /> : null}
           <p className="flex min-h-[22px] w-full max-w-[300px] flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span className="font-numeric text-[12.5px] text-[#AEB6C6]">{dialWhen(frames[day]?.date ?? shown.from, shown.from, order)}</span>
+            <span className="font-mono text-data tabular-nums text-paper-dim">{dialWhen(frames[day]?.date ?? shown.from, shown.from, order)}</span>
             {day > 0 ? (
-              <button type="button" onClick={backToToday} className={TEXT_BUTTON}>
+              <TextButton onClick={backToToday} className="text-caption">
                 Back to today
-              </button>
+              </TextButton>
             ) : null}
             {loading ? (
-              <span className="font-label text-xs text-[#AEB6C6]">
+              <span className="font-label text-caption text-paper-dim">
                 <StatusDots label="Loading" />
               </span>
             ) : null}
           </p>
           {failed ? (
             <div className="grid w-full max-w-[300px] justify-items-start gap-1">
-              <p className="text-[13px] leading-snug text-[#AEB6C6]">{loadLine(range)}</p>
-              <button type="button" onClick={() => void nowQ.refetch()} className={cn(TEXT_BUTTON, "-ml-1")}>
+              <p className="text-small text-paper-dim">{loadLine(range)}</p>
+              <TextButton onClick={() => void nowQ.refetch()} className="-ml-1 text-caption">
                 Try again
-              </button>
+              </TextButton>
             </div>
           ) : null}
         </div>
-      </div>
+      </Card>
     </section>
   );
 }

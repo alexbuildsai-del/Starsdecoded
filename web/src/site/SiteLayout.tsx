@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { EPHEMERIS } from "@workspace/engine";
-import { Mark } from "@/components/Mark";
+import { buttonStyles } from "@/ds/atoms/Button";
+import { Wordmark } from "@/ds/atoms/Wordmark";
+import { Footer } from "@/ds/organisms/Footer";
+import { TopBar } from "@/ds/organisms/TopBar";
 import { usePageTitle } from "@/lib/page-title";
 import { PRODUCT } from "@/lib/product";
 import { keepCampaign } from "@/lib/prices";
@@ -48,6 +51,9 @@ export function PageHead({ page, children }: { page: PageEntry; children?: React
   );
 }
 
+const MENU_ROW =
+  "flex min-h-11 items-center rounded-inner px-3 py-2 text-ui text-paper-dim no-underline outline-none transition-colors duration-(--dur-fast) ease-[var(--ease)] hover:bg-surface hover:text-paper aria-[current=page]:text-paper motion-reduce:transition-none";
+
 function PhoneMenu({ here }: { here: PagePath }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
@@ -76,96 +82,103 @@ function PhoneMenu({ here }: { here: PagePath }) {
   }, [open]);
 
   return (
-    <details className="sd-menu" ref={menu} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary>
+    <details className="group relative min-[901px]:hidden" ref={menu} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="relative grid size-9 cursor-pointer list-none place-items-center rounded-control border border-control-edge text-paper transition-colors duration-(--dur-fast) ease-[var(--ease)] after:absolute after:-inset-1 after:content-[''] hover:border-indigo-lt motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
         <span className="sr-only">Menu</span>
-        <svg className="sd-menu-shut" viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] group-open:hidden" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16" />
         </svg>
-        <svg className="sd-menu-x" viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="hidden size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] group-open:block" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
       </summary>
       {/* The page already open changes no route, and Sign in may open the waitlist over the page, which must not sit on
           an open menu: any link or button closes it. */}
       <nav
-        className="sd-menu-panel"
+        className="absolute right-0 top-[calc(100%+8px)] z-30 grid w-[min(15rem,calc(100vw-2rem))] gap-0.5 rounded-card border border-line bg-raised p-1 shadow-raised"
         aria-label="Site"
         onClick={(event) => {
           if ((event.target as Element).closest("a, button") && menu.current) menu.current.open = false;
         }}
       >
         {NAV.map((link) => (
-          <Link key={link.href} href={link.href} aria-current={currentIf(link.href, here)}>
+          <Link key={link.href} href={link.href} className={MENU_ROW} aria-current={currentIf(link.href, here)}>
             {link.label}
           </Link>
         ))}
-        <SignInCta source="menu-sign-in" className="sd-menu-signin" />
+        <SignInCta source="menu-sign-in" className={`${MENU_ROW} min-[461px]:hidden`} />
       </nav>
     </details>
   );
 }
 
 function SiteNav({ here }: { here: PagePath }) {
+  const word = (
+    <Link
+      className="inline-flex items-center text-paper no-underline max-[359px]:[&>span>span]:sr-only"
+      href="/"
+      aria-label={`${PRODUCT}, home`}
+      aria-current={currentIf("/", here)}
+    >
+      <Wordmark />
+    </Link>
+  );
   return (
-    <header className="sd-nav">
-      <div className="sd-wrap">
-        <Link className="sd-word" href="/" aria-label={`${PRODUCT}, home`} aria-current={currentIf("/", here)}>
-          <Mark />
-          <span className="sd-word-name">{PRODUCT}</span>
-        </Link>
-        <nav className="sd-links" aria-label="Site">
-          {NAV.map((link) => (
-            <Link key={link.href} href={link.href} aria-current={currentIf(link.href, here)}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="sd-right">
-          <SignInCta source="nav-sign-in" className="sd-btn sd-btn-g sd-btn-sm sd-signin" />
-          <ReportCta source="nav" className="sd-btn sd-btn-sm" />
+    <TopBar
+      version="site"
+      widthClass="max-w-[1200px]"
+      left={
+        <>
+          {word}
+          <nav className="ml-6 hidden items-center gap-6 text-ui text-paper-dim min-[901px]:flex" aria-label="Site">
+            {NAV.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-paper-dim no-underline hover:text-paper aria-[current=page]:text-paper aria-[current=page]:underline aria-[current=page]:decoration-indigo-lt aria-[current=page]:underline-offset-8"
+                aria-current={currentIf(link.href, here)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </>
+      }
+      right={
+        <>
+          <SignInCta source="nav-sign-in" className={`${buttonStyles({ variant: "secondary", size: "compact" })} max-[460px]:hidden`} />
+          <ReportCta source="nav" className={buttonStyles({ size: "compact" })} />
           <PhoneMenu here={here} />
-        </div>
-      </div>
-    </header>
+        </>
+      }
+    />
   );
 }
 
 function SiteFooter({ page }: { page: PageEntry }) {
   return (
-    <footer className="sd-foot">
-      <div className="sd-wrap">
-        <div className="sd-foot-cols">
-          <div className="sd-foot-brand">
-            <Link className="sd-word" href="/">
-              <Mark />
-              {PRODUCT}
-            </Link>
-            <p>We write reports about you from your birth chart.</p>
-          </div>
-          {FOOTER.map((column) => (
-            <div key={column.heading}>
-              <h2>{column.heading}</h2>
-              <ul>
-                {column.links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} aria-current={currentIf(link.href, page.path)}>
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <div className="sd-foot-base">
-          <span>Positions computed with {EPHEMERIS}. Place search © OpenStreetMap contributors.</span>
-          <span>
-            <DateLine page={page} /> · © {page.updated.slice(0, 4)} {PRODUCT}
-          </span>
-        </div>
-      </div>
-    </footer>
+    <Footer
+      brand={
+        <Link className="inline-flex items-center text-paper no-underline" href="/">
+          <Wordmark />
+        </Link>
+      }
+      tagline="We write reports about you from your birth chart."
+      columns={FOOTER.map((column) => ({
+        heading: column.heading,
+        links: column.links.map((link) => (
+          <Link key={link.href} href={link.href} className="aria-[current=page]:!text-paper" aria-current={currentIf(link.href, page.path)}>
+            {link.label}
+          </Link>
+        )),
+      }))}
+      base={[
+        <>Positions computed with {EPHEMERIS}. Place search © OpenStreetMap contributors.</>,
+        <>
+          <DateLine page={page} /> · © {page.updated.slice(0, 4)} {PRODUCT}
+        </>,
+      ]}
+    />
   );
 }
 

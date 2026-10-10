@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import { Link } from "wouter";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { HorizonWheel, type WheelLayer } from "@/site/components/HorizonWheel";
 import type { Sky } from "@/site/lib/sky";
 
@@ -24,7 +25,7 @@ const PARTS: readonly Part[] = [
   { layer: "bodies", lead: "Each planet", rest: "sits at its exact degree. Point at one to see where it is.", needsTime: false },
 ];
 
-const ITEM = "block w-full border-l-2 border-[color:var(--line)] px-3.5 py-2.5 text-left text-[15px] leading-normal text-[color:var(--paper-dim)]";
+const ITEM = "block w-full border-l-2 border-line px-3.5 py-2.5 text-left font-sans text-prose font-normal leading-normal text-paper-dim";
 
 export function ReadTheWheel({ sky }: { sky: Sky }) {
   const [hover, setHover] = useState<WheelLayer | null>(null);
@@ -36,7 +37,7 @@ export function ReadTheWheel({ sky }: { sky: Sky }) {
 
   return (
     <div className="grid content-start gap-3.5">
-      <h3 className="text-2xl leading-tight">How to read the wheel</h3>
+      <h3 className="text-sheet-title leading-tight">How to read the wheel</h3>
       {/* The page's wheel already speaks to a screen reader and the table lists the same facts, so this copy is only seen. */}
       <div
         aria-hidden="true"
@@ -48,26 +49,25 @@ export function ReadTheWheel({ sky }: { sky: Sky }) {
         {PARTS.map((part) =>
           drawn || !part.needsTime ? (
             <li key={part.layer}>
-              <button
-                type="button"
+              <TextButton
                 aria-pressed={pressed === part.layer}
                 onPointerEnter={() => setHover(part.layer)}
                 onPointerLeave={() => setHover(null)}
                 onClick={() => setPressed((was) => (was === part.layer ? null : part.layer))}
-                className={`${ITEM} cursor-pointer bg-transparent transition-colors duration-200 hover:border-[color:var(--indigo-lt)] hover:bg-[rgba(92,107,192,.07)] focus-visible:border-[color:var(--indigo-lt)] focus-visible:bg-[rgba(92,107,192,.07)] aria-pressed:border-[color:var(--indigo-lt)] aria-pressed:bg-[rgba(92,107,192,.07)]`}
+                className={`${ITEM} min-h-0 rounded-none bg-transparent transition-colors duration-(--dur-fast) after:content-none hover:border-indigo-lt hover:bg-indigo/7 hover:text-paper-dim focus-visible:border-indigo-lt focus-visible:bg-indigo/7 aria-pressed:border-indigo-lt aria-pressed:bg-indigo/7`}
               >
-                <b className="font-medium text-[color:var(--paper)]">{part.lead}</b> {part.rest}
-              </button>
+                <b className="font-medium text-paper">{part.lead}</b> {part.rest}
+              </TextButton>
             </li>
           ) : (
             <li key={part.layer} className={ITEM}>
-              <b className="font-medium text-[color:var(--paper)]">{part.lead}</b> {part.rest}{" "}
-              <span className="text-[color:var(--sd-muted)]">Add a birth time to see it.</span>
+              <b className="font-medium text-paper">{part.lead}</b> {part.rest}{" "}
+              <span className="text-muted">Add a birth time to see it.</span>
             </li>
           ),
         )}
       </ol>
-      <p className="text-[13px] text-[color:var(--sd-muted)]">
+      <p className="text-small text-muted">
         Houses here are whole sign. <Link href="/learn/whole-sign-houses">What whole-sign houses are</Link>
       </p>
     </div>

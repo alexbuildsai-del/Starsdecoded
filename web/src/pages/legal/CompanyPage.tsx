@@ -9,8 +9,8 @@ const POSTAL: string | null = LEGAL_IDENTITY.postalAddress?.trim() || null;
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
     <>
-      <dt className="pt-1 font-label text-[11px] uppercase tracking-[.16em] text-[var(--sd-muted)]">{term}</dt>
-      <dd className="text-[var(--paper)]">{children}</dd>
+      <dt className="pt-1 font-label text-kicker uppercase tracking-[.16em] text-muted">{term}</dt>
+      <dd className="text-paper">{children}</dd>
     </>
   );
 }
@@ -20,7 +20,7 @@ export default function CompanyPage() {
 
   return (
     <LegalLayout path="/company">
-      <dl className="mb-14 grid grid-cols-[max-content_1fr] gap-x-8 gap-y-3 text-[16px] leading-[1.6]">
+      <dl className="mb-14 grid grid-cols-[max-content_1fr] gap-x-8 gap-y-3 text-prose leading-[1.6]">
         <Row term="Run by">{name}</Row>
         <Row term="Sells as">A private individual, trading as {tradingName}</Row>
         <Row term="Based in">{country}</Row>

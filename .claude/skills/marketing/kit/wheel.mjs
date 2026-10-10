@@ -12,12 +12,38 @@ const KIT = path.dirname(new URL(import.meta.url).pathname);
 const REPO = path.resolve(KIT, "../../../..");
 const WEB = path.join(REPO, "web");
 
-// The colour tokens NatalWheel reads (hsl(var(--brass)) and the rest), taken from the app's :root.
+const TOKENS = JSON.parse(fs.readFileSync(path.join(REPO, "packages/design/src/tokens.json"), "utf8")).color;
+
+// NatalWheel reads `hsl(var(--x))` triplets for some colours and bare hex for the indigos; index.css keeps only the
+// triplets and only inside the app, so a slide builds both from tokens.json.
+function hslTriplet(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d === 0) return `0 0% ${(l * 100).toFixed(2)}%`;
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return `${(h * 60).toFixed(2)} ${(s * 100).toFixed(2)}% ${(l * 100).toFixed(2)}%`;
+}
+
 export function webTokens() {
-  const css = fs.readFileSync(path.join(WEB, "src/index.css"), "utf8");
-  const start = css.indexOf(":root {");
-  const block = css.slice(start, css.indexOf("\n}", start));
-  return (block.match(/--[\w-]+:\s*[^;]+;/g) ?? []).join(" ");
+  const t = TOKENS;
+  const triplets = { background: t.ground, foreground: t.paper, card: t.surface, popover: t.raised, primary: t.indigo,
+    "muted-foreground": t.muted, destructive: t.back, brass: t.brass, "chart-4": t["line-easy"] };
+  const plain = { indigo: t.indigo, "indigo-lt": t["indigo-lt"], violet: t.violet };
+  return [
+    ...Object.entries(triplets).map(([k, v]) => `--${k}: ${hslTriplet(v)};`),
+    ...Object.entries(plain).map(([k, v]) => `--${k}: ${v};`),
+    ...Object.entries(t).map(([k, v]) => `--color-${k}: ${v};`),
+  ].join(" ");
+}
+
+// The slide's own short names (slide.css reads var(--void), var(--fire) and the rest) on the same tokens.
+export function slideColours() {
+  const t = TOKENS;
+  const names = { void: t.void, ground: t.ground, surface: t.surface, raised: t.raised, line: t.line, "line-soft": t["line-soft"],
+    paper: t.paper, "paper-dim": t["paper-dim"], muted: t.muted, indigo: t.indigo, "indigo-lt": t["indigo-lt"], violet: t.violet,
+    brass: t.brass, "brass-dim": t["brass-dim"], fire: t["element-fire"], earth: t["element-earth"], air: t["element-air"], water: t["element-water"] };
+  return `:root{${Object.entries(names).map(([k, v]) => `--${k}:${v};`).join("")}}`;
 }
 
 export async function openWheels() {

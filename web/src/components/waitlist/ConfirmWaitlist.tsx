@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { confirmWaitlist } from "@workspace/api-client-react";
+import { Button } from "@/ds/atoms/Button";
 import { WaitlistForm } from "@/components/waitlist/WaitlistForm";
 import { PRODUCT } from "@/lib/product";
 import { confirmFailure, type ConfirmFailure } from "@/lib/waitlist";
@@ -54,9 +55,9 @@ export function ConfirmWaitlist({ token }: { token: string }) {
           {phase === "retry" && (
             <>
               <p>We couldn't confirm your email just now.</p>
-              <button type="button" className="wl-btn justify-self-start mt-1" onClick={() => setAttempt((n) => n + 1)}>
+              <Button className="mt-1 justify-self-start" onClick={() => setAttempt((n) => n + 1)}>
                 Try again
-              </button>
+              </Button>
             </>
           )}
         </div>

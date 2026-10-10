@@ -79,7 +79,7 @@ export default function WaitlistPage() {
       {TAKES_SIGNUPS && (
         <section className="sd-pg-sec sd-sec-a sd-line" aria-labelledby="next-h">
           <div className="sd-wrap">
-            <h2 id="next-h" className="mb-8 text-[clamp(28px,3vw,38px)] leading-[1.1] tracking-[-0.025em] min-[760px]:mb-10">
+            <h2 id="next-h" className="mb-8 text-page-title md:text-hero leading-[1.1] tracking-[-0.025em] min-[760px]:mb-10">
               What happens next
             </h2>
             <ol className="sd-steps">

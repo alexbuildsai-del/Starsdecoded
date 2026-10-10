@@ -24,10 +24,6 @@ failure, escalation, sentinel finding and QA sev-1 to its card (agent-roster sco
 5. Over 60 lines, the oldest lines under Seen once go first.
 
 ## Seen once
-- R13 · R13-10 · an unauthenticated counting route wrote a row per distinct value with no ceiling (S3) · - · -
-- R13 · R13-05 · a card editing the running /round skill was refused as self-modification; such a card needs the Owner's own edit · - · -
-- R14 · R14-01 · a card said "nothing else enters" while the new dependency brought 17 transitive packages no plan line named (sentinel S1) · - · -
-- R14 · R14-12 · focus after a whole time went to the dialog's Not now, so a stray Enter closed it; "the next control" read as DOM order, not the next step · - · -
 - R14 · R14-14 · the gate type-checked the edge middleware with its own tsconfig while Vercel used the root one, so the preview failed on fetch types · - · -
 - R15 · R15-04 · a name pattern matched on raw JSON text, so an escape's letter (`\n`) hid a name opening a paragraph (tester A) · - · -
 - R15 · R15-16, R15-17 · a public page was pointed at a route the prelaunch gate closed and the session middleware cookies; no card owned the gate or the mount · - · -
@@ -47,6 +43,10 @@ failure, escalation, sentinel finding and QA sev-1 to its card (agent-roster sco
 - R19 · R19-50 · a test made its private schema on a second pool connection while a route's load-time query held the first, and Postgres left that connection on the old search path, so the test read and wrote public tables · - · -
 - R19 · R19-26, R19-42, R19-47 and others · builders left dev servers running (18 processes at the close) and stray logs in the tree, and ran `csp:write` on a stale build · - · -
 - R19 · R19-47 · a layout fix measured only the overlap it fixed (the name over the marker) and made another (the name over a body) · - · -
+- R20 · R20-18, R20-19, R20-24 · a builder's local API with its job worker ran on the walk's database and took the walk's Timeline jobs (step 21, "23 !== 58") · - · -
+- R20 · R20-01, R20-26, R20-28 · the class merger in `cn()` did not know the token text sizes and silently dropped them beside a colour class · - · -
+- R20 · R20-03 · token names used as Tailwind utilities (`duration-fast`) that Tailwind 4 makes no CSS for, so the motion silently vanished · - · -
+- R20 · R20-04, R20-24, R20-35 · builders had no admin or signed-in session for real shots, so admin and account screens went unseen until the close · - · -
 
 ## Promoted
 The planner reads this section before it plans, and its rules bind the plan (ADR-195). The orchestrator checks the plan against

@@ -11,17 +11,16 @@
  * here, so the date and the time stay in the browser.
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
-import { BirthDateField } from "@/components/BirthDateField";
-import { BirthTimeField } from "@/components/BirthTimeField";
-import { PlaceField } from "@/components/PlaceField";
-import { StatusDots } from "@/components/StatusDots";
+import { BirthDateField, BirthTimeField, PlaceField } from "@/ds/molecules/BirthFields";
+import { Button } from "@/ds/atoms/Button";
+import { InlineError } from "@/ds/molecules/Alert";
 import { Label } from "@/components/ui/label";
 import type { GeocodeResult } from "@/lib/places";
 import { visitorZone } from "@/lib/sky-now";
 import { EARLIEST_BIRTH, PLACE_PROBLEM, birthDateProblem, todayOf, visitorPlace, type SkyBirth } from "@/site/lib/sky";
 
 // The place field's own label, so the three fields read as one form.
-const LABEL = "font-label text-xs tracking-wide uppercase text-muted-foreground";
+const LABEL = "font-label text-xs tracking-wide uppercase text-muted";
 
 // Focus arrives here mid-typing, so a value already in the field (the visitor's own city) is selected and the next keys
 // replace it rather than run on from it (QA-02 #2).
@@ -141,15 +140,13 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
         </div>
       </div>
       {problem ? (
-        <p id={`${id}problem`} role="alert" className="text-[13px] leading-snug text-[#E9A0A0]">
-          {problem.text}
-        </p>
+        <InlineError id={`${id}problem`}>{problem.text}</InlineError>
       ) : null}
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-        <button type="submit" className="sd-btn aria-disabled:cursor-progress" aria-disabled={busy || undefined}>
-          {busy ? <StatusDots label="Working out your chart" /> : "Show my chart"}
-        </button>
-        <p id={`${id}hint`} className="max-w-[46ch] flex-[1_1_180px] text-[12.5px] leading-snug text-[color:var(--sd-muted)]">
+        <Button type="submit" busy={busy ? "Working out your chart" : undefined}>
+          Show my chart
+        </Button>
+        <p id={`${id}hint`} className="max-w-[46ch] flex-[1_1_180px] text-caption leading-snug text-muted">
           If you don't know your birth time, leave it blank.
         </p>
       </div>

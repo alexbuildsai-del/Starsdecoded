@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Select } from "@/ds/atoms/Select";
+import { Card } from "@/ds/molecules/Card";
 import { Loader2 } from "lucide-react";
 import { LabApiError, cents, labApi, type RevealResponse, type SessionSummary, type WriterTally } from "@/lib/labApi";
 import { ProseStudyView } from "@/components/lab/ProseStudyView";
@@ -41,63 +43,63 @@ export function RevealView({ sessionId, onSession }: { sessionId: string | null;
   return (
     <div className="flex flex-col gap-4 text-sm">
       <div className="flex items-center gap-3 flex-wrap">
-        <select value={sessionId ?? ""} onChange={(e) => onSession(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+        <Select value={sessionId ?? ""} onChange={(e) => onSession(e.target.value)} className="h-10 w-auto min-w-32">
           {sessions.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.judged}/{s.cards}{s.revealedAt ? " · revealed" : ""}</option>)}
-        </select>
-        {state === "loading" && <Loader2 className="h-4 w-4 animate-spin text-primary/40" />}
+        </Select>
+        {state === "loading" && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
       </div>
-      {!sessions.length && <p className="text-muted-foreground">No session yet.</p>}
-      {state === "locked" && <p className="text-muted-foreground">Reveal is disabled until every card is judged. {message}</p>}
-      {state === "error" && <p className="text-destructive">{message}</p>}
+      {!sessions.length && <p className="text-paper-dim">No session yet.</p>}
+      {state === "locked" && <p className="text-paper-dim">Reveal is disabled until every card is judged. {message}</p>}
+      {state === "error" && <p className="text-error">{message}</p>}
 
       {reveal && (
         <>
-          <p className="font-label text-primary">{reveal.label} · control agreement {reveal.control.rate === null ? "-" : `${Math.round(reveal.control.rate * 100)}%`} on {reveal.control.cards} cards <span className="text-xs text-muted-foreground">(how often one 5.2 was preferred over the other: the noise floor a writer must beat)</span></p>
+          <p className="font-label text-indigo-lt">{reveal.label} · control agreement {reveal.control.rate === null ? "-" : `${Math.round(reveal.control.rate * 100)}%`} on {reveal.control.cards} cards <span className="text-xs text-paper-dim">(how often one 5.2 was preferred over the other: the noise floor a writer must beat)</span></p>
 
-          <div className="rounded-lg border border-border/60 bg-card/40 p-3 overflow-x-auto">
-            <p className="font-label text-xs text-muted-foreground mb-2">Per writer: best / tied / would not ship</p>
+          <Card as="div" className="p-3 overflow-x-auto">
+            <p className="font-label text-xs text-paper-dim mb-2">Per writer: best / tied / would not ship</p>
             <table className="text-xs font-numeric w-full">
-              <thead className="text-muted-foreground">
+              <thead className="text-paper-dim">
                 <tr><th className="text-left">writer</th><th>tier</th><th>total</th>{tiers.map((t) => <th key={t}>{t}</th>)}{sections.map((s) => <th key={s}>{s}</th>)}<th>faults</th><th>words</th><th>¢</th></tr>
               </thead>
               <tbody>
                 {reveal.writers.map((w) => (
-                  <tr key={`${w.writer}-${w.serviceTier}`} className="border-t border-border/30">
+                  <tr key={`${w.writer}-${w.serviceTier}`} className="border-t border-line">
                     <td className="text-left">{w.writer}</td><td className="text-center">{w.serviceTier}</td><td className="text-center">{tally(w.total)}</td>
                     {tiers.map((t) => <td key={t} className="text-center">{tally(w.byTier[t])}</td>)}
                     {sections.map((s) => <td key={s} className="text-center">{tally(w.bySection[s])}</td>)}
-                    <td className={`text-center ${w.faults ? "text-destructive" : ""}`}>{w.faults}</td><td className="text-center">{w.words}</td><td className="text-center">{cents(w.costUsd)}</td>
+                    <td className={`text-center ${w.faults ? "text-error" : ""}`}>{w.faults}</td><td className="text-center">{w.words}</td><td className="text-center">{cents(w.costUsd)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
 
-          <div className="rounded-lg border border-border/60 bg-card/40 p-3">
-            <p className="font-label text-xs text-muted-foreground mb-2">Per mix</p>
+          <Card as="div" className="p-3">
+            <p className="font-label text-xs text-paper-dim mb-2">Per mix</p>
             <table className="text-xs font-numeric w-full">
-              <thead className="text-muted-foreground"><tr><th className="text-left">mix</th><th className="text-left">writers</th><th>¢ a report</th><th className="text-left">sections worse than the baseline</th></tr></thead>
+              <thead className="text-paper-dim"><tr><th className="text-left">mix</th><th className="text-left">writers</th><th>¢ a report</th><th className="text-left">sections worse than the baseline</th></tr></thead>
               <tbody>
                 {reveal.mixes.map((m) => (
-                  <tr key={m.mix} className="border-t border-border/30"><td>{m.mix}</td><td>{m.description}</td><td className="text-center">{cents(m.costUsd)}</td><td className={m.worseThanBaseline.length ? "text-destructive" : "text-muted-foreground"}>{m.worseThanBaseline.join(", ") || "none"}</td></tr>
+                  <tr key={m.mix} className="border-t border-line"><td>{m.mix}</td><td>{m.description}</td><td className="text-center">{cents(m.costUsd)}</td><td className={m.worseThanBaseline.length ? "text-error" : "text-paper-dim"}>{m.worseThanBaseline.join(", ") || "none"}</td></tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
 
           {reveal.dropped.length > 0 && (
-            <p className="text-xs text-destructive">Dropped after a retry: {reveal.dropped.map((d) => `${d.writer} on ${d.fixture}/${d.section}${d.error ? ` (${d.error.slice(0, 80)})` : ""}`).join("; ")}</p>
+            <p className="text-xs text-error">Dropped after a retry: {reveal.dropped.map((d) => `${d.writer} on ${d.fixture}/${d.section}${d.error ? ` (${d.error.slice(0, 80)})` : ""}`).join("; ")}</p>
           )}
 
-          <details className="rounded-lg border border-border/60 bg-card/40">
-            <summary className="cursor-pointer px-3 py-2 font-label text-xs text-muted-foreground">Every card, letters named, with the notes</summary>
+          <details className="rounded-card border border-line bg-surface">
+            <summary className="cursor-pointer px-3 py-2 font-label text-xs text-paper-dim">Every card, letters named, with the notes</summary>
             <table className="text-xs font-numeric w-full mb-2">
-              <thead className="text-muted-foreground"><tr><th className="text-left pl-3">card</th><th className="text-left">letters</th><th className="text-left">best</th><th className="text-left">not ship</th><th className="text-left">same</th><th className="text-left">note</th></tr></thead>
+              <thead className="text-paper-dim"><tr><th className="text-left pl-3">card</th><th className="text-left">letters</th><th className="text-left">best</th><th className="text-left">not ship</th><th className="text-left">same</th><th className="text-left">note</th></tr></thead>
               <tbody>
                 {reveal.cards.map((c) => {
                   const name = (i: number) => `${Object.keys(c.letters)[i] ?? i}=${Object.values(c.letters)[i] ?? "?"}`;
                   return (
-                    <tr key={c.id} className="border-t border-border/30 align-top">
+                    <tr key={c.id} className="border-t border-line align-top">
                       <td className="pl-3">{c.section} · {c.fixture}</td>
                       <td>{Object.entries(c.letters).map(([l, w]) => `${l} ${w}`).join(" · ")}</td>
                       <td>{c.picks?.best.map(name).join(", ") || "-"}</td>

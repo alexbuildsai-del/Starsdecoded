@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Card } from "@/ds/molecules/Card";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Chip } from "@/ds/atoms/Chip";
+import { Select } from "@/ds/atoms/Select";
+import { Button } from "@/ds/atoms/Button";
 import { LabApiError, cents, labApi, type CatalogueEntry, type DryResponse, type InjectionReport, type ReplayStatus, type SpotEstimateResponse } from "@/lib/labApi";
 
 const SECTIONS = ["pipeline", "foundation", "overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"];
@@ -9,14 +12,14 @@ const PAIRS = ["", "curie-winfrey", "william-charlotte", "william-george", "char
 
 /** The injection pass (ADR-202): one line when every hostile name stayed in its block, else each prompt it got out of. */
 function InjectionLines({ injection }: { injection: InjectionReport }) {
-  if (!injection.available) return <p className="text-xs text-muted-foreground">Injection: not rendered, {injection.reason}</p>;
+  if (!injection.available) return <p className="text-xs text-paper-dim">Injection: not rendered, {injection.reason}</p>;
   const failed = injection.rows.filter((r) => !r.clean);
-  if (!failed.length) return <p className="text-xs text-primary">Injection: {injection.prompts} prompts, all clean</p>;
+  if (!failed.length) return <p className="text-xs text-indigo-lt">Injection: {injection.prompts} prompts, all clean</p>;
   return (
     <div className="flex flex-col gap-1 text-xs">
-      <p className="text-destructive">Injection: {injection.leaked} leaked, {injection.notRendered} not rendered, of {injection.prompts} prompts</p>
+      <p className="text-error">Injection: {injection.leaked} leaked, {injection.notRendered} not rendered, of {injection.prompts} prompts</p>
       {failed.map((r) => (
-        <p key={`${r.fixture}-${r.set}-${r.section}`} className="font-numeric text-destructive">
+        <p key={`${r.fixture}-${r.set}-${r.section}`} className="font-numeric text-error">
           {r.leak !== null ? "LEAK" : "NOT RENDERED"} {r.set}/{r.section} ({r.fixture}): {r.leak ?? r.error}
         </p>
       ))}
@@ -105,41 +108,34 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
     try { setDry(await labApi.dry(base, pair || undefined, lens || undefined)); } catch (e) { setError((e as Error).message); } finally { setDrying(false); }
   };
 
-  const chip = (on: boolean) => `px-2 py-1 rounded-md text-xs font-label border ${on ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground"}`;
 
   return (
     <div className="flex flex-col gap-6 text-sm">
-      <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-3">
-        <p className="font-label text-xs tracking-wide text-primary">Dry · free</p>
+      <Card as="div" className="p-3">
+        <p className="font-label text-xs tracking-wide text-indigo-lt">Dry · free</p>
         <div className="flex items-end gap-2 flex-wrap">
-          <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">base
-            <select value={base} onChange={(e) => setBase(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+          <Select label="base" value={base} onChange={(e) => setBase(e.target.value)} className="h-10 w-auto min-w-32">
               {[...new Set(["r06", ...labels])].map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">pair
-            <select value={pair} onChange={(e) => setPair(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+            </Select>
+          <Select label="pair" value={pair} onChange={(e) => setPair(e.target.value)} className="h-10 w-auto min-w-32">
               {PAIRS.map((p) => <option key={p} value={p}>{p || "none"}</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">lens
-            <select value={lens} onChange={(e) => setLens(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+            </Select>
+          <Select label="lens" value={lens} onChange={(e) => setLens(e.target.value)} className="h-10 w-auto min-w-32">
               {["", "partners", "parent_child", "people"].map((l) => <option key={l} value={l}>{l || "the fixture's"}</option>)}
-            </select>
-          </label>
-          <Button size="sm" variant="outline" disabled={drying} onClick={runDry}>{drying ? "Rendering" : "Dry"}</Button>
+            </Select>
+          <Button size="compact" variant="secondary" disabled={drying} onClick={runDry}>{drying ? "Rendering" : "Dry"}</Button>
         </div>
         {dry && (
           <>
-            <p className="text-xs text-muted-foreground">{dry.rows.length} prompts, usage recorded {dry.usageRecorded}. Served: {Object.entries(dry.served).map(([m, ok]) => `${m} ${ok ? "yes" : "no"}`).join(", ") || (dry.servedError ? `unknown (${dry.servedError.slice(0, 60)})` : "-")}</p>
+            <p className="text-xs text-paper-dim">{dry.rows.length} prompts, usage recorded {dry.usageRecorded}. Served: {Object.entries(dry.served).map(([m, ok]) => `${m} ${ok ? "yes" : "no"}`).join(", ") || (dry.servedError ? `unknown (${dry.servedError.slice(0, 60)})` : "-")}</p>
             <table className="w-full text-xs font-numeric">
-              <thead className="text-muted-foreground"><tr><th className="text-left">fixture</th><th className="text-left">section</th><th>tokens</th><th>baseline</th><th>delta</th><th>schema</th></tr></thead>
+              <thead className="text-paper-dim"><tr><th className="text-left">fixture</th><th className="text-left">section</th><th>tokens</th><th>baseline</th><th>delta</th><th>schema</th></tr></thead>
               <tbody>
                 {dry.rows.map((r) => (
-                  <tr key={`${r.fixture}-${r.section}`} className="border-t border-border/30">
+                  <tr key={`${r.fixture}-${r.section}`} className="border-t border-line">
                     <td>{r.fixture}</td><td>{r.section}</td><td className="text-center">{r.inputTokens}</td><td className="text-center">{r.baselineInputTokens ?? "-"}</td>
                     <td className="text-center">{r.baselineInputTokens === null ? "-" : r.inputTokens - r.baselineInputTokens}</td>
-                    <td className={`text-center ${r.schemaOk ? "text-primary" : "text-destructive"}`}>{r.schemaOk ? "ok" : `BROKEN${r.error ? ` (${r.error.slice(0, 60)})` : ""}`}</td>
+                    <td className={`text-center ${r.schemaOk ? "text-indigo-lt" : "text-error"}`}>{r.schemaOk ? "ok" : `BROKEN${r.error ? ` (${r.error.slice(0, 60)})` : ""}`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -147,39 +143,35 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
             <InjectionLines injection={dry.injection} />
           </>
         )}
-      </div>
+      </Card>
 
-      <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-3">
-        <p className="font-label text-xs tracking-wide text-primary">Spot · the changed sections replayed, foundation held</p>
-        <div className="flex flex-wrap gap-1">{SECTIONS.map((s) => <button key={s} type="button" className={chip(sections.has(s))} onClick={() => toggle(sections, setSections, s)}>{s}</button>)}</div>
-        <div className="flex flex-wrap gap-1">{CHARTS.map((c) => <button key={c} type="button" className={chip(charts.has(c))} onClick={() => toggle(charts, setCharts, c)}>{c}</button>)}</div>
+      <Card as="div" className="p-3">
+        <p className="font-label text-xs tracking-wide text-indigo-lt">Spot · the changed sections replayed, foundation held</p>
+        <div className="flex flex-wrap gap-1">{SECTIONS.map((s) => <Chip key={s} quiet selected={sections.has(s)} onClick={() => toggle(sections, setSections, s)}>{s}</Chip>)}</div>
+        <div className="flex flex-wrap gap-1">{CHARTS.map((c) => <Chip key={c} quiet selected={charts.has(c)} onClick={() => toggle(charts, setCharts, c)}>{c}</Chip>)}</div>
         <div className="flex items-end gap-2 flex-wrap">
-          <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">writer
-            <select value={model} onChange={(e) => setModel(e.target.value)} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+          <Select label="writer" value={model} onChange={(e) => setModel(e.target.value)} className="h-10 w-auto min-w-32">
               {models.map((m) => <option key={m.id} value={m.id}>{m.id}{m.flex ? " · flex" : ""}</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">tier
-            <select value={tier} onChange={(e) => setTier(e.target.value as "flex" | "standard")} className="bg-card/60 border border-border/60 rounded px-2 py-1 text-foreground">
+            </Select>
+          <Select label="tier" value={tier} onChange={(e) => setTier(e.target.value as "flex" | "standard")} className="h-10 w-auto min-w-32">
               <option value="flex">flex where offered</option><option value="standard">standard</option>
-            </select>
-          </label>
-          <Button size="sm" variant="outline" disabled={estimating || !sections.size || !charts.size} onClick={runEstimate}>{estimating ? "Pricing" : "Estimate"}</Button>
-          <Button size="sm" disabled={!estimate || estimate.overBudget || readOnly || (running?.some((r) => r.status === "running") ?? false)} onClick={runSpot}>Run the spot</Button>
+            </Select>
+          <Button size="compact" variant="secondary" disabled={estimating || !sections.size || !charts.size} onClick={runEstimate}>{estimating ? "Pricing" : "Estimate"}</Button>
+          <Button size="compact" disabled={!estimate || estimate.overBudget || readOnly || (running?.some((r) => r.status === "running") ?? false)} onClick={runSpot}>Run the spot</Button>
         </div>
         {estimate && (
-          <p className={`text-xs font-numeric ${estimate.overBudget ? "text-destructive" : "text-muted-foreground"}`}>
+          <p className={`text-xs font-numeric ${estimate.overBudget ? "text-error" : "text-paper-dim"}`}>
             about {cents(estimate.estimateUsd)} on {estimate.model} ({estimate.serviceTier}) · {estimate.perChart.map((c) => `${c.chart} ${cents(c.estimateUsd)}`).join(", ")} · spent {cents(estimate.spentUsd)} of {cents(estimate.budgetUsd)}{estimate.overBudget ? " · over budget, refused" : ""}
           </p>
         )}
         {running && running.map((r) => (
           <div key={r.runKey} className="text-xs font-numeric">
-            <p className="font-label text-primary">{r.runKey} · {r.status === "running" ? <Loader2 className="inline h-3 w-3 animate-spin" /> : r.status}</p>
-            {r.sections.map((s) => <p key={s.id} className={s.status === "failed" ? "text-destructive" : "text-muted-foreground"}>{s.section} · {s.status}{s.status === "done" ? ` · ${s.words} words · ${cents(s.costUsd)}${s.faults.length ? ` · ${s.faults.join(" ")}` : ""}` : ""}{s.failureCode ? ` · ${s.failureCode}` : ""}</p>)}
+            <p className="font-label text-indigo-lt">{r.runKey} · {r.status === "running" ? <Loader2 className="inline h-3 w-3 animate-spin" /> : r.status}</p>
+            {r.sections.map((s) => <p key={s.id} className={s.status === "failed" ? "text-error" : "text-paper-dim"}>{s.section} · {s.status}{s.status === "done" ? ` · ${s.words} words · ${cents(s.costUsd)}${s.faults.length ? ` · ${s.faults.join(" ")}` : ""}` : ""}{s.failureCode ? ` · ${s.failureCode}` : ""}</p>)}
           </div>
         ))}
-      </div>
-      {error && <p className="text-destructive">{error}</p>}
+      </Card>
+      {error && <p className="text-error">{error}</p>}
     </div>
   );
 }

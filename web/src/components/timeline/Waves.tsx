@@ -9,6 +9,7 @@
  * The lines stretch to any width while their strokes keep their weight, and the words and marks are HTML over them,
  * so nothing scales with the box. On a phone the graph keeps a width to read and scrolls sideways inside its box.
  */
+import { tokens } from "@workspace/design";
 import { useEffect, useRef, type PointerEvent } from "react";
 import {
   WAVE_UNTIL,
@@ -22,6 +23,7 @@ import {
   type WaveLine,
   type WaveMarkKind,
 } from "@/lib/life-view";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 const DOT_SIZE: Readonly<Record<WaveMarkKind, string>> = {
   return: "h-2.5 w-2.5",
@@ -72,19 +74,19 @@ function Dot({
   control: WaveControl | undefined;
 }) {
   const chosen = stop !== undefined && stop.key === control?.selected;
-  const look = `${chosen ? "h-3.5 w-3.5 ring-2 ring-[#E8EBF2]" : `${DOT_SIZE[kind]} ring-[1.5px] ring-[#06080C]`} ${past ? "bg-[#8A7343]" : "bg-[#D4B06A]"}`;
+  const look = `${chosen ? "h-3.5 w-3.5 ring-2 ring-paper" : `${DOT_SIZE[kind]} ring-[1.5px] ring-void`} ${past ? "bg-brass-dim" : "bg-brass"}`;
   const place = { left: `${waveX(age)}%`, top: `${waveY(MARK_DISTANCE[kind])}%` };
   if (!stop || !control) {
     return <i aria-hidden className={`absolute block -translate-x-1/2 -translate-y-1/2 rounded-full ${look}`} style={place} />;
   }
   return (
-    <button
-      type="button"
+    <TextButton
+      bare
       aria-label={`${bodyName(line.body)} ${KIND_WORD[kind]}, age ${Math.floor(age)}`}
       aria-pressed={chosen}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={() => control.onPick(stop.key)}
-      className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full before:absolute before:-inset-2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8EBF2] ${look}`}
+      className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full before:absolute before:-inset-2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-paper ${look}`}
       style={place}
     />
   );
@@ -93,13 +95,13 @@ function Dot({
 function WaveRow({ line, today, control }: { line: WaveLine; today: number; control: WaveControl | undefined }) {
   return (
     <div className="relative z-[1] grid gap-1">
-      <span className="font-label text-xs leading-none tracking-[.06em] text-[#AEB6C6]">{bodyName(line.body)}</span>
+      <span className="font-label text-xs leading-none tracking-[.06em] text-paper-dim">{bodyName(line.body)}</span>
       <div className="relative h-12">
         <svg aria-hidden viewBox="0 0 1000 100" preserveAspectRatio="none" className="absolute inset-0 block h-full w-full overflow-visible">
           <path
             d={wavePath(line.points)}
             fill="none"
-            stroke="#9FA8DA"
+            stroke={tokens.color["indigo-lt"]}
             strokeOpacity={0.85}
             strokeWidth={1.4}
             strokeLinejoin="round"
@@ -184,7 +186,7 @@ export function Waves({ wave, today, control }: { wave: WaveLine | readonly Wave
       aria-label={control ? GRAPH_NAME : wavesLabel(lines, today)}
       // A box that scrolls sideways has to be reachable by keyboard; with a control the dots already are.
       tabIndex={control ? undefined : 0}
-      className="m-0 min-w-0 overflow-x-auto rounded-[14px] border border-[#242C3B] bg-[#0D1117] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="m-0 min-w-0 overflow-x-auto rounded-card border border-line bg-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-[620px] px-6 pb-3 pt-12">
         <div
@@ -195,14 +197,14 @@ export function Waves({ wave, today, control }: { wave: WaveLine | readonly Wave
           onPointerUp={onUp}
           onPointerCancel={onCancel}
         >
-          <div aria-hidden className="pointer-events-none absolute -inset-y-3 left-0 bg-[#171D29]" style={{ width: `${now}%` }} />
+          <div aria-hidden className="pointer-events-none absolute -inset-y-3 left-0 bg-raised" style={{ width: `${now}%` }} />
           {lines.map((line) => (
             <WaveRow key={line.body} line={line} today={today} control={control} />
           ))}
-          <div aria-hidden className="pointer-events-none absolute -top-3 bottom-0 w-0.5 -translate-x-1/2 bg-[#E8EBF2]" style={{ left: `${at}%` }} />
+          <div aria-hidden className="pointer-events-none absolute -top-3 bottom-0 w-0.5 -translate-x-1/2 bg-paper" style={{ left: `${at}%` }} />
           <span
             aria-hidden
-            className="pointer-events-none absolute -top-10 whitespace-nowrap rounded-full bg-[#E8EBF2] px-2.5 py-1 font-numeric text-[11.5px] font-medium leading-none text-[#06080C]"
+            className="pointer-events-none absolute -top-10 whitespace-nowrap rounded-full bg-paper px-2.5 py-1 font-numeric text-data font-medium leading-none text-void"
             style={{ left: `${at}%`, transform: `translateX(-${at}%)` }}
           >
             {control ? control.label : "Today"}
@@ -214,18 +216,18 @@ export function Waves({ wave, today, control }: { wave: WaveLine | readonly Wave
               className="absolute -bottom-3 z-10 grid h-11 w-11 -translate-x-1/2 translate-y-1/2 place-items-center"
               style={{ left: `${at}%`, touchAction: "none" }}
             >
-              <i className="block h-3.5 w-3.5 rounded-full border-2 border-[#06080C] bg-[#E8EBF2]" />
+              <i className="block h-3.5 w-3.5 rounded-full border-2 border-void bg-paper" />
             </div>
           ) : null}
         </div>
-        <div aria-hidden className="relative mt-7 h-4 font-numeric text-[11px] leading-4 text-[#7E889A]">
+        <div aria-hidden className="relative mt-7 h-4 font-numeric text-data leading-4 text-muted">
           {DECADES.map((age) => (
             <span key={age} className={`absolute top-0 ${hang(age)}`} style={{ left: `${waveX(age)}%` }}>
               {age}
             </span>
           ))}
         </div>
-        <p aria-hidden className="m-0 mt-0.5 text-right font-label text-[10.5px] uppercase leading-none tracking-[.14em] text-[#7E889A]">
+        <p aria-hidden className="m-0 mt-0.5 text-right font-label text-label uppercase leading-none text-muted">
           Age
         </p>
       </div>

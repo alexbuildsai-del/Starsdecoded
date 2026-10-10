@@ -41,6 +41,7 @@
     "@tanstack/react-query": "catalog:",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/commerce": "workspace:*",
+    "@workspace/design": "workspace:*",
     "@workspace/engine": "workspace:*",
     "@workspace/launch": "workspace:*",
     "class-variance-authority": "catalog:",

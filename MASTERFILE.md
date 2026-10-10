@@ -169,7 +169,7 @@ Two surfaces sit beside the code and must never drift from it.
 
 ## 9 · Design system
 
-Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report-ui.md`). Near-black ground. Indigo and violet mean the product; **brass `#D4B06A` means measured chart geometry and is never a control**; element hues mean element-derived data only. Newsreader for display and ledes, Inter for body and UI, Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Tokens live in `web/src/index.css` until R20 moves them to `packages/design`; the bible's design-system section reads them live.
+Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report-ui.md`). Near-black ground. Indigo and violet mean the product; **brass `#D4B06A` means measured chart geometry and is never a control**; element hues mean element-derived data only. Newsreader for display and ledes, Inter for body and UI, Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Tokens live in `packages/design` (`src/tokens.css`, a Tailwind v4 `@theme`, mirrored in `src/tokens.ts`); the bible's design-system section reads them live.
 
 - **One set of parts** (`docs/specs/locked/design-system.md`, ADR-423 to 436). Tokens in `packages/design` (a Tailwind v4 `@theme` with a checked `tokens.ts` mirror), parts in `web/src/ds/` as atoms, molecules, organisms and templates, each with its page; the Design System artifact (https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i) and `/admin/design` show them Today beside After. Inter 500 on every button, Space Grotesk only for small labels and chips; text never below 11 px, taps at least 44 px, text 4.5:1, control edges 3:1. A new part is settled in its ideation, never in a round. `check:ds` only falls; every chart is the one Chart part on `wheelRadii`, held by `check:ds` and a critical consistency test.
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
@@ -207,6 +207,9 @@ Starsdecoded/
   .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /observe /ux-copy /web-taste /marketing,
                             a SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
+  packages/design/          the tokens (tokens.css, mirrored in tokens.ts and tokens.json), checked by pnpm check:ds
+  web/src/ds/               the parts: atoms, molecules, organisms (the Chart), templates; each with .doc.md and
+                            .example.tsx, shown at /admin/design
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded
   Mailbox                   the Owner's open questions only, each with a recommendation and a default (R-12.3)

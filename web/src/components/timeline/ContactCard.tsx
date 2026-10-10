@@ -7,15 +7,18 @@
  * more's. With `onOpen` a tap anywhere on the card opens its reading.
  */
 import type { Tone } from "@workspace/engine";
-import { READ_LINE, TONE_WORDS, readLabel, toneClass, type ContactView } from "@/lib/timeline-view";
+import { Chip } from "@/ds/atoms/Chip";
+import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { ToneDot } from "@/ds/atoms/ToneDot";
+import { Card } from "@/ds/molecules/Card";
+import { DOT_TONE, READ_LINE, TONE_WORDS, readLabel, type ContactView } from "@/lib/timeline-view";
 
 /** A tone as a dot in its colour beside its word; the word stays grey, so the colour never says it alone. */
 export function ToneWord({ tone }: { tone: Tone }) {
   return (
-    <span
-      className={`${toneClass(tone)} inline-flex items-center gap-1.5 font-label text-[10px] uppercase leading-none tracking-[.12em] text-[#AEB6C6]`}
-    >
-      <i aria-hidden className="block h-[9px] w-[9px] flex-none rounded-full bg-[var(--sd-tone)]" />
+    <span className="inline-flex items-center gap-1.5 font-label text-label uppercase text-paper-dim">
+      <ToneDot tone={DOT_TONE[tone]} />
       {TONE_WORDS[tone]}
     </span>
   );
@@ -27,56 +30,49 @@ export function ToneWord({ tone }: { tone: Tone }) {
  */
 export function OpenCard({ headline, onOpen, rounded }: { headline: string; onOpen: () => void; rounded: string }) {
   return (
-    <button
-      type="button"
+    <TextButton
       onClick={onOpen}
       aria-label={readLabel(headline)}
-      className={`justify-self-start pt-1 text-left text-[13px] text-[#9FA8DA] after:absolute after:inset-0 ${rounded} focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-[#9FA8DA]`}
+      className={`min-h-0 justify-self-start px-0 pt-1 text-left after:inset-0 ${rounded} focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus`}
     >
       {READ_LINE}
-    </button>
+    </TextButton>
   );
 }
 
-/** The R the birth chart uses, small, before a retrograde card's own line. */
-function RMark() {
-  return (
-    <span
-      aria-hidden
-      className="inline-grid h-[18px] w-[18px] flex-none place-items-center rounded-[4px] border border-[#6B3A42] font-numeric text-[11px] font-semibold leading-none text-[#E3A3AD]"
-    >
-      R
-    </span>
-  );
-}
+// The 3 px edge takes the tone; the card part knows rose, brass and teal, and Mixed is the dim paper.
+const EDGE: Record<Tone, { tone: "rose" | "teal"; className?: string }> = {
+  intense: { tone: "rose" },
+  mixed: { tone: "rose", className: "border-l-paper-dim" },
+  easy: { tone: "teal" },
+};
 
 export function ContactCard({ contact, onOpen }: { contact: ContactView; onOpen?: () => void }) {
   const { tone, headline, line, lasts, chip, retro } = contact;
-  const opens = onOpen ? " transition-colors duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:bg-[#171D29]" : "";
+  const edge = EDGE[tone];
   return (
-    <article
-      className={`${toneClass(tone)} relative grid min-w-0 gap-1.5 rounded-xl border border-l-[3px] border-[#242C3B] border-l-[color:var(--sd-tone)] bg-[#11161F] px-3.5 py-3${opens}`}
+    <Card
+      as="article"
+      variant="tone"
+      tone={edge.tone}
+      className={`relative grid gap-1.5 p-3.5 sm:p-3.5 ${edge.className ?? ""}${onOpen ? " transition-colors duration-(--dur-base) ease-[var(--ease)] hover:bg-raised" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <ToneWord tone={tone} />
-          <span className="font-numeric text-xs text-[#AEB6C6]">{lasts}</span>
+          <span className="font-mono text-data tabular-nums text-paper-dim">{lasts}</span>
         </div>
-        {chip ? (
-          <span className="rounded-full border border-[#D98C8C]/55 px-[7px] py-0.5 font-numeric text-[10.5px] uppercase leading-snug tracking-[.1em] text-[#D98C8C]">
-            {chip}
-          </span>
-        ) : null}
+        {chip ? <Chip tone="back">{chip}</Chip> : null}
       </div>
       {retro ? (
-        <p className="flex items-center gap-2 font-numeric text-[12.5px] leading-normal text-[#AEB6C6]">
-          <RMark />
+        <p className="flex items-center gap-2 font-mono text-data tabular-nums text-paper-dim">
+          <RetrogradeBadge size="small" />
           {retro}
         </p>
       ) : null}
-      <p className="font-display text-[19px] leading-[1.25] text-[#E8EBF2]">{headline}</p>
-      {line ? <p className="text-[14.5px] leading-normal text-[#E8EBF2]">{line}</p> : null}
-      {onOpen ? <OpenCard headline={headline} onOpen={onOpen} rounded="after:rounded-xl" /> : null}
-    </article>
+      <p className="font-display text-card-title text-paper">{headline}</p>
+      {line ? <p className="text-ui text-paper">{line}</p> : null}
+      {onOpen ? <OpenCard headline={headline} onOpen={onOpen} rounded="after:rounded-card" /> : null}
+    </Card>
   );
 }

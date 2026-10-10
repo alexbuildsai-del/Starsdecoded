@@ -9,22 +9,17 @@ import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { getGetCreditHistoryQueryKey, useGetCreditHistory, useGetCredits, type PriceItem } from "@workspace/api-client-react";
 import type { BundleId } from "@workspace/commerce";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/ds/organisms/Sheet";
 import { BundleList } from "@/components/BundleList";
-import { StatusDots } from "@/components/StatusDots";
+import { StatusDots } from "@/ds/atoms/StatusDots";
 import { CreditDots } from "@/components/dashboard/CreditPill";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { creditCount, historyLine } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
 
-const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
-const BUTTON = cn(
-  "inline-flex h-[30px] shrink-0 items-center justify-center rounded-md px-[11px] font-label text-xs font-medium",
-  "transition duration-200 active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45",
-);
-const FILLED = "bg-primary text-white hover:brightness-110";
-const OUTLINED = "border border-[rgba(92,107,192,.6)] text-[#9FA8DA] hover:border-[#9FA8DA]";
+const EYEBROW = "font-label text-kicker uppercase text-indigo-lt";
 
 export interface CreditsSheetProps {
   open: boolean;
@@ -60,27 +55,23 @@ function History() {
     >
       <summary
         className={cn(
-          "inline-flex cursor-pointer list-none items-center gap-1 rounded font-label text-xs font-medium text-muted-foreground",
-          "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden",
+          "inline-flex min-h-8 cursor-pointer list-none items-center gap-1 rounded-inner font-label text-caption font-medium text-muted",
+          "hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus [&::-webkit-details-marker]:hidden",
         )}
       >
         <ChevronRight
           aria-hidden="true"
-          className="h-3.5 w-3.5 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
+          className="h-3.5 w-3.5 transition-transform duration-[var(--dur-fast)] group-open:rotate-90 motion-reduce:transition-none"
         />
         History
       </summary>
-      <div className="mt-2.5 text-[12.5px] text-muted-foreground">
+      <div className="mt-2.5 text-caption text-muted">
         {history.isError ? (
           <p>
             History didn't load.{" "}
-            <button
-              type="button"
-              onClick={() => void history.refetch()}
-              className="rounded text-[#9FA8DA] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
+            <TextButton onClick={() => void history.refetch()} className="min-h-0 text-caption underline underline-offset-2">
               Try again
-            </button>
+            </TextButton>
           </p>
         ) : history.isPending ? (
           <StatusDots label="Loading" />
@@ -92,12 +83,12 @@ function History() {
               const line = historyLine(item);
               return (
                 <li key={`${item.date}-${i}`} className="grid grid-cols-[5.75rem_minmax(0,1fr)_auto] items-baseline gap-2.5">
-                  <span className="font-numeric text-xs">{day(item.date)}</span>
-                  <span className="min-w-0 text-[#AEB6C6]">
+                  <span className="font-numeric text-caption">{day(item.date)}</span>
+                  <span className="min-w-0 text-paper-dim">
                     {line.text}
-                    {line.test && <span className="text-muted-foreground"> · test</span>}
+                    {line.test && <span className="text-muted"> · test</span>}
                   </span>
-                  <span className="font-numeric text-xs">{line.amount}</span>
+                  <span className="font-numeric text-caption">{line.amount}</span>
                 </li>
               );
             })}
@@ -122,37 +113,32 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, prices, buy 
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side={phone ? "bottom" : "right"}
-        className={cn(
-          "flex flex-col gap-4 overflow-y-auto",
-          phone ? "max-h-[90dvh] rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "w-full sm:max-w-md",
-        )}
+        className={cn("flex flex-col gap-4 overflow-y-auto", phone && "max-h-[92dvh]")}
       >
         <SheetHeader className="space-y-1.5 pr-8 text-left">
           <SheetDescription className={EYEBROW}>Your credits</SheetDescription>
-          <SheetTitle className="font-display text-2xl font-normal leading-[1.1] tracking-[-0.02em]">
-            {zero ? "No credits left" : `${creditCount(available)} to use`}
-          </SheetTitle>
+          <SheetTitle>{zero ? "No credits left" : `${creditCount(available)} to use`}</SheetTitle>
         </SheetHeader>
 
         <CreditDots count={available} />
         {/* A balance above zero needs no line here: what a credit buys is said once, under the bundles (ADR-170). */}
-        {zero && <p className="text-[13px] leading-relaxed text-muted-foreground">Your circle has room for more.</p>}
+        {zero && <p className="text-small text-paper-dim">Your circle has room for more.</p>}
 
         {/* With no credit both doors would only ask for one, so at zero the bundles are the way on (ADR-275). */}
         {!zero && (
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={then(onAddSomeone)} className={cn(BUTTON, FILLED)}>
+            <Button size="compact" onClick={then(onAddSomeone)}>
               Add someone
-            </button>
-            <button type="button" onClick={then(onGift)} className={cn(BUTTON, OUTLINED)}>
+            </Button>
+            <Button size="compact" variant="secondary" onClick={then(onGift)}>
               Gift a report
-            </button>
+            </Button>
           </div>
         )}
 
         <div className="grid gap-2">
           <BundleList compact prices={prices} buy={buy} />
-          <p className="text-xs leading-snug text-muted-foreground">Tap a bundle to buy it.</p>
+          <p className="text-caption text-muted">Tap a bundle to buy it.</p>
         </div>
 
         <History />
