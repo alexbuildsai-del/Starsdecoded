@@ -65,6 +65,7 @@ core is already in the table says so.
 | No placement | Past lives, karma, the vertex and the Part of Fortune as fate | @the_innercosmos | Fate is the whole claim. |
 | No placement | Synastry, composite charts and claims made for one gender | @the_innercosmos | Out of scope (review-08-10). |
 | No placement | 2026 forecasts, transits and eclipses (25 videos) | @the_innercosmos | Forecasts, not a placement. |
+| No placement | The house your Sun is in is where you get your physical energy, and you run low fast when you neglect it | @solarflareastrology | No single placement. Its plain core rides in the Sun in the 7th and 10th rows. Kept as a Did you know idea (explain-voice-study.md, row 46) and a post idea on the Content board. |
 
 ## Read
 
@@ -82,6 +83,9 @@ core is already in the table says so.
   each page read in full. 278 rows in the table, 10 waiting, 18 left out.
 - 2026-10-09, last: one placement, many ideas (the Owner). 278 rows became 221 placements holding 271 ideas (with the Owner's two additions), each with its own
   sources, at most three, best-sourced first. Five near-twins were folded into one idea with both sets of sources. One pulled against its placement and three were over the limit: see Check.
+- 2026-10-10: one video from @solarflareastrology (the Owner's link, its spoken captions read). Two ideas entered with
+  Astrolibrary and our doctrine: Sun in the 7th, a new placement, and a third idea for Sun in the 10th, now first as the
+  best-sourced. One stays out (no single placement). 222 placements.
 
 ## In reports
 
@@ -103,11 +107,11 @@ The placements in `observations.ts` today, in the table's order. A house card sh
 | Stellium in the 2nd | You may put a lot of energy into building money and things that make you feel safe (@the_innercosmos, our doctrine) | the 2nd is the house of money and what you own, and a full 2nd puts much of your energy there |
 | Stellium in the 10th | Work may quietly become the main thing in your life, often before you decide it should (The AstroTwins, astrostyle.com, our doctrine) | the 10th is the house of work and standing, and a full 10th puts most of your energy there |
 
-### A planet in a house (75)
+### A planet in a house (76)
 
 | Placement | Ideas, best first (sources) | Why |
 |---|---|---|
-| Sun in the 10th | 1. You lead naturally at work, and people tend to notice what you do there (@anemowitch, our doctrine)<br>2. You may feel strong pressure to succeed, and what you achieve can feel tied to who you are (@the_innercosmos, our doctrine) | your Sun, which is about who you are, sits in your 10th, the house of your work |
+| Sun in the 10th | 1. You tend to need respect at work and thanks for what you add, and your energy drops fast without it (@solarflareastrology, Astrolibrary, our doctrine)<br>2. You lead naturally at work, and people tend to notice what you do there (@anemowitch, our doctrine)<br>3. You may feel strong pressure to succeed, and what you achieve can feel tied to who you are (@the_innercosmos, our doctrine) | your Sun, which is about who you are, sits in your 10th, the house of your work |
 | Sun in the 12th | You may find it hard to be seen for who you are, and you often do your best work out of sight (@the_innercosmos, our doctrine) | your Sun, the planet of who you are and your direction, is in your 12th, the house of time alone and what is hidden |
 | Moon in the 2nd | Your mood tends to be tied to money and the basics, so you feel calm when they are in order (@the_innercosmos, our doctrine) | your Moon, which is about feelings and needs, sits in your 2nd, the house of money and what you own |
 | Moon in the 3rd | You react strongly to your surroundings, and a comfortable place can change how you feel (@the_innercosmos, our doctrine) | your Moon, which is about feelings, sits in your 3rd, the house of the places and people close to home |
@@ -153,6 +157,7 @@ The placements in `observations.ts` today, in the table's order. A house card sh
 | South Node in the 12th | You may enjoy your own company so much that making new friends takes real effort (@the_innercosmos, our doctrine) | your South Node, what you fall back on, sits in your 12th, the house of time alone |
 | Sun in the 8th | 1. You often keep your real self private, and people may take a long time to really know you (The AstroTwins, astrostyle.com, Astrolibrary)<br>2. When you get very close to someone, you may lose a bit of yourself in them (@the_innercosmos, our doctrine) | your Sun, which is who you are, sits in your 8th, the house of what is hidden and shared with few |
 | Sun in the 6th | You tend to feel most like yourself when you work hard and keep good daily routines (@the_innercosmos, our doctrine) | your Sun, the planet of who you are, is in your 6th, the house of daily work and habits |
+| Sun in the 7th | You often come to know yourself through close relationships, seeing yourself in how the other person sees you (@solarflareastrology, Astrolibrary, our doctrine) | your Sun, which is about who you are, sits in your 7th, the house of partners and the people you face one to one |
 | Moon in the 12th | You may look after other people's feelings and keep your own needs quiet, even from yourself (@the_innercosmos, our doctrine) | your Moon, the planet of feelings and needs, is in your 12th, the house of what is hidden and private sadness |
 | Mars in the 8th | Shared money can turn into a point of conflict for you, so clear agreements tend to help (@the_innercosmos, our doctrine) | your Mars, the planet of conflict, is in your 8th, the house of shared money and debt |
 | Jupiter in the 8th | 1. You may find it easy to accept help and support from the people close to you (@the_innercosmos, our doctrine)<br>2. You tend to dig to the root of things, and subjects that shock others rarely shock you (@sarahmoodyofficial, Cafe Astrology (Annie Heese)) | your Jupiter, the planet of help and growth, is in your 8th, the house of shared money and what is passed down |

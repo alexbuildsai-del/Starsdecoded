@@ -306,6 +306,12 @@ Every draft is worded as tradition, never as fact.
 | 44 | The vertex is where fate finds you. | Not in our doctrine (a modern point). | Do not use. |
 | 45 | Each new sign is the "sequel" of the one before (Taurus is an Aries that got tired). | Her storytelling, not doctrine. Harmless as a device. | Fine for a post in our own words, framed as a story, not a fact. |
 
+Other creators' ideas for a Did you know card, checked the same way (the Owner, 2026-10-10):
+
+| # | Their observation | Verdict | Did-you-know draft (ours) |
+|---|----------------|---------|---------------------------|
+| 46 | The house your Sun is in is where you get your energy, and you run low when you skip that part of life (@solarflareastrology). | Tradition-only (the Sun as life and drive is old; its house as where you recharge is a modern reading). | Did you know? The Sun is often read as your energy. So the house it sits in is often read as where you get it back. No health claims. |
+
 ---
 
 ## 6. Anti-repetition
