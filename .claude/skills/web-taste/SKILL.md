@@ -6,9 +6,13 @@ description: Design taste for Stars Decoded web pages, screens and artifact mock
 The target is the text after the command: a page, a URL or a mock. With none, review
 what this session designed.
 
-Read first: MASTERFILE §9, the tokens in `web/src/index.css` (the report tokens and
-`--ease` near the end), `web/src/lib/chapter-accent.ts`, `docs/specs/locked/logo.md`
+Read first: MASTERFILE §9, the tokens in `packages/design/src/tokens.css` (`tokens.ts`
+mirrors them), `web/src/lib/chapter-accent.ts`, `docs/specs/locked/logo.md`
 and `docs/specs/locked/natal-report-ui.md`, the Observatory direction every page follows.
+
+**Use the parts first.** Build from `web/src/ds`; `/admin/design` shows them Today beside After.
+A new part or look is the Owner's; a version inside the tokens is Claude's call. No hex,
+`text-[..]` or `rounded-[..]` in a page: `pnpm check:ds` counts them.
 
 **What makes it ours.**
 - **The picture is the chart.** Every wheel, plate and degree is drawn from computed
@@ -52,6 +56,12 @@ code should supply them.
   understand or act.
 - The words pass `ux-copy`, simple words first (the Owner, 2026-10-03): everyday words,
   one idea per sentence, no drama, on every label, caption and mock.
+- Floors (Apple and WCAG, checked 2026-10-09): tap area 44 × 44 px (a compact Button is
+  36 px with a 44 px tap area), smallest text 11 px, body 15 px or more (Apple's 17 pt body
+  is the reference for long reading).
+- Text 4.5:1, aim for 7:1 on custom colours; control edges 3:1. `pnpm check:ds` holds the role pairs.
+- One or two prominent buttons per view; a base and a raised surface in dark mode; sheets
+  for a short task, one at a time; motion never the only signal.
 
 A review answers with the problems first, most visible first, each with its fix and
 the rule it breaks.
