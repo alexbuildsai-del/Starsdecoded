@@ -5,6 +5,7 @@
  * 560 px step the 9:16 cut plays, which a phone held upright fills; a wider screen gets the 16:9 cut.
  */
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 export type FilmCut = { video: string; still: string; width: number; height: number };
 export type Film = { title: string; seconds: number; wide: FilmCut; tall: FilmCut };
@@ -41,7 +42,7 @@ export function FilmStill({ film }: { film: Film }) {
     <div className="relative mx-auto aspect-[9/16] w-[min(100%,calc(80svh*9/16))] min-[560px]:aspect-video min-[560px]:w-[min(100%,calc(80svh*16/9))]">
       <video
         ref={video}
-        className="absolute inset-0 size-full rounded-[10px] bg-[var(--void)]"
+        className="absolute inset-0 size-full rounded-control bg-void"
         preload="none"
         playsInline
         controls={playing}
@@ -53,12 +54,11 @@ export function FilmStill({ film }: { film: Film }) {
         <source src={film.wide.video} type="video/mp4" media={WIDE} />
         <source src={film.tall.video} type="video/mp4" />
       </video>
-      <button
-        type="button"
+      <TextButton
         onClick={play}
         inert={playing}
         aria-label={`Play the video: ${film.title}`}
-        className={`group absolute inset-0 rounded-[10px] transition-opacity duration-500 ease-[var(--ease)] motion-reduce:transition-none ${
+        className={`group absolute inset-0 block min-h-0 rounded-control p-0 transition-opacity duration-(--dur-slow) ease-[var(--ease)] after:content-none motion-reduce:transition-none ${
           playing ? "pointer-events-none opacity-0" : stage === "starting" ? "cursor-progress" : "cursor-pointer"
         }`}
       >
@@ -70,12 +70,12 @@ export function FilmStill({ film }: { film: Film }) {
             height={film.tall.height}
             alt=""
             decoding="async"
-            className="block size-full rounded-[10px] object-cover"
+            className="block size-full rounded-control object-cover"
           />
         </picture>
         <span
           aria-hidden="true"
-          className={`absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[var(--indigo)] text-white transition-[filter,transform,opacity] duration-200 group-hover:brightness-110 group-active:scale-95 motion-reduce:transition-none ${
+          className={`absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-indigo text-on-indigo transition-[background-color,transform,opacity] duration-(--dur-fast) ease-[var(--ease)] group-hover:bg-indigo-hover group-active:scale-95 motion-reduce:transition-none ${
             stage === "starting" ? "opacity-70" : ""
           }`}
         >
@@ -83,7 +83,7 @@ export function FilmStill({ film }: { film: Film }) {
             <path d="M7 4.5v15l12-7.5z" />
           </svg>
         </span>
-      </button>
+      </TextButton>
     </div>
   );
 }

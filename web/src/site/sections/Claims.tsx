@@ -10,8 +10,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "wouter";
 import { localParts, offsetAtBirth } from "@workspace/engine";
-import { NatalWheel } from "@/components/chart/NatalWheel";
-import { houseOf, pointAt, theta, wheelRadii } from "@/components/chart/wheel-geometry";
+import { tokens } from "@workspace/design";
+import { TextButton } from "@/ds/atoms/TextButton";
+import { Chart } from "@/ds/organisms/chart/Chart";
+import { buildScene, layerOf } from "@/ds/organisms/chart/scene";
+import type { ChartState } from "@/ds/organisms/chart/states";
 import { clockWords } from "@/lib/date-entry";
 import { ORDINALS, withHouseWords } from "@/lib/evidence-glossary";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
@@ -39,17 +42,20 @@ const WAIT_MS = 2500;
 // 2.3 s, landing scope 15) so they cost it no frame.
 const AFTER_FIRST_LIGHT_MS = 2500;
 
-// The evidence card's own hues, so a row reads the same here as it does on /sample.
-const ASPECT_HUE = "#63A8C4";
+const c = tokens.color;
+const PLATE = 600;
+
+// The evidence card's own hues, so a row reads the same here as it does on /sample; an aspect takes the chart's own
+// line colour.
 const KINDS: Record<string, { label: string; hue: string }> = {
-  placement: { label: "Placement", hue: "var(--indigo-lt)" },
-  aspect: { label: "Aspect", hue: ASPECT_HUE },
-  ruler: { label: "Ruler", hue: "var(--sd-brass)" },
-  angle: { label: "Angle", hue: "var(--sd-brass)" },
-  sect: { label: "Day or night", hue: "var(--violet)" },
-  lot: { label: "Lot", hue: "#7FB08B" },
+  placement: { label: "Placement", hue: c["indigo-lt"] },
+  aspect: { label: "Aspect", hue: c["line-easy"] },
+  ruler: { label: "Ruler", hue: c.brass },
+  angle: { label: "Angle", hue: c.brass },
+  sect: { label: "Day or night", hue: c.violet },
+  lot: { label: "Lot", hue: c["element-earth"] },
 };
-const kindOf = (kind: string) => KINDS[kind] ?? { label: kind, hue: "var(--indigo-lt)" };
+const kindOf = (kind: string) => KINDS[kind] ?? { label: kind, hue: c["indigo-lt"] };
 
 const ANGLE_NAMES: Record<string, string> = { ascendant: "Rising", midheaven: "Midheaven", descendant: "Descendant", ic: "IC" };
 
@@ -95,7 +101,15 @@ function tell(c: ResolvedHomeClaim, chart: ChartData): { tab: string; line: stri
 function houseOfTarget({ kind, key }: HomeClaim["target"], chart: ChartData): number {
   if (kind === "body") return chart.planets[key]?.house ?? 0;
   const angle = chart.angles?.[key as keyof ChartAngles];
-  return angle && chart.angles ? houseOf(angle.absoluteDegree, chart.angles.ascendant.absoluteDegree) : 0;
+  // Whole sign: an angle's house is the house its sign fills.
+  const house = angle ? Object.entries(chart.houses ?? {}).find(([, h]) => h.sign === angle.sign)?.[0] : undefined;
+  return house ? Number(house) : 0;
+}
+
+/** The chart's state on this wheel: a rewind frame has no horizon, her chart rests in Full and lights a claim's house. */
+function stateOf(chart: ChartData, house: number): ChartState {
+  if (!chart.angles) return "no-birth-time";
+  return house ? "focus" : "full";
 }
 
 interface Lit {
@@ -129,72 +143,84 @@ interface Spot {
   r: number;
 }
 
-interface Spots {
-  viewBox: string;
-  plate: number;
-  bodies: Record<string, Spot>;
+interface Chord {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  stroke: string;
 }
 
+interface Spots {
+  viewBox: string;
+  bodies: Record<string, Spot>;
+  /** Each aspect line as the chart drew it, by its two bodies either way round. */
+  lines: Record<string, Chord>;
+  /** The rising marker's ring. */
+  rising: Spot | null;
+}
+
+const num = (el: Element, name: string) => Number(el.getAttribute(name));
+
 /**
- * Where the wheel drew each body, read from its own SVG rather than worked out
- * again, so a line ends where the reader sees the body, inner lane and all.
+ * Where the wheel drew each body, line and the rising marker, read from its own
+ * SVG rather than worked out again, so a mark sits where the reader sees the
+ * body, inner lane and all.
  */
-function readSpots(host: HTMLElement): Spots | null {
+function readSpots(host: HTMLElement, chart: ChartData, orbs: Record<string, number> | undefined): Spots | null {
   const svg = host.querySelector<SVGSVGElement>("svg:not([data-marks])");
   const viewBox = svg?.getAttribute("viewBox");
   if (!svg || !viewBox) return null;
-  const [x, , width] = viewBox.split(/[\s,]+/).map(Number);
   const bodies: Record<string, Spot> = {};
   // By data-body, not a button's label: this wheel takes no stops (MB-177), so none of its bodies is a button.
   for (const g of svg.querySelectorAll<SVGGElement>("g[data-body]")) {
     const key = g.dataset.body;
     const disc = g.querySelector("circle");
-    if (key && disc) {
-      bodies[key] = { x: Number(disc.getAttribute("cx")), y: Number(disc.getAttribute("cy")), r: Number(disc.getAttribute("r")) };
-    }
+    if (key && disc) bodies[key] = { x: num(disc, "cx"), y: num(disc, "cy"), r: num(disc, "r") };
   }
-  // The wheel pads its plate equally on each side, so the plate is the view box less both paddings.
-  return { viewBox, plate: width + 2 * x, bodies };
+  // The chart draws its aspect lines straight into the plate in the scene's order, strongest first.
+  const drawn = [...svg.querySelectorAll<SVGLineElement>(":scope > line")];
+  const lines: Record<string, Chord> = {};
+  (layerOf(buildScene(chart, "full", PLATE, { orbs }), "lines")?.lines ?? []).forEach((l, i) => {
+    const el = drawn[i];
+    if (!el) return;
+    const chord = { x1: num(el, "x1"), y1: num(el, "y1"), x2: num(el, "x2"), y2: num(el, "y2"), stroke: el.getAttribute("stroke") ?? c.brass };
+    lines[`${l.a}|${l.b}`] = chord;
+    lines[`${l.b}|${l.a}`] = chord;
+  });
+  const ring = svg.querySelector("[data-rising-marker] circle");
+  return { viewBox, bodies, lines, rising: ring ? { x: num(ring, "cx"), y: num(ring, "cy"), r: num(ring, "r") } : null };
 }
 
 /**
  * The claim's evidence on her wheel, turning with it: a ring on each body it
  * cites, its aspect's line, and the ring the claim's line ends on.
  */
-function Marks({ spots, claim, chart }: { spots: Spots; claim: ResolvedHomeClaim; chart: ChartData }) {
+function Marks({ spots, claim }: { spots: Spots; claim: ResolvedHomeClaim }) {
   const lit = litBy(claim);
-  const radii = wheelRadii(spots.plate);
-  const c = radii.centre;
-  const asc = chart.angles?.ascendant.absoluteDegree ?? 0;
-  const at = (radius: number, degree: number) => pointAt(c, c, radius, theta(degree, asc));
   const { kind, key } = claim.target;
   const target = kind === "body" ? spots.bodies[key] : undefined;
   return (
     <svg data-marks="" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox={spots.viewBox} aria-hidden="true">
       {lit.aspects.map(([a, b]) => {
-        const pa = chart.planets[a];
-        const pb = chart.planets[b];
-        if (!pa || !pb) return null;
-        const p = at(radii.aspect, pa.absoluteDegree);
-        const q = at(radii.aspect, pb.absoluteDegree);
-        return <line key={`${a}-${b}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={ASPECT_HUE} strokeWidth={2.4} strokeLinecap="round" />;
+        const l = spots.lines[`${a}|${b}`];
+        if (!l) return null;
+        return <line key={`${a}-${b}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.stroke} strokeWidth={2.4} strokeLinecap="round" />;
       })}
       {lit.bodies.map((b) => {
         const s = spots.bodies[b];
         if (!s || (kind === "body" && b === key)) return null;
-        return <circle key={b} cx={s.x} cy={s.y} r={s.r + 5} fill="none" stroke="var(--indigo-lt)" strokeOpacity={0.6} strokeWidth={1.3} />;
+        return <circle key={b} cx={s.x} cy={s.y} r={s.r + 5} fill="none" stroke={c.brass} strokeOpacity={0.6} strokeWidth={1.3} />;
       })}
-      {lit.angles.map((a) => {
-        const angle = chart.angles?.[a as keyof ChartAngles];
-        if (!angle) return null;
-        const p = at(radii.signInner, angle.absoluteDegree);
-        const main = kind === "angle" && key === a;
-        return (
-          <circle key={a} data-target={main ? "" : undefined} cx={p.x} cy={p.y} r={radii.node * 0.55} fill="none" stroke="var(--sd-brass)" strokeWidth={1.6} />
-        );
-      })}
+      {/* Only the rising degree is drawn on the chart: an angle with no marker of its own takes no ring. */}
+      {lit.angles.includes("ascendant") && spots.rising && (
+        <circle
+          data-target={kind === "angle" && key === "ascendant" ? "" : undefined}
+          cx={spots.rising.x} cy={spots.rising.y} r={spots.rising.r + 6} fill="none" stroke={c.brass} strokeWidth={1.6}
+        />
+      )}
       {target && (
-        <circle data-target="" cx={target.x} cy={target.y} r={target.r + 6} fill="none" stroke="var(--paper)" strokeOpacity={0.85} strokeWidth={1.6} />
+        <circle data-target="" cx={target.x} cy={target.y} r={target.r + 6} fill="none" stroke={c.paper} strokeOpacity={0.85} strokeWidth={1.6} />
       )}
     </svg>
   );
@@ -336,20 +362,19 @@ interface WheelView {
 }
 
 const PANEL = "col-start-1 row-start-1 grid content-start gap-3.5 max-[900px]:gap-2.5";
-const K_LINE = "flex items-baseline gap-2.5 font-label text-[10.5px] font-medium uppercase leading-none tracking-[.22em] text-[color:var(--sd-brass)]";
-const K_NUM = "font-numeric tracking-[.08em] text-[color:var(--sd-muted)]";
-const QUOTE =
-  "max-w-[24em] font-display text-[clamp(23px,2.5vw,31px)] italic leading-[1.32] text-[color:var(--paper-hi)] max-[900px]:text-[clamp(19px,5.2vw,23px)]";
+const K_LINE = "flex items-baseline gap-2.5 font-label text-kicker uppercase leading-none text-brass";
+const K_NUM = "font-numeric tracking-[.08em] text-muted";
+const QUOTE = "max-w-[24em] font-display text-page-title italic leading-[1.32] text-paper max-[900px]:text-card-title max-[900px]:leading-[1.32]";
 const MARK =
-  "static ml-1 inline-flex h-[17px] min-w-[18px] items-center justify-center rounded px-[3px] align-super font-numeric text-[10px] not-italic leading-none text-white bg-[color:var(--indigo)]";
+  "static ml-1 inline-flex h-[17px] min-w-[18px] items-center justify-center rounded-inner px-[3px] align-super font-numeric text-data-sm not-italic leading-none tracking-normal text-on-indigo bg-indigo";
 const ENTER = [
   "animate-[sd-swap_.5s_var(--ease)_both]",
   "animate-[sd-swap_.5s_var(--ease)_.05s_both]",
   "animate-[sd-swap_.5s_var(--ease)_.1s_both]",
   "animate-[sd-swap_.5s_var(--ease)_.15s_both]",
 ];
-const BAR = "block h-full origin-left bg-[color:var(--indigo-lt)]";
-const BAR_EASE = "transition-transform duration-[450ms] ease-[var(--ease)]";
+const BAR = "block h-full origin-left bg-indigo-lt";
+const BAR_EASE = "transition-transform duration-(--dur-base) ease-[var(--ease)]";
 
 export default function Claims() {
   const { clock } = useEntryFormat();
@@ -507,8 +532,8 @@ export default function Claims() {
 
   useEffect(() => {
     if (!mounted || spots || wheel.shown !== "her" || !plate.current) return;
-    setSpots(readSpots(plate.current));
-  }, [mounted, spots, wheel.shown]);
+    setSpots(readSpots(plate.current, chart, SAMPLE.run.meta.orbs));
+  }, [mounted, spots, wheel.shown, chart]);
 
   useEffect(() => {
     draw.current = (animate) => {
@@ -601,6 +626,7 @@ export default function Claims() {
   };
 
   const showing = wheel.shown === "her" && phase === "landed" && cur >= 0 ? claims[cur] : undefined;
+  const focusHouse = showing ? houseOfTarget(showing.target, chart) : 0;
   const hud =
     wheel.shown === "her" ? [`${SAMPLE.name} · ${BORN_ON} · ${clockWords(SAMPLE.birth.birthTime, clock)}`, WHERE, `Birth time · ${SAMPLE.source}`, sunLine(chart)]
     : wheel.shown === "now" ? ["The sky now", `Over ${WHERE}`, "", ""]
@@ -613,10 +639,10 @@ export default function Claims() {
           <div className="grid min-w-0 content-center gap-4 max-[900px]:contents">
             <p className="sd-eyebrow max-[900px]:order-1">A real example</p>
             {/* MB-160 provisional: the small number marks a claim, and a sentence can hold none. */}
-            <h2 id="sd-claims-h" className="sd-h2 text-[clamp(32px,3.8vw,48px)] max-[900px]:order-2 max-[900px]:text-[clamp(26px,7vw,34px)]">
+            <h2 id="sd-claims-h" className="sd-h2 max-[900px]:order-2">
               You can see where every claim comes from
             </h2>
-            <p className="sd-sub max-w-[30em] text-[17.5px] max-[900px]:hidden">
+            <p className="sd-sub max-w-[30em] text-lede max-[900px]:hidden">
               Each claim in your report has a small number that shows which part of your chart it's based on. We check every one
               before you see it.
             </p>
@@ -652,9 +678,9 @@ export default function Claims() {
                       {c.claim.evidence.map((e, j) => {
                         const k = kindOf(e.ref.kind);
                         return (
-                          <li key={j} className="flex items-baseline gap-2.5 font-numeric text-[12.5px] leading-[1.4] text-[color:var(--paper-dim)]">
+                          <li key={j} className="flex items-baseline gap-2.5 font-numeric text-data text-paper-dim">
                             <span
-                              className="inline-flex w-[86px] flex-none items-center gap-1.5 font-label text-[9px] font-medium uppercase leading-none tracking-[.18em]"
+                              className="inline-flex w-[112px] flex-none items-center gap-1.5 font-label text-label uppercase leading-none"
                               style={{ color: k.hue }}
                             >
                               <span aria-hidden="true" className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: k.hue }} />
@@ -667,7 +693,7 @@ export default function Claims() {
                     </ul>
                     <p
                       className={cn(
-                        "font-numeric text-[10.5px] uppercase leading-[1.4] tracking-[.12em] text-[color:var(--sd-muted)]",
+                        "font-numeric text-data-sm uppercase text-muted",
                         enter && ENTER[3],
                       )}
                     >
@@ -688,12 +714,11 @@ export default function Claims() {
                 const on = i === cur;
                 const running = on && phase === "landed" && cycling && seen;
                 return (
-                  <button
+                  <TextButton
                     key={c.claimId}
                     ref={(el) => {
                       tabs.current[i] = el;
                     }}
-                    type="button"
                     role="tab"
                     id={`sd-claim-tab-${i}`}
                     aria-controls={`sd-claim-${i}`}
@@ -701,10 +726,10 @@ export default function Claims() {
                     tabIndex={on || (cur < 0 && i === 0) ? 0 : -1}
                     onClick={() => pick(i)}
                     onKeyDown={(event) => onKey(event, i)}
-                    className="grid min-w-[78px] cursor-pointer gap-[7px] border-0 bg-transparent py-1.5 text-left font-label text-[10px] font-medium uppercase leading-none tracking-[.2em] text-[color:var(--sd-muted)] aria-selected:text-[color:var(--paper)]"
+                    className="grid min-w-[78px] gap-[7px] px-0 py-1.5 text-left font-label text-label uppercase leading-none text-muted hover:text-paper-dim aria-selected:text-paper"
                   >
                     {told[i].tab}
-                    <span aria-hidden="true" className="block h-0.5 overflow-hidden rounded-sm bg-[color:var(--line)]">
+                    <span aria-hidden="true" className="block h-0.5 overflow-hidden rounded-sm bg-line">
                       <span
                         key={running ? `run-${cur}` : "idle"}
                         className={cn(
@@ -717,11 +742,11 @@ export default function Claims() {
                         )}
                       />
                     </span>
-                  </button>
+                  </TextButton>
                 );
               })}
             </div>
-            <p className="max-w-[44em] text-[12.5px] leading-[1.55] text-[color:var(--sd-muted)] max-[900px]:order-6 max-[900px]:text-[11.5px]">
+            <p className="max-w-[44em] text-caption leading-[1.55] text-muted max-[900px]:order-6">
               These lines are copied word for word from {SAMPLE.name}'s {PERSONAL_REPORT}. Her birth time comes from her public
               birth record ({SAMPLE.source}). {PRODUCT} has no connection to her family or estate.
             </p>
@@ -742,27 +767,31 @@ export default function Claims() {
               <i />
             </div>
             {/* Drawn on the client into a square the HTML already holds, so the page never shifts and ids stay the browser's own. */}
-            <div className="relative aspect-square [container-type:inline-size]">
+            <div className="relative aspect-square">
               {mounted && (
                 <div
                   ref={plate}
                   className="absolute inset-0"
                   style={{ transform: `rotate(${wheel.turn}deg)`, transition: wheel.spin ? `transform ${REWIND_MS}ms var(--ease)` : "none" }}
                 >
-                  <NatalWheel
-                    chartData={wheel.chart}
+                  {/* Nothing here answers a house or a planet, so Tab passes the wheel rather than 25 stops that do nothing (MB-177). */}
+                  <Chart
+                    chart={wheel.chart}
+                    state={stateOf(wheel.chart, focusHouse)}
+                    size={PLATE}
+                    fluid
                     orbs={wheel.shown === "her" ? SAMPLE.run.meta.orbs : undefined}
-                    selectedHouse={showing ? houseOfTarget(showing.target, chart) : 0}
-                    // Nothing here answers a house or a planet, so Tab passes the wheel rather than 25 stops that do nothing (MB-177).
-                    stops={false}
+                    focus={focusHouse ? { house: focusHouse } : undefined}
                   />
-                  {showing && spots && <Marks spots={spots} claim={showing} chart={chart} />}
+                  {showing && spots && <Marks spots={spots} claim={showing} />}
                 </div>
               )}
               {wheel.shown === "frame" && (
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <span className="font-numeric text-[3.2cqi] leading-none tracking-[.06em] text-[color:var(--paper-hi)]">{day}</span>
-                </div>
+                <svg aria-hidden="true" viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
+                  <text x={50} y={50} textAnchor="middle" dominantBaseline="central" fontFamily={tokens.fontFamily.mono} fontSize={3.2} letterSpacing={0.19} fill={c.paper}>
+                    {day}
+                  </text>
+                </svg>
               )}
             </div>
             <p className="sr-only">{`${SAMPLE.name}'s birth chart: ${skySentence(chart)}`}</p>
@@ -773,8 +802,8 @@ export default function Claims() {
           </div>
         </div>
         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-          <path ref={line} fill="none" stroke="var(--indigo-lt)" strokeWidth={1.3} strokeLinecap="round" opacity={0.9} />
-          <circle ref={tip} r={3} fill="var(--indigo-lt)" style={{ opacity: 0 }} />
+          <path ref={line} fill="none" stroke={c["indigo-lt"]} strokeWidth={1.3} strokeLinecap="round" opacity={0.9} />
+          <circle ref={tip} r={3} fill={c["indigo-lt"]} style={{ opacity: 0 }} />
         </svg>
       </div>
     </section>
