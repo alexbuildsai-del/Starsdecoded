@@ -13,10 +13,8 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-04 · Rough birth time: Ascendant and Midheaven contacts as rough dates with a range · ADR-295, was MB-217
 - B-05 · A masked block copied back logs a `generation_failures` row · ADR-294, was MB-208
 - B-06 · /compatibility: write one report for two labelled sample people on staging, commit its headline and two items · ADR-286, was MB-93
-- B-09 · Primary button contrast to 4.5:1, one token · was MB-221
 - B-10 · Report page dead ends after a failure; plain next step on the internal failure line · was MB-205, MB-91
-- B-11 · Toast and waiting buttons get accessible names; raw claim errors in plain words · was MB-204
-- B-12 · Reduced motion: the closing Sun stops sitting over every chapter · was MB-203
+- B-11 · Toast buttons get accessible names; raw claim errors in plain words (the busy button half shipped in R20) · was MB-204
 - B-13 · Triad plate: draw the Moon's day arc above the bodies · was MB-210
 - B-14 · Typed place moves from the GET query string to a POST body · was MB-211
 - B-16 · Pre-1970 zone offsets: ship tzdb backzone, with a dry lab run · was MB-201
@@ -48,7 +46,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with a dry lab run · R18-13
 - B-71 · The done page's plan redirect sits inline in `CheckoutDonePage.tsx`; move it into `checkout-view.ts` so the critical tier pins it; `steps.ts`'s `timeline-setup` label also covers the stale refresh now · R18 tester
 - B-72 · Staging deploys still answer 502 on `/api/*` for about 45 s (two deploys measured 2026-10-07, after R18-03); finish once MB-228's dashboard answer is in (a volume, Teardown overlap 0, or no health check) · R18 staging confirmation
-- B-75 · The loading stories' chart labels print at 6.5 to 7.5 px and overlap · QA-07 #3
+- B-75 · The loading stories' chart labels print at 6.5 to 7.5 px and overlap (placed by `lib/build-story.ts`, `lib/pair-story.ts`; PairStory's house label is 11 since R20); Did you know's phone scale puts its stellium label near 7 px · QA-07 #3, R20-34
 - B-78 · `/faq` "Do I pay once or every month?" no longer answers once or monthly in its first sentence · QA-07 #6
 - B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data; a first-time buyer reads sign-in words, not sign-up ones · QA-07 #7, QA-08 #8
 - B-80 · A dead report link spins about 7 s and calls the API five times before "Report not found."; answer a 404 once · QA-07 #8
@@ -69,12 +67,21 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-95 · First visit leftovers: `Orbit.tsx` draws "YOU / Your report" with ghost seats where the mock has one "You"; Practising shows Audrey's sample when an own report has nothing to practise; the gift nudge's line repeats its heading (/ux-copy) · R19-35
 - B-96 · Docs drift: MASTERFILE §4 still calls the admin Timeline's only access (R-6.2 adds a subscription); §3's testers row lacks the QA account's mark (ADR-387); INDEX's code-map heading lists QA-02 and QA-03 only · R19 close
 - B-97 · Observations take a creator's captions lightly adapted, so a planted line could reach every matching prompt and card; `/observe` step 7 (or `check:shipped`) checks each idea and why is one plain line, no `<>{}`, backtick, all-caps label or words to the writer · `observations.ts`, `.claude/skills/observe/SKILL.md` · sentinel 2026-10-09
-- B-98 · The free chart dialog's "EAST · RISING" label is cut by the left edge at 1280 × 900 (box at x = -13), whole at other sizes · `/`, `/sky` · QA-08 #3
-- B-99 · Escape in the free chart dialog puts focus on the form card's wrapper, not on Show my chart · QA-08 #4
+- B-99 · Escape in the free chart dialog puts focus on the form card's wrapper, not on Show my chart: the opener sits in the hero's inert face (R20-30 wired the return; the hero must un-inert it or give the summary its own target) · `SkyScreen.tsx`, `Hero.tsx` · QA-08 #4
 - B-100 · /method film, 80 to 88 s: the chip "Sunrise 06:10 · ASC Virgo 9°43′" reads as the ascendant at sunrise; 9°43′ is the 06:30 birth's · QA-08 #6
 - B-101 · The home birth form pre-picks London (ADR-107) with no line saying it stands in, and shows a continent and no zone · QA-08 #7
 - B-102 · /timeline mixes date orders in an en-US browser ("Oct 19, 2026" beside "14 Mar 1991"); one order per page · QA-08 #9
 - B-103 · Raise an ideation for the Timeline dial and print inside the chart system (design-system Scope 2 leaves them open; kept as drawn on `tokens.ts` meanwhile) · ADR-442
+- B-104 · Ideate the report's opening plate on the Chart (level horizon ADR-395, the 120/72 px Sun and Moon, EAST · RISING, labels outside the ring); allow-listed meanwhile · `ReportHero.tsx`, `hero-layout.ts` · R20-27, ADR-442
+- B-105 · A build-in-motion option for the Chart (the sign ring drawing in, bodies running to their degrees, lines strongest first) so the two loading stories draw through it · `lib/build-story.ts`, `lib/pair-story.ts`, `ds/organisms/chart` · R20-34
+- B-106 · The `ReportPage` and `SitePage` templates differ from the live report and home layouts; reconcile them so the pages can use them · `ds/templates` · R20-26, R20-30
+- B-107 · Parts gaps: Button has no disabled look and no ghost version (DeleteReportDialog keeps `ui/button`); TickBox takes no `required` or `id` (checkout's tick is local); no tab-list part (ViewSwitch, the phone Now/Life switch); Select stays a native select · `ds/atoms` · R20-24, 26, 28, 32
+- B-108 · Remaining raw form controls: Sales and Spawn checkboxes and radios with `accent-indigo`; the Lab's `ui/textarea` · admin · R20-35
+- B-109 · Share chips have no part (InputWithButton holds no chips); Ask's growing textarea likewise · `ShareWindow.tsx`, `AskPanel.tsx` · R20-29, R20-33
+- B-110 · The marketing kit sits outside the workspace with no `node_modules`, so `render.mjs` can't run here; `proposal.mjs` keeps its own palette · `.claude/skills/marketing/kit` · R20-23
+- B-111 · `@radix-ui/react-tooltip` stays in `web/package.json` with no importer since R20 · R20-04
+- B-112 · Sun, Moon and rising sign names start at 200 px; on the 300 px sample head they draw near 6 px, under the 11 px floor; "REWINDING THE SKY" is 9.5 plate units · `ds/organisms/chart`, `HorizonWheel.tsx` · R20-31
+- B-113 · The two-charts ledger's pair label ("SUN · JUPITER") wraps in its 90 px column at 11 px · `TwoChartsLedger.tsx` · R20-27
 
 ## Waiting on Alex
 
