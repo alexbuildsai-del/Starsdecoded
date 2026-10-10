@@ -7,6 +7,7 @@
  * tokens, on the dashboard and on the public pages.
  */
 import { AngleGlyph } from "@/components/report/AngleGlyph";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import type { TriadRowData } from "@/lib/triad-row";
 import { cn } from "@/lib/utils";
@@ -29,15 +30,15 @@ function Mark({ row }: { row: TriadRowData }) {
 function Value({ row, compact, onAddBirthTime }: { row: TriadRowData; compact: boolean; onAddBirthTime?: () => void }) {
   if (row.at === null) {
     return (
-      <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-[var(--paper-dim)]">
+      <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-paper-dim">
         {onAddBirthTime ? (
-          <button
-            type="button"
+          // The row's own words in the row's own size: a link-weight action, brass as the legend's keys are.
+          <TextButton
             onClick={onAddBirthTime}
-            className="rounded-sm text-left text-brass underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
+            className="min-h-0 px-0 text-left text-xs font-normal leading-[1.35] whitespace-normal text-brass underline-offset-4 hover:text-brass hover:underline"
           >
             {row.blind}
-          </button>
+          </TextButton>
         ) : row.blind}
       </dd>
     );

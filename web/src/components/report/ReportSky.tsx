@@ -13,6 +13,7 @@
  * sky is painted once, the gathered stars already on the ring.
  */
 import { useEffect, useRef } from "react";
+import { tokens } from "@workspace/design";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { GATHER_SECONDS, gatherFrame, planGather, type GatherPlan, type Ring } from "@/lib/gather";
 
@@ -28,7 +29,10 @@ function mix(a: string, b: string, t: number): [number, number, number] {
   return [0, 1, 2].map((i) => Math.round(x[i] + (y[i] - x[i]) * t)) as [number, number, number];
 }
 
-const INDIGO = "#5C6BC0";
+const INDIGO = tokens.color.indigo;
+const STAR = tokens.color.paper;
+/** The opening's second blob is violet whatever the chapter. */
+const VIOLET = hexToRgb(tokens.color.violet).join(",");
 
 export interface ReportSkyProps {
   accent: string;
@@ -112,7 +116,7 @@ export function ReportSky({ accent, opening, count = 130, variant = "chapters", 
         const g = gathered.get(i);
         const at = g ?? driftAt(s, offset);
         ctx.globalAlpha = g ? Math.min(1, s.o + 0.25) : s.o;
-        ctx.fillStyle = "#E8EBF2";
+        ctx.fillStyle = STAR;
         ctx.beginPath();
         ctx.arc(at.x * 2, at.y * 2, s.r * 2, 0, Math.PI * 2);
         ctx.fill();
@@ -191,7 +195,7 @@ export function ReportSky({ accent, opening, count = 130, variant = "chapters", 
   useEffect(() => {
     const rgb = hexToRgb(accent).join(",");
     if (b1.current) b1.current.style.background = `rgba(${rgb},.55)`;
-    if (b2.current) b2.current.style.background = opening ? "rgba(149,117,205,.42)" : `rgba(${rgb},.32)`;
+    if (b2.current) b2.current.style.background = opening ? `rgba(${VIOLET},.42)` : `rgba(${rgb},.32)`;
     if (b3.current) b3.current.style.background = `rgba(${mix(accent, INDIGO, 0.55).join(",")},.34)`;
   }, [accent, opening]);
 

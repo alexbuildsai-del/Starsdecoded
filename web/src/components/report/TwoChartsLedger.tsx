@@ -11,15 +11,19 @@
  * on the share card.
  */
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
+import { tokens } from "@workspace/design";
+import { PlanetBodyMark } from "@/ds/atoms/PlanetBody";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { MEET_COLOURS, MEET_TAGS, aspectTitle, ledgerLinksOf, meetCards } from "@/lib/charts-meet";
 import { ledgerRows, linkAnchor, type LedgerRow } from "@/lib/ledger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { PLANET_GLYPHS, PLANET_LABELS, type Lens, type PairInterpretation, type PairTwoCharts } from "@/types/chart";
+import { PLANET_LABELS, type Lens, type PairInterpretation, type PairTwoCharts } from "@/types/chart";
 
 const TEAL = MEET_COLOURS.comes;
 const ROSE = MEET_COLOURS.challenge;
-const BRASS = "#D4B06A";
+const BRASS = tokens.color.brass;
+/** A render's width in the glyph's 90 × 34 box. */
+const BODY = 26;
 
 export interface TwoChartsLedgerProps {
   s: PairTwoCharts;
@@ -28,16 +32,9 @@ export interface TwoChartsLedgerProps {
   lens: Lens;
 }
 
+// Chiron and the nodes have no render: PlanetBody draws them as the chart does, a grey point.
 function Body({ body, x }: { body: string; x: number }) {
-  const src = PLANET_RENDERS[body];
-  if (src) return <image href={src} x={x} y={4} width={26} height={26} />;
-  // Chiron and the nodes have no render: the point, as the wheel draws it.
-  return (
-    <g>
-      <circle cx={x + 13} cy={17} r={9} fill="#0B0E14" stroke={BRASS} strokeOpacity={0.55} />
-      <text x={x + 13} y={21} textAnchor="middle" fontSize={11} fill={BRASS}>{PLANET_GLYPHS[body] ?? "·"}</text>
-    </g>
-  );
+  return <PlanetBodyMark body={body} size={BODY} x={x + BODY / 2} y={17} />;
 }
 
 /** The link between the two renders: straight for what comes easily, the zigzag for what takes work. */
@@ -69,22 +66,22 @@ function Row({ row, names, claims, counter, hasCard }: { row: LedgerRow; names: 
   const glyph = (
     <>
       <Glyph row={row} />
-      {row.link && <small className="block font-label text-[9px] tracking-[0.16em] uppercase text-[var(--paper-dim)] text-center">{label}</small>}
+      {row.link && <small className="block font-label text-label uppercase text-paper-dim text-center">{label}</small>}
     </>
   );
   return (
-    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-2 border-t border-[var(--line-soft)] py-4 first:border-t-0 first:pt-2" data-ledger-row>
+    <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-2 border-t border-line-soft py-4 first:border-t-0 first:pt-2" data-ledger-row>
       <div className="min-w-0">
         {row.link && hasCard
-          ? <button type="button" onClick={open} title={`${title}: read the card`} aria-label={`${title}: read the card`} className="block w-[90px] rounded-md p-0 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]">{glyph}</button>
+          ? <TextButton onClick={open} title={`${title}: read the card`} aria-label={`${title}: read the card`} className="block min-h-0 w-[90px] p-0 text-left">{glyph}</TextButton>
           : row.link ? <span className="block w-[90px]" title={title}>{glyph}</span> : null}
       </div>
       <div className="min-w-0">
-        <p className="font-display text-[17px] leading-[1.45] text-[var(--paper)]">{CitedText({ text: row.text, claims, counter })}</p>
+        <p className="font-display text-card-title-sm leading-[1.45] text-paper">{CitedText({ text: row.text, claims, counter })}</p>
         {row.chapter && (
           <a
             href={`#chapter-${row.chapter.number}`}
-            className="mt-2 inline-block rounded-full border border-current px-2.5 py-1 font-label text-[9.5px] uppercase tracking-[0.16em] no-underline"
+            className="mt-2 inline-block rounded-pill border border-current px-2.5 py-1 font-label text-label uppercase no-underline"
             style={{ color: "inherit" }}
           >
             → {String(row.chapter.number).padStart(2, "0")} {row.chapter.title}
@@ -101,10 +98,10 @@ function Column({ title, colour, rows, names, claims, counter, cards }: {
   return (
     <div className="min-w-0" style={{ color: colour }} data-ledger-column>
       <div className="flex items-center gap-3">
-        <span className="font-label text-[10px] tracking-[0.2em] uppercase">{title}</span>
+        <span className="font-label text-label tracking-[0.2em] uppercase">{title}</span>
         <span aria-hidden className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${colour}, transparent)` }} />
       </div>
-      <div className="mt-2 text-[var(--paper)]">
+      <div className="mt-2 text-paper">
         {rows.map((row, i) => <Row key={i} row={row} names={names} claims={claims} counter={counter} hasCard={row.link ? cards.has(linkAnchor(row.link)) : false} />)}
       </div>
     </div>
@@ -125,9 +122,9 @@ export function TwoChartsLedger({ s, names, interpretation, lens }: TwoChartsLed
         <Column title={MEET_TAGS.challenge} colour={ROSE} rows={rows.work} names={names} claims={s.claims} counter={counter} cards={cards} />
       </div>
       <div className="mx-auto mt-10 max-w-[44ch] text-center" data-paradox>
-        <span className="font-label text-[10px] tracking-[0.2em] uppercase text-[var(--paper-dim)]">Where you pull two ways</span>
+        <span className="font-label text-label tracking-[0.2em] uppercase text-paper-dim">Where you pull two ways</span>
         <span aria-hidden className="mx-auto mt-3 block h-px w-full" style={{ background: `linear-gradient(90deg, ${TEAL}, ${ROSE})` }} />
-        <p className="mt-4 font-display italic text-[22px] leading-[1.35] text-[var(--paper)]">{CitedText({ text: s.paradox, claims: s.claims, counter })}</p>
+        <p className="mt-4 font-display italic text-sheet-title leading-[1.35] text-paper">{CitedText({ text: s.paradox, claims: s.claims, counter })}</p>
       </div>
     </div>
   );

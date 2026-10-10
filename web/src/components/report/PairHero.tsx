@@ -65,7 +65,7 @@ function dateText(birthDate: string): string {
   return Number.isNaN(d.getTime()) ? birthDate : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-const NAME_CLASS = "font-display font-normal text-[clamp(28px,4.2vw,52px)] leading-[1.08] text-[#F2F4F9]";
+const NAME_CLASS = "font-display font-normal text-[clamp(28px,4.2vw,52px)] leading-[1.08] text-paper";
 
 /** One person's column: the name once, then the three rows at today's sizes. */
 function Column({ person, detail }: { person: PairPerson; detail: "degree" | "full" }) {
@@ -144,14 +144,14 @@ export function PairHero({ a, b, lens, accent }: PairHeroProps) {
   }, []);
 
   const eyebrow = `Compatibility report · ${info.title}`;
-  const and = <span className="font-label text-[11px] tracking-[0.34em] uppercase text-[var(--sky)]">and</span>;
+  const and = <span className="font-label text-label tracking-[0.34em] uppercase text-(--sky)">and</span>;
 
   return (
     <>
       <div ref={skyRef} className="rp-hsky rp-grain no-print narrow" style={{ alignContent: "center", gap: 18, padding: "16px 16px 84px" }}>
         <ReportSky variant="hero" accent={accent} opening />
         <h1 className="sr-only">{left.name} and {right.name}</h1>
-        <p className="font-label text-[10px] tracking-[0.28em] uppercase text-[var(--sky)] opacity-85 text-center px-2">{eyebrow}</p>
+        <p className="font-label text-kicker tracking-[0.28em] uppercase text-(--sky) opacity-85 text-center px-2">{eyebrow}</p>
         {stack.columnsSideBySide ? (
           <div className="grid grid-cols-[auto_auto_auto] gap-x-6 items-start justify-center w-full" data-columns="side-by-side">
             <Column person={left} detail={layout.detail} />
@@ -192,7 +192,7 @@ export function PairHero({ a, b, lens, accent }: PairHeroProps) {
 
       <section className="rp-hero" aria-label="Opening">
         <header className="hidden print:block px-8 pt-12">
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{eyebrow}</p>
+          <p className="font-label text-kicker tracking-[0.28em] uppercase">{eyebrow}</p>
           <div className="mt-6 grid grid-cols-2 gap-8">
             {[left, right].map((p) => (
               <div key={p.name}>
