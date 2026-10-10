@@ -26,7 +26,7 @@ sideways scroll. No brain, schema or contract file touched: no dry lab, no boots
 
 ## Pictures
 Before (base 670f93c) and after at 390 px for every screen, admin at 1280, the emails and the cover:
-the round's picture page (link in the PR). Sign-in and Stripe's own fields show stand-ins locally.
+https://claude.ai/artifact/VpV5nSsPnYj3ycjs8sjSCw (the big Sun in the old report shot is B-12, fixed). Sign-in and Stripe's own fields show stand-ins locally.
 **Outliers (ADR-440), each a visible change:** #9AA3B5 → paper-dim · #8E9BE0, #C5CAE9 → indigo-lt · #8967C1 → violet · #F2F4F9,
 #F4F5FA → paper / on-indigo · the dial's #E3A3AD → back · #6E7789 → label-dim · #3A4356 → line-strong · #63A8C4 → line-easy ·
 #7FB08B → element-earth · the site's glows → brass, brass-dim, element-fire · #F6E3C0 → brass on on-indigo · the toasts' reds → void ·
