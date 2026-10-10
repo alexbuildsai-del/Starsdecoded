@@ -1,10 +1,7 @@
 {
   "files": {
-    "api/src/lib/mailer.ts": {
-      "hex": 41
-    },
     "scripts/render-brand.mjs": {
-      "hex": 11,
+      "hex": 4,
       "chartDraw": 1
     },
     "web/src/App.tsx": {
@@ -14,19 +11,8 @@
     "web/src/components/AccountMenu.tsx": {
       "textArb": 2
     },
-    "web/src/components/BirthDateField.tsx": {
-      "hex": 2,
-      "textArb": 2
-    },
-    "web/src/components/BirthTimeControl.tsx": {
-      "textArb": 2
-    },
     "web/src/components/BirthTimeDialog.tsx": {
       "textArb": 1
-    },
-    "web/src/components/BirthTimeField.tsx": {
-      "hex": 1,
-      "textArb": 2
     },
     "web/src/components/BundleList.tsx": {
       "hex": 24,
@@ -58,11 +44,6 @@
     },
     "web/src/components/MethodologyBox.tsx": {
       "textArb": 2
-    },
-    "web/src/components/PlaceField.tsx": {
-      "textArb": 4,
-      "colorUtil": 1,
-      "rawButton": 4
     },
     "web/src/components/PrelaunchRibbon.tsx": {
       "textArb": 1
@@ -97,13 +78,6 @@
       "textArb": 37,
       "roundedArb": 5,
       "rawButton": 3
-    },
-    "web/src/components/chart/HouseObject.tsx": {
-      "hex": 1
-    },
-    "web/src/components/chart/NatalWheel.tsx": {
-      "colorUtil": 1,
-      "chartDraw": 10
     },
     "web/src/components/dashboard/AddSomeoneSheet.tsx": {
       "hex": 11,
@@ -254,28 +228,6 @@
     "web/src/components/report/ChapterRail.tsx": {
       "textArb": 2,
       "rawButton": 1
-    },
-    "web/src/components/report/Checklist.tsx": {
-      "hex": 26,
-      "rgb": 1,
-      "textArb": 14,
-      "roundedArb": 4,
-      "colorUtil": 1,
-      "rawButton": 1
-    },
-    "web/src/components/report/Citation.tsx": {
-      "rawButton": 1
-    },
-    "web/src/components/report/HouseBlocks.tsx": {
-      "hex": 14,
-      "textArb": 18,
-      "roundedArb": 1,
-      "colorUtil": 2
-    },
-    "web/src/components/report/HouseCard.tsx": {
-      "textArb": 25,
-      "colorUtil": 8,
-      "rawButton": 2
     },
     "web/src/components/report/HouseDeck.tsx": {
       "textArb": 11,
@@ -443,15 +395,6 @@
       "roundedArb": 3,
       "colorUtil": 1,
       "rawButton": 2
-    },
-    "web/src/components/ui/alert-dialog.tsx": {
-      "colorUtil": 1
-    },
-    "web/src/components/ui/dialog.tsx": {
-      "colorUtil": 1
-    },
-    "web/src/components/ui/sheet.tsx": {
-      "colorUtil": 1
     },
     "web/src/components/ui/toast.tsx": {
       "colorUtil": 3
