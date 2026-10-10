@@ -2,6 +2,7 @@ import { PlanetBody } from "@/ds/atoms/PlanetBody";
 import { RetrogradeBadge } from "@/ds/atoms/RetrogradeBadge";
 import { degreesMinutes } from "@/components/chart/wheel-geometry";
 import { cn } from "@/lib/utils";
+import { PLANET_LABELS } from "@/types/chart";
 
 export interface PlacementLabelProps {
   /** The body's id, such as "mercury". */
@@ -29,7 +30,7 @@ const NO_TIME = "needs a birth time";
 
 /** A planet's place in one line: render, name, degree and sign in mono, then its house. */
 export function PlacementLabel({ body, deg, sign, house, houseWord, retrograde = false, variant = "label", className }: PlacementLabelProps) {
-  const name = body.charAt(0).toUpperCase() + body.slice(1);
+  const name = PLANET_LABELS[body] ?? body.charAt(0).toUpperCase() + body.slice(1);
   const where = `${degreesMinutes(deg)} · ${sign}`;
   const houseText = house ? `${ordinal(house)} house${houseWord ? ` (${houseWord})` : ""}` : NO_TIME;
 
