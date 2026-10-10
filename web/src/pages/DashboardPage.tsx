@@ -379,18 +379,14 @@ function CardFrame({ onClose, children }: { onClose?: () => void; children: Reac
 /** The page's bar: the wordmark, and whatever the view puts at its right. */
 function DashboardNav({ children }: { children: ReactNode }) {
   return (
-    <>
-      <TopBar left={<Wordmark />} right={children} />
-      {/* The bar is fixed, so the page starts under it. */}
-      <div aria-hidden className="h-14" />
-    </>
+    <TopBar left={<Wordmark />} right={children} />
   );
 }
 
 /** The preview's ribbon, under the bar and kept in sight while the page scrolls: what this is, the last tap, and Leave. */
 function PreviewRibbon({ said, onLeave }: { said: string | null; onLeave: () => void }) {
   return (
-    <div className="sticky top-14 z-40 mt-14 border-b border-brass-dim bg-raised/95 backdrop-blur-md">
+    <div className="sticky top-14 z-40 border-b border-brass-dim bg-raised/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2.5 sm:px-6">
         <Eyebrow className="shrink-0 text-brass">Preview</Eyebrow>
         <p role="status" className="min-w-0 flex-1 text-small text-paper">

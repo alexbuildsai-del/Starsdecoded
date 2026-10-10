@@ -11,10 +11,10 @@ export interface AppPageProps {
   corner?: ReactNode;
 }
 
-/** The working tempo: one content column under a fixed bar. */
+/** The working tempo: one content column under a fixed bar, so the page starts 56 px down, under the bar. */
 export function AppPage({ header, title, titleAside, children, corner }: AppPageProps) {
   return (
-    <div className="min-h-screen bg-ground text-paper">
+    <div className="min-h-screen bg-ground bg-stars pt-14 text-paper">
       {header}
       <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-6 sm:px-6">
         {(title || titleAside) && (

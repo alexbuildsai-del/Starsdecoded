@@ -269,7 +269,6 @@ export default function AccountPage() {
   return (
     <AppPage
       header={
-        <>
           <TopBar
             left={
               <TextButton asChild className="font-label text-ui text-paper-dim">
@@ -281,8 +280,6 @@ export default function AccountPage() {
             }
             right={<AccountMenu />}
           />
-          <div aria-hidden="true" className="h-14" />
-        </>
       }
       title="Account"
       titleAside={

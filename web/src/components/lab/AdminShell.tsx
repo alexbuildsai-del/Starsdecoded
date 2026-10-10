@@ -51,15 +51,12 @@ export function AdminShell({ current, title, lede, aside, children }: {
   return (
     <AdminPage
       header={
-        <>
           <TopBar
             version="admin"
             widthClass="max-w-7xl"
             left={<TextButton onClick={() => navigate("/dashboard")}><Wordmark size={17} /></TextButton>}
             right={<Eyebrow className="hidden text-muted sm:block">Admin</Eyebrow>}
           />
-          <div aria-hidden="true" className="h-14" />
-        </>
       }
       title={title}
       toolbar={toolbar}
