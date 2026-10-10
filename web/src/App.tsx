@@ -22,7 +22,6 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -49,6 +48,7 @@ const importAdminLab = () => import("@/pages/AdminLabPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
 const importAdminSales = () => import("@/pages/AdminSalesPage");
+const importAdminDesign = () => import("@/pages/AdminDesignPage");
 // Lazy, so Stripe.js reaches a visitor only on /checkout.
 const importCheckout = () => import("@/pages/CheckoutPage");
 const importCheckoutDone = () => import("@/pages/CheckoutDonePage");
@@ -64,6 +64,7 @@ const AdminLabPage = lazy(importAdminLab);
 const ClaimPage = lazy(importClaim);
 const AdminWaitlistPage = lazy(importAdminWaitlist);
 const AdminSalesPage = lazy(importAdminSales);
+const AdminDesignPage = lazy(importAdminDesign);
 const CheckoutPage = lazy(importCheckout);
 const CheckoutDonePage = lazy(importCheckoutDone);
 
@@ -478,6 +479,9 @@ function Routes({ first }: { first?: FirstPage }) {
         <AppRoute path="/admin/sales">
           <AdminSalesPage />
         </AppRoute>
+        <AppRoute path="/admin/design">
+          <AdminDesignPage />
+        </AppRoute>
         <Route path="/admin">{() => <Redirect to="/admin/waitlist" />}</Route>
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>
         <Route component={NotFound} />
@@ -542,20 +546,18 @@ function App({ first }: { first?: FirstPage }) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={siteQueryClient}>
-        <TooltipProvider>
-          <WithSiblings
-            siblings={
-              <>
-                <Toaster />
-                {APP_ENV === "staging" && <StagingRibbon />}
-              </>
-            }
-          >
-            <WouterRouter base={basePath}>
-              <ClerkRoutedProvider first={first} />
-            </WouterRouter>
-          </WithSiblings>
-        </TooltipProvider>
+        <WithSiblings
+          siblings={
+            <>
+              <Toaster />
+              {APP_ENV === "staging" && <StagingRibbon />}
+            </>
+          }
+        >
+          <WouterRouter base={basePath}>
+            <ClerkRoutedProvider first={first} />
+          </WouterRouter>
+        </WithSiblings>
       </QueryClientProvider>
     </ErrorBoundary>
   );
