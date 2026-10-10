@@ -19,7 +19,7 @@ const FIGURE = "grid min-w-0 gap-[10px]";
 const PROSE = "max-w-[62ch]";
 // Chips wrap onto a second line rather than hold the artifact's fixed height, so the longest note fits a 320 px phone.
 const CHIP =
-  "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-[4px] border border-[var(--line)] bg-[rgba(6,8,12,.4)] px-[9px] py-[5px] text-[10.5px] leading-[1.3] font-medium tracking-[.06em] uppercase text-[var(--paper-dim)]";
+  "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-inner border border-line bg-void/40 px-[9px] py-[5px] text-kicker leading-[1.3] font-medium tracking-[.06em] uppercase text-paper-dim";
 
 /**
  * How it works, on the sample's own data (landing scope 9): her chart as the

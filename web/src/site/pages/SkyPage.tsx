@@ -37,6 +37,7 @@ import { useLiveSky } from "@/site/lib/useLiveSky";
 import { useKeepForForm } from "@/site/sections/SkyScreen";
 import { SiteLayout } from "../SiteLayout";
 import { SAMPLE_LIVE, pageFor, type PagePath } from "../site";
+import { buttonStyles } from "@/ds/atoms/Button";
 
 const page = pageFor("/sky");
 
@@ -152,10 +153,10 @@ export default function SkyPage() {
         </div>
         <div className="sd-cta-acts">
           <span className="contents" onClickCapture={keepForForm}>
-            <ReportCta source="sky" className="sd-btn" />
+            <ReportCta source="sky" className={buttonStyles()} />
           </span>
           {SAMPLE_LIVE ? (
-            <Link className="sd-btn sd-btn-g" href="/sample">
+            <Link className={buttonStyles({ variant: "secondary" })} href="/sample">
               Read a sample
             </Link>
           ) : null}
@@ -182,8 +183,8 @@ export default function SkyPage() {
             <h2 id={titleId} className="sd-h2">
               {lines.title}
             </h2>
-            <p className="font-numeric text-[11px] uppercase leading-normal tracking-[.14em] text-[color:var(--sd-muted)]">{lines.summary}</p>
-            {result.chart.angles ? null : <p className="max-w-[56ch] text-[15.5px] leading-normal text-[color:var(--paper-dim)]">{NO_TIME}</p>}
+            <p className="font-numeric text-kicker uppercase leading-normal tracking-[.14em] text-muted">{lines.summary}</p>
+            {result.chart.angles ? null : <p className="max-w-[56ch] text-prose leading-normal text-paper-dim">{NO_TIME}</p>}
           </div>
           <div className="grid items-start gap-x-14 gap-y-10 min-[1001px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
             <div className="min-w-0">

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { joinWaitlist } from "@workspace/api-client-react";
 import { waitlistReady } from "@workspace/commerce";
+import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { APP_ENV } from "@/lib/appEnv";
 import {
   CONFIRM_LINK_DAYS, WAITLIST_CLOSED_LINE, WAITLIST_CONSENT, WAITLIST_CONSENT_TEXT,
@@ -18,9 +20,7 @@ const FAILURE_LINES: Record<Exclude<JoinFailure, "closed" | "bad_email">, string
 // Fixed for the build, so the prerender and the browser agree on which one they show.
 const TAKES_SIGNUPS = waitlistOpen(APP_ENV, waitlistReady());
 
-// Utilities rather than a site.css rule, so the button looks the same wherever the form sits, the dialog included.
-const CHANGE_BUTTON =
-  "justify-self-start mt-1 cursor-pointer text-[13px] text-[color:var(--indigo-lt)] underline underline-offset-[3px] hover:text-[color:var(--paper)]";
+const CHANGE_BUTTON = "mt-1 justify-self-start underline underline-offset-[3px]";
 
 /**
  * The waitlist's one form: the dialog, /waitlist and the home page's sections all
@@ -92,9 +92,9 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
         <h3>Check your inbox</h3>
         <p className="break-words">We sent a link to {joined}. Open it to confirm your email.</p>
         <p>The link works for {CONFIRM_LINK_DAYS} days. If you can't find it, check your spam folder.</p>
-        <button type="button" className={CHANGE_BUTTON} onClick={() => { setEmail(joined); setChanging(true); }}>
+        <TextButton className={CHANGE_BUTTON} onClick={() => { setEmail(joined); setChanging(true); }}>
           Use a different email
-        </button>
+        </TextButton>
       </div>
     );
   }
@@ -117,9 +117,9 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
             aria-describedby={`${id}-hint${error ? ` ${id}-err` : ""}`}
           />
         </div>
-        <button type="submit" className="wl-btn" disabled={sending}>
+        <Button type="submit" className="disabled:opacity-60" disabled={sending}>
           {sending ? "Joining…" : "Join the waitlist"}
-        </button>
+        </Button>
       </div>
       <div className="wl-trap" aria-hidden="true">
         <label htmlFor={`${id}-website`}>Website</label>

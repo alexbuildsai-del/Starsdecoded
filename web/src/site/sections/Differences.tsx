@@ -5,7 +5,7 @@
  * page's memory and never sent.
  */
 import { useId, useState } from "react";
-import { Checklist, localTicks, type TickStore } from "@/components/report/Checklist";
+import { Checklist, localTicks, type TickStore } from "@/ds/organisms/Checklist";
 import { WORKBOOK_CARDS, chipParts, houseTag, type WorkbookCard } from "@/site/data/differences";
 import { SAMPLE } from "@/site/data/sample";
 
@@ -13,10 +13,10 @@ const LEDE = `Two pages from ${SAMPLE.name}'s report. Yours is written the same 
 
 // Each row's label takes its kind's hue: evidence the report's indigo, a thing to try the checklist's teal, and the
 // card's name and its check brass, as the approved artifact draws them.
-const LABEL = "font-label text-[9.5px] font-medium uppercase leading-[1.2] tracking-[.16em]";
-const ROW = "grid min-w-0 content-start gap-[7px] border-t border-[color:var(--line-soft)] px-4 pb-3.5 pt-3";
+const LABEL = "font-label text-kicker font-medium uppercase leading-[1.2] tracking-[.16em]";
+const ROW = "grid min-w-0 content-start gap-[7px] border-t border-line-soft px-4 pb-3.5 pt-3";
 const CHIP =
-  "max-w-full rounded-[7px] border border-[rgba(159,168,218,.35)] bg-[rgba(92,107,192,.12)] px-2 py-[5px] font-numeric text-[11.5px] font-medium leading-[1.2] text-[color:var(--paper)]";
+  "max-w-full rounded-inner border border-indigo-lt/35 bg-indigo/12 px-2 py-[5px] font-numeric text-caption font-medium leading-[1.2] text-paper";
 // The row's label names the list, so the checklist's own rule and heading stand down, the heading kept for a screen
 // reader; and its item drops its own box, so no card sits inside the card.
 const BARE =
@@ -31,7 +31,7 @@ function Chip({ label }: { label: string }) {
       {house ? (
         <>
           {" "}
-          <span className="whitespace-nowrap text-[color:var(--indigo-lt)]">{house}</span>
+          <span className="whitespace-nowrap text-indigo-lt">{house}</span>
         </>
       ) : null}
     </li>
@@ -44,32 +44,32 @@ function Card({ card, ticks }: { card: WorkbookCard; ticks: TickStore }) {
   return (
     <article
       aria-labelledby={id}
-      className="grid min-w-0 rounded-2xl border border-[color:var(--line)] bg-[color:var(--surface)] min-[900px]:row-span-5 min-[900px]:grid-rows-subgrid"
+      className="grid min-w-0 rounded-2xl border border-line bg-surface min-[900px]:row-span-5 min-[900px]:grid-rows-subgrid"
     >
       <div className="flex items-center justify-between gap-2.5 px-4 pt-3.5">
-        <h3 id={id} className="font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[.2em] text-[color:var(--sd-brass)]">
+        <h3 id={id} className="font-label text-kicker font-medium uppercase leading-[1.2] tracking-[.2em] text-brass">
           {card.name}
         </h3>
-        <p className="whitespace-nowrap font-numeric text-[11px] leading-[1.2] text-[color:var(--sd-muted)]">{houseTag(card.house)}</p>
+        <p className="whitespace-nowrap font-numeric text-caption leading-[1.2] text-muted">{houseTag(card.house)}</p>
       </div>
-      <p className="min-w-0 px-4 pb-4 pt-2.5 font-display text-[22px] leading-[1.3] text-pretty text-[color:var(--paper)] min-[900px]:text-[25px]">
+      <p className="min-w-0 px-4 pb-4 pt-2.5 font-display text-sheet-title leading-[1.3] text-pretty text-paper min-[900px]:text-sheet-title">
         <q>{card.moment}</q>
       </p>
       <div className={ROW}>
-        <p className={`${LABEL} text-[color:var(--indigo-lt)]`}>In her chart</p>
+        <p className={`${LABEL} text-indigo-lt`}>In her chart</p>
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
           {card.chips.map((label) => (
             <Chip key={label} label={label} />
           ))}
         </ul>
-        <p className="text-[13.5px] leading-[1.5] text-[color:var(--paper-dim)]">{card.plain}</p>
+        <p className="text-small leading-[1.5] text-paper-dim">{card.plain}</p>
       </div>
       <div className={ROW}>
-        <p className={`${LABEL} text-[color:var(--sd-brass)]`}>Does this sound like you?</p>
-        <p className="font-display text-[17px] italic leading-[1.4] text-[color:var(--paper)]">{card.check}</p>
+        <p className={`${LABEL} text-brass`}>Does this sound like you?</p>
+        <p className="font-display text-card-title-sm italic leading-[1.4] text-paper">{card.check}</p>
       </div>
       <div className={ROW}>
-        <p className={`${LABEL} text-[#3FA796]`}>Something to try</p>
+        <p className={`${LABEL} text-teal`}>Something to try</p>
         <div className={BARE}>
           <Checklist heading="Practice" items={[card.action]} store={ticks} />
         </div>
@@ -89,10 +89,10 @@ export default function Differences() {
     >
       <div className="sd-wrap grid gap-3.5">
         <p className="sd-eyebrow">Your report</p>
-        <h2 id={id} className="sd-h2 max-w-[18ch] text-[clamp(28px,8vw,34px)] min-[900px]:text-[clamp(34px,3.8vw,46px)]">
+        <h2 id={id} className="sd-h2 max-w-[18ch] text-page-title min-[900px]:text-hero">
           A personality report, not a horoscope
         </h2>
-        <p className="max-w-[40em] font-display text-[16px] leading-[1.5] text-pretty text-[color:var(--paper-dim)] min-[900px]:text-[18px]">{LEDE}</p>
+        <p className="max-w-[40em] font-display text-prose leading-[1.5] text-pretty text-paper-dim min-[900px]:text-lede">{LEDE}</p>
         {/* Stacked, a card is no wider than one of the pair on a desktop, so a tablet's lines read as long as a desktop's. */}
         <div className="grid min-w-0 max-w-[560px] gap-3.5 min-[900px]:mt-3.5 min-[900px]:max-w-none min-[900px]:grid-cols-2 min-[900px]:grid-rows-[repeat(5,auto)] min-[900px]:gap-x-5 min-[900px]:gap-y-0">
           {WORKBOOK_CARDS.map((card) => (

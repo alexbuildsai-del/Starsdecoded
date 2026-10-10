@@ -4,7 +4,7 @@ import { BROWSER_KEYS, PAYMENTS, PROCESSORS, STRIPE_COOKIES, US_TRANSFER, whereL
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
-const LIST = "list-disc space-y-3 pl-5 marker:text-[var(--sd-muted)]";
+const LIST = "list-disc space-y-3 pl-5 marker:text-muted";
 
 function ProcessorList({ rows }: { rows: readonly Processor[] }) {
   return (
@@ -13,7 +13,7 @@ function ProcessorList({ rows }: { rows: readonly Processor[] }) {
         const where = whereLine(row);
         return (
           <li key={row.name}>
-            <b className="font-semibold text-[var(--paper)]">{row.name}</b> {row.does}
+            <b className="font-semibold text-paper">{row.name}</b> {row.does}
             {where ? (
               <>
                 {" "}
@@ -139,15 +139,15 @@ export default function PrivacyPage() {
       <LegalSection title="Why we can use your data">
         <ul className={LIST}>
           <li>
-            <b className="font-semibold text-[var(--paper)]">Charts, reports, payments and your account:</b> to give you
+            <b className="font-semibold text-paper">Charts, reports, payments and your account:</b> to give you
             what you asked for. The legal basis is our contract with you.
           </li>
           <li>
-            <b className="font-semibold text-[var(--paper)]">The waitlist email:</b> to tell you when we launch. The legal basis
+            <b className="font-semibold text-paper">The waitlist email:</b> to tell you when we launch. The legal basis
             is your consent, which you can withdraw at any time.
           </li>
           <li>
-            <b className="font-semibold text-[var(--paper)]">Logs of requests to our servers:</b> to keep {PRODUCT} secure and
+            <b className="font-semibold text-paper">Logs of requests to our servers:</b> to keep {PRODUCT} secure and
             working. The legal basis is our legitimate interest in running a safe service.
           </li>
         </ul>
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
           below.
         </p>
         <p>
-          Our own cookie, <code className="sd-mono text-[14px] text-[var(--paper)]">sd_session_id</code>, remembers which
+          Our own cookie, <code className="sd-mono text-ui text-paper">sd_session_id</code>, remembers which
           charts and reports are yours before you sign in. It lasts a year from your last visit. Clerk, our sign-in provider, sets its own cookies
           to know whether you're signed in.
         </p>
@@ -209,7 +209,7 @@ export default function PrivacyPage() {
           {STRIPE_COOKIES.map((cookie, i) => (
             <Fragment key={cookie.name}>
               {i === 0 ? "" : i === STRIPE_COOKIES.length - 1 ? " and " : ", "}
-              <code className="sd-mono text-[14px] text-[var(--paper)]">{cookie.name}</code> for {cookie.lasts}
+              <code className="sd-mono text-ui text-paper">{cookie.name}</code> for {cookie.lasts}
             </Fragment>
           ))}
           . {PAYMENTS.name} uses them to spot fraud.
@@ -221,7 +221,7 @@ export default function PrivacyPage() {
         <ul className={LIST}>
           {BROWSER_KEYS.map((key) => (
             <li key={key.name}>
-              <code className="sd-mono text-[14px] text-[var(--paper)]">{key.name}</code>{" "}
+              <code className="sd-mono text-ui text-paper">{key.name}</code>{" "}
               <span className="sd-meta ml-2 whitespace-nowrap">{key.store === "tab" ? "This tab" : "Until cleared"}</span>{" "}
               <span className="mt-1 block">{key.holds}</span>
             </li>

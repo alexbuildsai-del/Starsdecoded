@@ -17,6 +17,8 @@ import { birthSky, ease, keyCount, plainLine, skyNow, summaryLine, type Sky, typ
 import { useLiveSky } from "@/site/lib/useLiveSky";
 import { pageFor } from "../site";
 import SkyScreen, { useKeepForForm } from "./SkyScreen";
+import { Button, buttonStyles } from "@/ds/atoms/Button";
+import { tokens } from "@workspace/design";
 
 const home = pageFor("/");
 
@@ -121,14 +123,14 @@ export default function Hero({ onFirstLight }: HeroProps = {}) {
                       <p className="sd-eyebrow">Your chart</p>
                       <span className="sd-tag">{summaryLine(kept.birth, clock)}</span>
                     </div>
-                    <p className="font-[family-name:var(--f-display)] text-[clamp(22px,2.3vw,28px)] leading-[1.18] text-[color:var(--paper)]">{plainLine(kept.chart)}</p>
+                    <p className="font-[family-name:var(--f-display)] text-sheet-title md:text-page-title leading-[1.18] text-paper">{plainLine(kept.chart)}</p>
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="contents" onClickCapture={keepForForm}>
-                        <ReportCta source="hero-chart" className="sd-btn" />
+                        <ReportCta source="hero-chart" className={buttonStyles()} />
                       </span>
-                      <button type="button" className="sd-btn sd-btn-g" onClick={again}>
+                      <Button variant="secondary" onClick={again}>
                         Try another date
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : null}
@@ -199,7 +201,7 @@ function Gather({ host, square, start }: { host: RefObject<HTMLElement | null>; 
           y = move.from.y + (to.y - move.from.y) * e;
         }
         ctx.globalAlpha = move ? s.a * (0.55 + 0.45 * e) : s.a * 0.7;
-        ctx.fillStyle = s.cool ? "#C5CAE9" : "#FFFFFF";
+        ctx.fillStyle = s.cool ? tokens.color["indigo-lt"] : tokens.color.paper;
         ctx.beginPath();
         ctx.arc(x, y, s.r, 0, Math.PI * 2);
         ctx.fill();

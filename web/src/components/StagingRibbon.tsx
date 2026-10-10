@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { setPreview, useMounted, usePreviewFlag, withoutPreview } from "@/lib/prelaunch";
 import { cn } from "@/lib/utils";
 import { isPublicPath } from "@/site/site";
@@ -27,24 +28,23 @@ export function StagingRibbon() {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed bottom-3 left-3 z-[60] flex items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 font-label text-[10px] tracking-[0.2em] uppercase text-amber-200 backdrop-blur-sm",
+        "pointer-events-none fixed bottom-3 left-3 z-[60] flex items-center gap-1.5 whitespace-nowrap rounded-full border border-brass/40 bg-brass/15 px-3 py-1 font-label text-kicker tracking-[0.2em] uppercase text-brass backdrop-blur-sm",
         atBottom
           ? "max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:left-1/2 max-sm:-translate-x-1/2"
-          : "max-sm:bottom-auto max-sm:left-1/2 max-sm:top-0 max-sm:-translate-x-1/2 max-sm:rounded-t-none max-sm:border-t-0 max-sm:py-px max-sm:text-[9px] max-sm:leading-none",
+          : "max-sm:bottom-auto max-sm:left-1/2 max-sm:top-0 max-sm:-translate-x-1/2 max-sm:rounded-t-none max-sm:border-t-0 max-sm:py-px max-sm:text-caption max-sm:leading-none",
       )}
     >
       <span role="status">{preview ? "Staging · Prelaunch preview" : "Staging"}</span>
       {preview && (
         <>
           <span aria-hidden="true">·</span>
-          <button
-            type="button"
+          <TextButton
             onClick={exitPreview}
             aria-label="Exit the prelaunch preview"
-            className="pointer-events-auto rounded uppercase underline underline-offset-2 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200"
+            className="pointer-events-auto min-h-0 rounded-inner font-label text-kicker uppercase tracking-[0.2em] text-brass underline underline-offset-2 hover:text-paper"
           >
             Exit
-          </button>
+          </TextButton>
         </>
       )}
     </div>

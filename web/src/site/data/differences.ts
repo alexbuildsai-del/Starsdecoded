@@ -13,7 +13,7 @@
  * Each piece is looked up in the run at import and a missing one throws, so a run without it fails the prerender
  * rather than a card quoting less.
  */
-import type { ChecklistItem } from "@/components/report/Checklist";
+import type { ChecklistItem } from "@/ds/organisms/Checklist";
 import { HOUSE_WORDS, withHouseWords } from "@/lib/evidence-glossary";
 import { splitReading } from "@/lib/house-deck";
 import { plainProse } from "@/lib/plain-prose";
