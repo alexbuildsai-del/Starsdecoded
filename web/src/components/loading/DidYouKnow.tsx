@@ -9,26 +9,26 @@
  * with no birth time shows the facts whose drawing needs no horizon, and the stellium fact shows only on a chart that has a
  * stellium, drawn on it. Under 640 px the card shrinks (B-64) so a loading screen's chart and card can show together.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type PointerEvent } from "react";
 import { chartPatterns, longitudeAt, speedAt, type SkyBody } from "@workspace/engine";
-import { NatalWheel } from "@/components/chart/NatalWheel";
-import { TriadPlate } from "@/components/report/TriadPlate";
+import { tokens } from "@workspace/design";
+import { Chart } from "@/ds/organisms/chart/Chart";
+import { PlanetBodyMark } from "@/ds/atoms/PlanetBody";
+import { Eyebrow } from "@/ds/atoms/Eyebrow";
 import { AgeRing } from "@/components/timeline/AgeRing";
 import { Dial } from "@/components/timeline/Dial";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { DIAL, dialAt, framesFor, trackRadii, type DialFrame, type DialNatal } from "@/lib/dial";
 import { FACTS, type Fact } from "@/lib/facts";
-import { renderFor } from "@/lib/planet-renders";
 import { MIRA } from "@/site/data/timeline/mira";
 import { samplePerson } from "@/site/data/people";
-import { PLANET_GLYPHS, type ChartData } from "@/types/chart";
+import type { ChartData } from "@/types/chart";
 
 const DWELL_MS = 8000;
 const FADE_MS = 450;
 const VISUAL_PX = 96;
 
-// The card's own tokens, as values: it draws on the report page, Timeline's set-up and the pair's screen, which share no scope.
-const TOKENS = { "--sky": "#D4B06A", "--sky-dim": "#8A7343" } as CSSProperties;
+const c = tokens.color;
 
 const DAY_MS = 86_400_000;
 // Jupiter, because the dial leaves a trail for Mars and beyond only, and it is retrograde for about four months every
@@ -125,29 +125,17 @@ function StelliumPicture({ chart, stellium }: { chart: ChartData; stellium: Stel
     });
   return (
     <svg viewBox="0 0 96 96" className="block size-24" role="presentation">
-      <line x1={RULER.from} x2={RULER.to} y1={RULER.y} y2={RULER.y} stroke="var(--sky-dim)" strokeWidth={3} strokeLinecap="round" />
+      <line x1={RULER.from} x2={RULER.to} y1={RULER.y} y2={RULER.y} stroke={c["brass-dim"]} strokeWidth={3} strokeLinecap="round" />
       {[RULER.from, RULER.to].map((x) => (
-        <line key={x} x1={x} x2={x} y1={RULER.y - 5} y2={RULER.y + 5} stroke="var(--sky)" strokeWidth={1.5} />
+        <line key={x} x1={x} x2={x} y1={RULER.y - 5} y2={RULER.y + 5} stroke={c.brass} strokeWidth={1.5} />
       ))}
-      {marks.map(({ body, x, y }) => {
-        const src = renderFor(body, RULER.mark);
-        return (
-          <g key={body}>
-            <line x1={x} x2={x} y1={y + RULER.mark / 2} y2={RULER.y} stroke="var(--sky-dim)" strokeWidth={1} />
-            {src ? (
-              <image href={src} x={x - RULER.mark / 2} y={y - RULER.mark / 2} width={RULER.mark} height={RULER.mark} />
-            ) : (
-              <g>
-                <circle cx={x} cy={y} r={RULER.mark / 2} fill="#11161F" stroke="var(--sky)" strokeOpacity={0.7} />
-                <text x={x} y={y + 3.4} textAnchor="middle" fontSize={9.5} fill="var(--sky)">
-                  {PLANET_GLYPHS[body] ?? ""}
-                </text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-      <text x={48} y={90} textAnchor="middle" fontSize={10} fill="#AEB6C6" className="font-label uppercase" letterSpacing={1.2}>
+      {marks.map(({ body, x, y }) => (
+        <g key={body}>
+          <line x1={x} x2={x} y1={y + RULER.mark / 2} y2={RULER.y} stroke={c["brass-dim"]} strokeWidth={1} />
+          <PlanetBodyMark body={body} size={RULER.mark} x={x} y={y} />
+        </g>
+      ))}
+      <text x={48} y={90} textAnchor="middle" fontSize={11} fill={c["paper-dim"]} className="font-label uppercase" letterSpacing={1.2}>
         {stellium.sign}
       </text>
     </svg>
@@ -185,9 +173,9 @@ function Drawing({ drawing, chart, stellium }: { drawing: Fact["drawing"]; chart
     );
   }
   if (drawing === "sign-stellium") return stellium ? <StelliumPicture chart={chart} stellium={stellium} /> : null;
-  if (drawing === "hero-east") return <TriadPlate chart={chart} name="Chart" className="block h-24 w-24" />;
+  if (drawing === "hero-east") return <Chart chart={chart} state="sun-moon-rising" size={VISUAL_PX} />;
   if (drawing === "wheel-house") {
-    return <NatalWheel chartData={chart} selectedHouse={emptiestHouse(chart)} stops={false} />;
+    return <Chart chart={chart} state="small" size={VISUAL_PX} focus={{ house: emptiestHouse(chart) }} />;
   }
   const age = saturnAge();
   return age === null ? null : <AgeRing age={age} progress={1} label="return" size={VISUAL_PX} />;
@@ -286,31 +274,31 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
   return (
     <section
       aria-label="Did you know"
-      className="flex w-full flex-col gap-2 rounded-xl border border-[#242C3B] bg-[#11161F] px-3.5 pb-1.5 pt-3.5 text-left max-sm:gap-1 max-sm:px-3 max-sm:pt-3"
+      className="flex w-full flex-col gap-2 rounded-card border border-line bg-surface px-3.5 pb-1.5 pt-3.5 text-left max-sm:gap-1 max-sm:px-3 max-sm:pt-3"
       onPointerEnter={hold}
       onPointerLeave={letGo}
       onFocus={focused}
       onBlur={blurred}
     >
-      <span className="font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.14em] text-[#D4B06A]">Did you know</span>
+      <Eyebrow className="text-brass">Did you know</Eyebrow>
       <div
-        className={`grid min-h-24 grid-cols-[minmax(0,1fr)_96px] items-center gap-3.5 max-sm:min-h-16 max-sm:grid-cols-[minmax(0,1fr)_64px] max-sm:gap-2.5 transition-opacity duration-[450ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none ${fading ? "opacity-0" : "opacity-100"}`}
+        className={`grid min-h-24 grid-cols-[minmax(0,1fr)_96px] items-center gap-3.5 max-sm:min-h-16 max-sm:grid-cols-[minmax(0,1fr)_64px] max-sm:gap-2.5 transition-opacity duration-[450ms] ease-[var(--ease)] motion-reduce:transition-none ${fading ? "opacity-0" : "opacity-100"}`}
       >
         {/* Every fact's words sit in one cell, unseen but for the one shown, so the card keeps the height of the longest. */}
         <div className="grid min-w-0">
           {list.map((fact) => (
             <div key={fact.id} aria-hidden="true" className="invisible col-start-1 row-start-1 flex min-w-0 flex-col gap-1.5">
-              <p className="font-display text-[19px] font-normal leading-tight max-sm:text-[17px]">{fact.title}</p>
-              <p className="text-[14.5px] leading-relaxed max-sm:text-[13.5px] max-sm:leading-snug">{fact.sentences.join(" ")}</p>
+              <p className="font-display text-card-title max-sm:text-card-title-sm">{fact.title}</p>
+              <p className="text-ui leading-relaxed max-sm:text-small max-sm:leading-snug">{fact.sentences.join(" ")}</p>
             </div>
           ))}
           <div className="col-start-1 row-start-1 flex min-w-0 flex-col gap-1.5" aria-live="polite">
-            <p className="font-display text-[19px] font-normal leading-tight text-[#E8EBF2] max-sm:text-[17px]">{shown.title}</p>
-            <p className="text-[14.5px] leading-relaxed text-[#AEB6C6] max-sm:text-[13.5px] max-sm:leading-snug">{shown.sentences.join(" ")}</p>
+            <p className="font-display text-card-title text-paper max-sm:text-card-title-sm">{shown.title}</p>
+            <p className="text-ui leading-relaxed text-paper-dim max-sm:text-small max-sm:leading-snug">{shown.sentences.join(" ")}</p>
           </div>
         </div>
         {/* A picture of the idea, not a control: inert keeps the dial's slider out of the tab order. */}
-        <div aria-hidden="true" inert style={TOKENS} className="relative h-24 w-24 max-sm:h-16 max-sm:w-16">
+        <div aria-hidden="true" inert className="relative h-24 w-24 max-sm:h-16 max-sm:w-16">
           <div className="absolute left-0 top-0 grid size-24 origin-top-left place-items-center max-sm:scale-[.667]">
             <Drawing drawing={shown.drawing} chart={drawn} stellium={stellium} />
           </div>
@@ -327,12 +315,12 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
               onClick={() => i !== at && go(i, true)}
               className="group flex h-8 flex-1 items-center rounded-sm outline-none"
             >
-              <span className="relative block h-[3px] w-full overflow-hidden rounded-sm bg-[#242C3B] group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-[#9FA8DA]">
+              <span className="relative block h-[3px] w-full overflow-hidden rounded-sm bg-line group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-focus">
                 <i
                   ref={(el) => {
                     fills.current[i] = el;
                   }}
-                  className="absolute inset-0 origin-left bg-[#9FA8DA]"
+                  className="absolute inset-0 origin-left bg-indigo-lt"
                   style={{ transform: "scaleX(0)" }}
                 />
               </span>

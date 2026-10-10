@@ -10,6 +10,7 @@
  * screen over the report body, so the story never starts again halfway. Once the story holds still the clock stops.
  */
 import { useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { tokens } from "@workspace/design";
 import { DidYouKnow } from "@/components/loading/DidYouKnow";
 import type { LoadingSlots } from "@/components/loading/LoadingFrame";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -34,7 +35,8 @@ import type { ChartData } from "@/types/chart";
 const NO_TIME_WINDOW = 720;
 /** One step of the clock at most, so a tab that was hidden picks the story up where it left it. */
 const MAX_STEP_S = 0.05;
-const BRASS = "hsl(var(--brass))";
+const c = tokens.color;
+const BRASS = c.brass;
 
 /** The report's own birth fields, which the story's chart is worked out from before the server has stored one. */
 export interface StoryReport {
@@ -166,10 +168,10 @@ export function BuildStory({ frame, label, className, style }: BuildStoryProps) 
     <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label} className={className} style={style}>
       {globe && (
         <g opacity={globe.opacity}>
-          <circle cx={globe.cx} cy={globe.cy} r={globe.r} fill="var(--ground)" stroke="var(--line)" />
-          <path d={globe.graticule} fill="none" stroke="var(--line-soft)" />
+          <circle cx={globe.cx} cy={globe.cy} r={globe.r} fill={c.ground} stroke={c.line} />
+          <path d={globe.graticule} fill="none" stroke={c["line-soft"]} />
           {globe.land && (
-            <path d={globe.land} fill="none" stroke="var(--paper-dim)" strokeOpacity={0.55} strokeWidth={globe.coastWidth} strokeLinejoin="round" />
+            <path d={globe.land} fill="none" stroke={c["paper-dim"]} strokeOpacity={0.55} strokeWidth={globe.coastWidth} strokeLinejoin="round" />
           )}
         </g>
       )}
@@ -179,46 +181,46 @@ export function BuildStory({ frame, label, className, style }: BuildStoryProps) 
           <circle cx={pin.x} cy={pin.y} r={2} fill={BRASS} />
         </g>
       )}
-      {frame.you > 0 && <circle cx={cx} cy={cy} r={3} fill="var(--paper)" opacity={frame.you} />}
+      {frame.you > 0 && <circle cx={cx} cy={cy} r={3} fill={c.paper} opacity={frame.you} />}
       {zodiac && (
         <g>
           {[zodiac.outer, zodiac.inner].map((r) => {
             const round = 2 * Math.PI * r;
             return (
-              <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="var(--line)" strokeDasharray={round} strokeDashoffset={round * (1 - zodiac.drawn)} />
+              <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke={c.line} strokeDasharray={round} strokeDashoffset={round * (1 - zodiac.drawn)} />
             );
           })}
-          {zodiac.spokes.map((l, i) => <StrokeLine key={i} l={l} stroke="var(--line)" />)}
-          {zodiac.signs.map((l) => <StoryText key={l.text} l={l} fill="hsl(var(--muted-foreground))" spacing={0.6} />)}
+          {zodiac.spokes.map((l, i) => <StrokeLine key={i} l={l} stroke={c.line} />)}
+          {zodiac.signs.map((l) => <StoryText key={l.text} l={l} fill={c.muted} spacing={0.6} />)}
         </g>
       )}
       {frame.houses.map((h) => (
         <g key={h.n}>
-          <path d={h.path} fill="var(--indigo)" fillOpacity={h.fillOpacity} stroke="var(--line)" strokeOpacity={h.edgeOpacity} />
-          <StoryText l={h.label} fill={h.now ? "var(--paper)" : "var(--indigo-lt)"} spacing={0.5} />
+          <path d={h.path} fill={c.indigo} fillOpacity={h.fillOpacity} stroke={c.line} strokeOpacity={h.edgeOpacity} />
+          <StoryText l={h.label} fill={h.now ? c.paper : c["indigo-lt"]} spacing={0.5} />
         </g>
       ))}
-      {frame.pairLines.map((l, i) => <StrokeLine key={i} l={l} stroke="var(--indigo-lt)" />)}
+      {frame.pairLines.map((l, i) => <StrokeLine key={i} l={l} stroke={c["indigo-lt"]} />)}
       {emptyBand && (
-        <circle cx={cx} cy={cy} r={emptyBand.r} fill="none" stroke="var(--line)" strokeWidth={emptyBand.width} strokeOpacity={emptyBand.opacity} strokeDasharray="2 5" />
+        <circle cx={cx} cy={cy} r={emptyBand.r} fill="none" stroke={c.line} strokeWidth={emptyBand.width} strokeOpacity={emptyBand.opacity} strokeDasharray="2 5" />
       )}
-      {horizon && <StrokeLine l={horizon} stroke="var(--paper)" />}
-      {veil && <path d={veil.path} fill="var(--void)" fillOpacity={veil.opacity} />}
+      {horizon && <StrokeLine l={horizon} stroke={c.paper} />}
+      {veil && <path d={veil.path} fill={c.void} fillOpacity={veil.opacity} />}
       {frame.orbits.map((o) => (
-        <circle key={o.key} cx={cx} cy={cy} r={o.r} fill="none" stroke="var(--line-soft)" opacity={o.opacity} />
+        <circle key={o.key} cx={cx} cy={cy} r={o.r} fill="none" stroke={c["line-soft"]} opacity={o.opacity} />
       ))}
-      {frame.aspects.map((a) => <StrokeLine key={`${a.a}-${a.type}-${a.b}`} l={a} stroke="var(--paper-dim)" dash="3 3" />)}
-      {moonArc && <path d={moonArc.path} fill="none" stroke="var(--paper)" strokeWidth={5} strokeLinecap="round" opacity={moonArc.opacity} />}
+      {frame.aspects.map((a) => <StrokeLine key={`${a.a}-${a.type}-${a.b}`} l={a} stroke={c["paper-dim"]} dash="3 3" />)}
+      {moonArc && <path d={moonArc.path} fill="none" stroke={c.paper} strokeWidth={5} strokeLinecap="round" opacity={moonArc.opacity} />}
       {frame.bodies.map((b) => (
         <g key={b.key}>
-          <circle cx={b.x} cy={b.y} r={b.dot} fill="var(--paper-dim)" stroke="var(--void)" strokeWidth={1.2} opacity={b.opacity} />
-          {b.label && <StoryText l={b.label} fill="var(--paper-dim)" />}
+          <circle cx={b.x} cy={b.y} r={b.dot} fill={c["paper-dim"]} stroke={c.void} strokeWidth={1.2} opacity={b.opacity} />
+          {b.label && <StoryText l={b.label} fill={c["paper-dim"]} />}
         </g>
       ))}
       {frame.angles.map((a) => (
         <g key={a.key} opacity={a.opacity}>
           <line x1={a.x} y1={a.y} x2={a.tick.x} y2={a.tick.y} stroke={BRASS} strokeWidth={1.4} />
-          <circle cx={a.x} cy={a.y} r={5} fill="var(--void)" stroke={BRASS} strokeWidth={1.3} />
+          <circle cx={a.x} cy={a.y} r={5} fill={c.void} stroke={BRASS} strokeWidth={1.3} />
           <circle cx={a.x} cy={a.y} r={1.6} fill={BRASS} />
         </g>
       ))}
@@ -234,9 +236,9 @@ const DETAIL_TYPE: Record<StoryDetail["kind"], { className: string; size: string
   pair: { className: "font-display", size: "clamp(19px, 3.8cqh, 26px)" },
   closing: { className: "font-display", size: "clamp(16px, 3cqh, 20px)" },
 };
-const TONE: Record<StoryDetail["tone"], string> = { paper: "var(--paper)", dim: "var(--paper-dim)", brass: BRASS };
+const TONE: Record<StoryDetail["tone"], string> = { paper: c.paper, dim: c["paper-dim"], brass: BRASS };
 /** A scrolling band fades out at its edges rather than cut a line of the card in half. */
-const EDGE_FADE = "linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 24px), transparent)";
+const EDGE_FADE = "linear-gradient(to bottom, transparent, black 12px, black calc(100% - 24px), transparent)";
 const SCROLL_EDGE: CSSProperties = { maskImage: EDGE_FADE, WebkitMaskImage: EDGE_FADE };
 
 function Detail(props: PartProps & { steps: StoryStep[] | null }) {
@@ -258,8 +260,8 @@ function Detail(props: PartProps & { steps: StoryStep[] | null }) {
           {frame.pairDots.map((come, i) => (
             <i
               key={i}
-              className="block size-[5px] rounded-full border border-[var(--indigo-lt)]"
-              style={{ background: come ? "var(--indigo-lt)" : "transparent" }}
+              className="block size-[5px] rounded-full border border-indigo-lt"
+              style={{ background: come ? c["indigo-lt"] : "transparent" }}
             />
           ))}
         </span>
@@ -275,10 +277,10 @@ function StepList({ steps }: { steps: StoryStep[] }) {
     <ol className="mx-auto grid w-fit max-w-full gap-[min(4px,0.5cqh)] text-left">
       {steps.map((s, i) => (
         <li key={s.counter} className="flex min-w-0 items-baseline gap-2.5 leading-snug" style={{ fontSize: "clamp(12px, 1.9cqh, 14px)" }}>
-          <span className="font-numeric shrink-0" style={{ color: i === last ? "var(--indigo-lt)" : "var(--muted)" }}>{i + 1}</span>
-          <span className="min-w-0 truncate" style={{ color: i === last ? "var(--paper)" : "var(--paper-dim)" }}>
+          <span className="font-numeric shrink-0" style={{ color: i === last ? c["indigo-lt"] : c["label-dim"] }}>{i + 1}</span>
+          <span className="min-w-0 truncate" style={{ color: i === last ? c.paper : c["paper-dim"] }}>
             {s.title}
-            {s.detail.length > 0 && <span className="font-numeric hidden text-[var(--muted)] sm:inline"> · {s.detail.join(" · ")}</span>}
+            {s.detail.length > 0 && <span className="font-numeric hidden text-label-dim sm:inline"> · {s.detail.join(" · ")}</span>}
           </span>
         </li>
       ))}
