@@ -6,8 +6,8 @@ scope 12, ADR-195). Rules, not a diary: at most 60 lines, each rule dated or tie
 merged into the rule it repeats.
 
 ## Took as proposed
-- **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12); "lock it" with Mixed's wording
-  (review-05-10), three defaults (report-loading-story, 10-05), "1-ok 2-ok 3-ok lets try" (Review 08/10). Silence is safe.
+- **The default carries an ask.** "go" with MB-93, 128, 129 (R12); "lock it" with Mixed's wording (review-05-10); three
+  defaults (10-05); "1-ok 2-ok 3-ok lets try" (08/10); "go with your recommendations" (design-system). Silence is safe.
 - **Housekeeping on a yes; keyless checks.** The /round skill swap, fifteen rows closed in one line (sweep 03/10): small,
   reversible operations need one line, not a question. A check runs with no key and no sign-in (ADR-192).
 
@@ -27,19 +27,19 @@ merged into the rule it repeats.
   the buttons", 2026-10-06). **Buttons by weight** (ADR-333). **No spoilers**: a loading screen shows facts, never meanings.
 - **Reuse what we already draw; never redesign what is approved.** "I really love the outline of the earth and how you
   take these visuals that we already have and… repurpose them… let's reuse it everywhere" (report-loading-story). The
-  hero: "please don't make this different"; Life's card is the Your cycles card (review-05-10). Keep what looks great.
+  hero: "please don't make this different"; Life's card is the Your cycles card (review-05-10). Keep what looks great; lift today's look, code first (design-system).
 - **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("nice" but
   "not wow", share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 
 ## Asked for
 - **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
-  this file after every ideation, `lessons.md` after every round (ADR-195).
+  this file after every ideation, `lessons.md` after every round (ADR-195); new parts settled in ideation (10-09).
 - **Fewer questions, each with a default.** At most three, highest stakes first, a recommendation and the silent default
   (R-12.1); never a chore (R-12.5), "can you find the second one instead of me" (08/10). Read the day's locks and ideations
   on the topic on every branch first: never re-ask what one settled, keep one product (release-one-findings, 2026-10-05).
 - **Decide what a rule answers, then show him** (Decided by Claude; the Mailbox keeps only his, R-12.3). What only he
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
-- **Testing is ours, never his** (2026-10-04): a walk after each deploy. **No secret on GitHub, ever** (2026-09-25).
+- **Testing is ours, never his** (10-04): a walk per deploy, the chart checked for consistency (10-10). **No secret on GitHub** (09-25).
 - **Think as the buyer, then decide**: options side by side with each side's view; he took gifting's B (2026-10-06).
 - **Evidence before a claim; the cause, not the message.** "Are you sure? Can you give me an example" (review-05-10). A
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
@@ -51,7 +51,7 @@ merged into the rule it repeats.
 
 ## Formats he likes
 - **An HTML artifact before any question or lock**, phone first, 390 px (§11.1, ADR-171): live players and clickable
-  flows he can scrub (the Life line, Your first steps, the loading story's A/B/C), one grid on phone and desktop, what changed shown.
+  flows he can scrub (the Life line, Your first steps, the loading story's A/B/C), one grid on phone and desktop, what changed shown; every part in every state, Today beside After (design-system).
 - **The workbook card**, also as a post; **before and after tables** for wording; dashboards with exact values to paste
   (stripe-payments); **a small label over a title that finishes it** ("DID YOU KNOW", review-05-10).
 
