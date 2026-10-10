@@ -21,7 +21,7 @@ export function AskMark({ size = 22 }: { size?: number }) {
           strokeLinejoin="round"
         />
         <line x1={2.5} y1={12} x2={21.5} y2={12} stroke="currentColor" strokeWidth={1.4} />
-        <circle cx={2.8} cy={12} r={2.2} fill="#D4B06A" />
+        <circle cx={2.8} cy={12} r={2.2} className="fill-brass" />
       </svg>
       Ask
     </span>
