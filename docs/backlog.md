@@ -74,6 +74,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-100 · /method film, 80 to 88 s: the chip "Sunrise 06:10 · ASC Virgo 9°43′" reads as the ascendant at sunrise; 9°43′ is the 06:30 birth's · QA-08 #6
 - B-101 · The home birth form pre-picks London (ADR-107) with no line saying it stands in, and shows a continent and no zone · QA-08 #7
 - B-102 · /timeline mixes date orders in an en-US browser ("Oct 19, 2026" beside "14 Mar 1991"); one order per page · QA-08 #9
+- B-103 · Raise an ideation for the Timeline dial and print inside the chart system (design-system Scope 2 leaves them open; kept as drawn on `tokens.ts` meanwhile) · ADR-442
 
 ## Waiting on Alex
 
