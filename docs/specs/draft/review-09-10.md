@@ -75,8 +75,8 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
 - **One Ascendant marker**, on the flat horizon. **No MC line** (the Owner, v6: nothing explains it): a chart draws the MC
   only beside the sentence that explains it, as a label, never the Ascendant's marker (`AngleGlyph`'s midheaven variant goes). Small charts (pair plates, the hero) draw no axes. Links between two people keep
   the ledger's glyph (teal, brass, the rose zigzag).
-- Seven states: Full, Focus (one house lit, the rest dimmed), Teach (few parts, moving), Pair (two plates apart, named,
-  never joined, ADR-97), Small (Sun and Moon), No birth time (signs only), Loading (builds in the same geometry).
+- Nine states, drawn in `docs/annex/ds-charts/ChartStates/`: Full (and its interactive states), Focus, Sun Moon and rising,
+  Small, Pair (each link on both charts), Teach, Build (loading), No birth time (changes any state), Live sky.
 - **Every chart, everywhere — note for the planner** (the Owner, v10: "really everywhere"; he never names screens one by
   one): the round plans one audit of every instance and brings each on par with this system: the look, renders, icons,
   aspects, palette and lighting, and how a reader interacts with it and is taught through it (hover or tap names, ⓘ,
@@ -165,15 +165,16 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
 10. At the four phone sizes and 1280 px the rail or chapter bar and the title stay, cards keep their own height, the
     progress line counts right, a double-length card is readable whole; each link is drawn on both charts with its shape,
     every lit planet with its owner's ring and the other's as a guest; no third circle.
+11. Charts tested for consistency (the Owner, 2026-10-10, via the design-system session): `check:ds` fails on a radius, ring,
+    glyph or colour drawn outside the Chart part, `wheel-geometry.ts` and the tokens; `chart-consistency.test.ts` (critical)
+    builds each fixture's scene (no DOM) in the nine states: bodies at theta(longitude) on `wheelRadii(S)`, the same angle in
+    every state and size, the ChartStates layers, no houses or rising without a birth time, R as the engine says.
 
 ## Screens
-The artifact, version 9: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
-inside the report page at four phone sizes and on a computer, docs.
+The artifact, version 9 (voice, charts, primer, house card, hero, the walk at four phone sizes and 1280 px); the chart parts.
 
 ## Open questions (each with its default)
-Everything else was answered in the Owner's nine looks (2026-10-09) and is written into the sections above.
-None. 2026-10-09: names stay as today; the walk's groups follow the pair doctrine (Decided by Claude, the Owner's ask);
-the house drawings leave the loading story.
+None: all answered in the Owner's nine looks (2026-10-09) and written above.
 
 ## Decisions to record
 - Every planet, sign or house named in any report comes with its meaning, why it matters and an everyday example (the Owner).
@@ -185,7 +186,7 @@ the house drawings leave the loading story.
 - The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)"; no "This week".
 - The house card's planet row is restored and guarded by a critical test; a builder never removes what its plan doesn't name.
 - The primer's four cards are short loops on the reader's chart, using only ideas the prose and claims use; no "cool fact".
-- One chart system (this ideation's wheel as the model, seven states, reused parts), written in the annex and the bible; the
+- One chart system (this ideation's wheel as the model, nine states, reused parts, tested for consistency), written in the annex and the bible; the
   loading stories and the ledger move onto it (the Owner; the details Decided by Claude).
 - No Did you know card in the Personal report's chapters; ideas and observations go in the prose at their placement.
 - Parent-and-child examples and scenes come by the child's age, under 1 included (Decided by Claude).

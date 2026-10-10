@@ -27,3 +27,4 @@ Rules that hold for every part:
 - Real chart data only, computed by the engine. The previews use Thibault, Beatrice and Athena (the repo's sample people), the sky over London on 9 October 2026, and Thibault without a birth time.
 - At most three colours on a screen: the chapter colour, one content colour, the greys. Brass means lit.
 - Anything a screen needs that no state gives is decided in an ideation: reuse a state, adapt one, or add one here.
+- Tested for consistency (the Owner, 2026-10-10): `check:ds` and the critical `chart-consistency.test.ts` hold every chart to these pages (spec Review 09/10, acceptance 11; the design-system spec, scope 8).
