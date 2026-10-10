@@ -200,7 +200,7 @@ export default function BirthFormPage() {
         initial={reduceMotion ? false : { opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="mx-auto w-full max-w-lg pt-12"
+        className="mx-auto w-full max-w-lg"
       >
         <div className="mb-10 text-center">
           <Eyebrow kind="kicker" className="mb-3 block">{PERSONAL_REPORT}</Eyebrow>
