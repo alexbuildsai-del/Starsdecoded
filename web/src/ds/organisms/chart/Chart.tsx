@@ -206,7 +206,8 @@ export function Chart({
         viewBox={`${-pad} ${-pad} ${size + 2 * pad} ${size + 2 * pad}`}
         width={fluid ? undefined : size}
         height={fluid ? undefined : size}
-        className={fluid ? "block h-auto w-full" : "block"}
+        // A fixed size is the most it takes; a narrower container scales it down rather than pushing the page sideways.
+        className={fluid ? "block h-auto w-full" : "block h-auto max-w-full"}
         // A group while its planets and houses take focus, which an img role may not hold; with no stop it is one picture.
         role={stops ? "group" : "img"}
         aria-label={name}
