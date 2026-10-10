@@ -1,6 +1,6 @@
 # Design system (draft)
 
-Status: draft, 2026-10-09 (round 3) · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
+Status: draft, 2026-10-10 (round 3, the Owner's answers in; ready to lock) · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
 first ideation page: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supersedes nothing; extends MASTERFILE §9 and `/web-taste`.
 
 **The Owner's direction (2026-10-09):** lift today's look, don't redraw it. Today's best card is the standard (a quiet
@@ -30,7 +30,7 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
    `api/src/lib/mailer.ts`, `scripts/render-brand.mjs` and the marketing kit. No DTCG file.
    - Palette (37 tokens, the artifact's `tokens.json`): void #06080C, ground #0D1117, surface #11161F, raised #171D29,
      line #242C3B, line-soft #1A202C, line-strong for things over the page, control-edge #5A6684 (new, 3.3:1), paper
-     #E8EBF2, paper-dim #AEB6C6, muted #7E889A, label-dim #767F92 (the barely-there label, 4.5:1; open question 4),
+     #E8EBF2, paper-dim #AEB6C6, muted #7E889A, label-dim #767F92 (the barely-there label, 4.5:1),
      indigo #5C6BC0 (fills only), on-indigo #FFFFFF (4.9:1), indigo-lt #9FA8DA (indigo text and links), violet
      #9575CD, brass #D4B06A, brass-dim #8A7343, rose #D9668A (heavy and challenge, one rose), back #E24D4D (a planet going backwards, the chart's red, 4.7:1), error #E79AB2,
      teal #3FA796. Chapter and element hues stay as their own data group (`chapter-accent.ts` reads them).
@@ -58,7 +58,7 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      PlanetBody, and the Loader for a full-screen wait (StatusDots under 3 s, a step bar over 5 s).
    - Molecules: Card (surface, glass, tint, tone; today's favourite card is the standard, Share at the row's far end),
      Well and Strip, SegmentedControl, ChoiceTile, BirthFields (same behaviour and our own place search; one label style,
-     visible edges, four pills instead of the part-of-day select, Search as ButtonCompact; open question 7), InlineError and
+     visible edges, four pills instead of the part-of-day select, Search as ButtonCompact), InlineError and
      Alert, Menu (closed, open, an item hovered or disabled), ClaimPopover (the citation mark and its evidence card;
      a bottom sheet on touch), PlacementLabel (Mercury · 0°19′ · Gemini · 5th house; a row; no birth time), EmptyState. Atoms also hold Logo (Mark, Wordmark, app icon; one Wordmark part replaces three copies).
    - Organisms: Sheet (one bottom sheet, plus the dashboard's peek version), Dialog (today's Share frame is the
@@ -81,6 +81,14 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
    `text-[..]`, `rounded-[..]`, colour utilities and raw styled `<button>` outside `packages/design` and `web/src/ds`,
    against a baseline file. The count may only fall; it reaches zero at R21's close (drawings read `tokens.ts`).
    It also checks every declared role pair for contrast: text 4.5:1, control edges 3:1.
+8. **The chart stays one chart** (the Owner, 2026-10-10). `check:ds` fails when a radius, ring or glyph is drawn
+   outside the Chart part and `wheel-geometry.ts`, or a chart colour is not `line-easy`, `line-tense`, `back`, `rose`,
+   `teal` or `brass`. A new `chart-consistency.test.ts` joins `test.critical` (ADR-273: the Owner asked): for each
+   committed fixture and each of the 9 states it builds the chart's scene, without a browser, and asserts that every
+   body sits at `theta(longitude)` on `wheelRadii(S)`, that the same body has the same angle in every state and size,
+   that the layers drawn match the ChartStates table, that No birth time drops the houses and the rising sign, and
+   that R shows exactly for the bodies the engine marks backwards. The Charts page in `/admin/design` is shot at
+   390 and 880 px on each preview, beside the probe.
 6. **Process**: parts are settled in ideation, never in the round (the Owner, 2026-10-09; `/ideate` and the planner
    say so). An ideation names each part a change uses: reused, a version inside the tokens, or a new part with its
    mock and page, Today beside After, every state, what must not be lost. A planner meeting an unsettled part sends
@@ -114,6 +122,8 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
 7. Each screen's before and after at 390 px sits in the round report, signed-in pages included (dashboard,
    account, Timeline app, checkout: not shot in the ideation); nothing else on a screen moved.
 8. The buyer walk, `check:shipped`, typecheck and both builds pass at every round's close.
+9. Every chart on every page is the one Chart part: `check:ds` finds no second set of radii or chart colours, and
+   `chart-consistency.test.ts` passes for every fixture in every state.
 
 ## Screens
 
@@ -133,23 +143,14 @@ two indigos, the Apple table and the rounds: https://claude.ai/artifact/CubRdNjH
 - **R21, big parts and drawings**: Sheet, Dialog, Menu, Popover, AppHeader, templates; SignRing, PlanetBody,
   TriadRing; emails, share image and post kit on `tokens.ts`; `check:ds` to zero.
 
-## Open questions
+## Settled (the Owner, 2026-10-10: "go with your recommendations and Inter")
 
-1. **When does it run?** Recommendation: R20 is the next round, planned once this locks; the first Release still
-   goes whenever the Owner says promote. Default: R20 planned next.
-2. **Can the small fixes show?** Text under 11 px grows to 11, buttons to 44 px, indigo text lightens to
-   indigo-lt, button text turns white. Recommendation: yes. Default: yes, with before and after in the report.
-3. **Where does the Owner browse it?** Recommendation: the Design System artifact plus `/admin/design`; no Figma
-   for now. Default: both, no Figma.
-4. **The barely-there label:** #6E7789 (today, 4.0:1 on a card) or #767F92 (4.5:1, looks almost the same)?
-   Recommendation: #767F92. Default: #767F92.
-5. **App buttons take the site's 46 px button?** It moves the dashboard, sheets and report bar the most.
-   Recommendation: yes. Default: yes.
-6. **Anything tagged Removed or Becomes to keep?** Say its number. Default: none.
-7. **The birth fields proposal?** Recommendation: take it. Default: take it; any field kept by its number (F1 to F4).
-8. **Card titles:** A keeps 22 and 20 px; B takes 20 px for big cards, 17 px for small cards in a grid.
-   Recommendation: B. Default: B.
-9. **ChoiceTile title:** A Space Grotesk, B Inter, C Newsreader. Recommendation: B. Default: B.
+1. R20 is the next round, planned once this locks; the first Release still goes when the Owner says promote.
+2. The small fixes show (11 px floor, 44 px taps, indigo-lt text, white button text), before and after in the report.
+3. Seen in the Design System artifact and `/admin/design`; no Figma for now.
+4. The barely-there label is #767F92. 5. App buttons take the site's 46 px button. 6. Nothing tagged Removed is kept.
+7. The birth fields proposal is taken. 8. Card titles B: 20 px big, 17 px small. 9. ChoiceTile title B: Inter.
+10. The chart is tested for consistency (Scope 8, Acceptance 9).
 
 ## Decisions to record
 
@@ -174,6 +175,7 @@ All Decided by Claude unless the Owner changes them; the rule each follows is in
     the birth fields stay, chips keep their icon slot (the Owner, 2026-10-09).
 11. Two rounds, R20 and R21; no brain change, no lab.
 12. Inter on every button (the Owner, 2026-10-09); Space Grotesk only for small labels and chips.
+13. The chart's consistency is a check plus one critical test, not screenshots compared by eye (the Owner, 2026-10-10).
 
 ## Sources (verified 2026-10-09, supported only)
 
