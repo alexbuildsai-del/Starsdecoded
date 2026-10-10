@@ -55,20 +55,6 @@
 
 :root {
   --radius: .375rem;
-
-  /* Until their cards move them onto tokens.ts, drawings still read these as `hsl(var(--x))` triplets (NatalWheel,
-     HorizonWheel, HouseRing, BuildStory, AngleGlyph, Dial, AdminSalesPage, CompatibilityPicker), and ui/button reads
-     --button-outline. Each holds its token's exact value; the round's sweep deletes the block with those readers. */
-  --background: 216 27.78% 7.06%;
-  --foreground: 222 27.78% 92.94%;
-  --card: 218.57 29.17% 9.41%;
-  --popover: 220 28.13% 12.55%;
-  --primary: 231 44.25% 55.69%;
-  --muted-foreground: 218.57 12.17% 54.9%;
-  --destructive: 0 71.98% 59.41%;
-  --brass: 39.62 55.21% 62.35%;
-  --chart-4: 195 68.97% 54.51%;
-  --button-outline: var(--color-control-edge);
 }
 
 @layer base {
@@ -291,7 +277,7 @@
   .rp-dawn .sun img { display: block; width: 100%; height: 100%; }
   .rp-dawn .warm {
     position: fixed; inset: 3.5rem 0 0; z-index: 1; pointer-events: none; opacity: calc(var(--p) * .85);
-    background: radial-gradient(120% 90% at 92% 2%, rgba(226,164,86,.30) 0%, rgba(184,120,70,.14) 34%, color-mix(in srgb, var(--color-void) 0%, transparent) 68%);
+    background: radial-gradient(120% 90% at 92% 2%, color-mix(in srgb, var(--color-brass) 30%, transparent) 0%, color-mix(in srgb, var(--color-brass-dim) 14%, transparent) 34%, color-mix(in srgb, var(--color-void) 0%, transparent) 68%);
   }
   .rp-dawn.off .sun, .rp-dawn.off .warm { display: none; }
   .rp-dawn > .body { position: relative; z-index: 2; }
@@ -319,9 +305,6 @@
   .rp-open .pct { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 28px; color: var(--paper); line-height: 1; }
   .rp-open .lab { font-family: var(--label); font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
   .rp-open .door { display: grid; justify-items: center; gap: 8px; margin-top: 4px; animation: rp-rise var(--dur-slow) var(--ease) both; }
-  .rp-open .door button { font-family: var(--label); font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--paper);
-    background: color-mix(in srgb, var(--color-indigo) 22%, transparent); border: 1px solid color-mix(in srgb, var(--color-indigo) 55%, transparent); border-radius: 999px; padding: 12px 22px; min-height: 44px; cursor: pointer; }
-  .rp-open .door button:hover, .rp-open .door button:focus-visible { background: var(--indigo); color: var(--color-on-indigo); outline: none; }
   .rp-open .door small { font-size: 12.5px; color: var(--paper-dim); }
   .rp-open .fail { font-size: 14px; color: var(--paper-dim); text-align: center; max-width: 44ch; }
   /* --- the loading grid (ADR-351): every slot at its share of the frame's height, the same on every device --- */
@@ -329,18 +312,18 @@
   .lf-wrap { height: 100%; display: flex; flex-direction: column; align-items: center; }
   .lf { position: relative; flex: 1 1 0; min-height: 0; width: 100%; max-width: 1000px; container-type: size; overflow-x: clip; padding: 0 16px; }
   .lf > * { position: absolute; left: 16px; right: 16px; margin: 0; text-align: center; min-width: 0; }
-  .lf-counter { top: 5%; height: 3%; display: flex; align-items: center; justify-content: flex-start; text-align: left; font-family: var(--label); font-size: min(11px, 2.2cqh);
+  .lf-counter { top: 5%; height: 3%; display: flex; align-items: center; justify-content: flex-start; text-align: left; font-family: var(--font-label); font-size: min(11px, 2.2cqh);
     letter-spacing: .24em; text-transform: uppercase; color: var(--color-brass); white-space: nowrap; overflow: hidden; }
-  .lf-title { top: 8%; height: 8%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-family: var(--serif); font-weight: 400;
-    font-size: min(26px, 3.4cqh); line-height: 1.15; color: var(--paper); overflow: hidden; }
+  .lf-title { top: 8%; height: 8%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-family: var(--font-display); font-weight: 400;
+    font-size: min(26px, 3.4cqh); line-height: 1.15; color: var(--color-paper); overflow: hidden; }
   .lf-title, .lf-subtitle { overflow-wrap: anywhere; text-align: left; }
   .lf-subtitle { top: 16%; height: 6%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: min(15px, 2.2cqh); line-height: 1.3;
-    color: var(--paper-dim); overflow: hidden; }
+    color: var(--color-paper-dim); overflow: hidden; }
   .lf-stage { top: 24%; height: 42%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .lf-stage > * { max-width: 100%; max-height: 100%; }
   .lf-stage > svg { width: 100%; height: 100%; }
   .lf-detail { top: 68%; height: 16%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden;
-    font-size: 14px; color: var(--paper-dim); }
+    font-size: 14px; color: var(--color-paper-dim); }
   .lf-pct { top: 86%; height: 4%; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; overflow: hidden; }
   .lf-pct .pct { font-size: min(18px, 3.4cqh); }
   .lf-pct .lab { font-size: 11px; letter-spacing: .2em; }
