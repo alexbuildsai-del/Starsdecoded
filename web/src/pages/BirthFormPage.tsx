@@ -259,8 +259,8 @@ export default function BirthFormPage() {
           />
 
           {/* "This chart is for me" toggle */}
-          <button
-            type="button"
+          <TextButton
+            bare
             // MB-163 provisional
             aria-pressed={isSelf}
             onClick={() => setIsSelf((v) => !v)}
@@ -283,7 +283,7 @@ export default function BirthFormPage() {
                 Saves this chart as yours on your profile
               </p>
             </div>
-          </button>
+          </TextButton>
 
           {ownChart && (
             <p role="status" className="rounded-card border border-indigo-lt/40 bg-indigo/14 px-4 py-3 text-ui leading-snug text-paper">

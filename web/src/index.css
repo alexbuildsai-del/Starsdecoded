@@ -167,6 +167,8 @@
   .rp-hname .k { font-family: var(--label); font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
   .rp-hname h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 3.6vw, 48px); line-height: 1.08;
     letter-spacing: -.02em; color: var(--paper); text-wrap: balance; margin: 0; }
+  /* The pair hero's two names share a row, so they scale with the screen between the page title's size and the hero's. */
+  .rp-pair-name { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4.2vw, 52px); line-height: 1.08; }
   .rp-legend { display: grid; gap: 7px; width: 100%; }
   .rp-legend .lr { display: flex; align-items: center; gap: 9px; }
   .rp-legend .k { font-family: var(--label); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); width: 52px; flex: none; }

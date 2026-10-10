@@ -13,6 +13,7 @@ import { CHAPTERS } from "@/lib/chapters";
 import { cn } from "@/lib/utils";
 import { CHAPTER_COUNT, INSIDE } from "@/site/data/inside";
 import { SAMPLE_LIVE } from "@/site/site";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 const STEP_MS = 4600;
 
@@ -93,11 +94,11 @@ export default function Inside() {
           >
             {CHAPTERS.map((chapter, i) => (
               <li key={chapter.section} role="presentation">
-                <button
+                <TextButton
+                  bare
                   ref={(el) => {
                     tabs.current[i] = el;
                   }}
-                  type="button"
                   role="tab"
                   id={`sd-toc-${i}`}
                   aria-controls={`sd-chapter-${i}`}
@@ -114,7 +115,7 @@ export default function Inside() {
                     className={cn("prog", i === cur && stepping && "run")}
                     aria-hidden="true"
                   />
-                </button>
+                </TextButton>
               </li>
             ))}
           </ol>

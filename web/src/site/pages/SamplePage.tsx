@@ -156,8 +156,8 @@ function Mark({ cite }: { cite: Cite }) {
   return (
     <>
       <mark className={cn("rp-claimed", on && "bg-indigo/18 text-paper")}>{cite.text}</mark>
-      <button
-        type="button"
+      <TextButton
+        bare
         // The number is small, so its hit area reaches past it for a thumb.
         className={cn("rp-cite relative after:absolute after:-inset-[7px] after:content-['']", on && "open")}
         aria-label={`Where line ${cite.n} comes from`}
@@ -166,7 +166,7 @@ function Mark({ cite }: { cite: Cite }) {
         onClick={(event) => toggle(cite, event.currentTarget)}
       >
         {cite.n}
-      </button>
+      </TextButton>
     </>
   );
 }
@@ -429,7 +429,7 @@ function EvidenceLayer({ open, onClose }: { open: Opened | null; onClose: (refoc
     if (!open || open.sheet || !el) return;
     const mark = open.from.getBoundingClientRect();
     markTop.current = mark.top;
-    const nav = document.querySelector(".sd-nav")?.getBoundingClientRect().bottom ?? 0;
+    const nav = document.querySelector("header[data-version=site]")?.getBoundingClientRect().bottom ?? 0;
     const below = mark.bottom + 10;
     const above = mark.top - el.offsetHeight - 10;
     const top =

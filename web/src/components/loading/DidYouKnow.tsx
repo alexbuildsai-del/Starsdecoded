@@ -23,6 +23,7 @@ import { FACTS, type Fact } from "@/lib/facts";
 import { MIRA } from "@/site/data/timeline/mira";
 import { samplePerson } from "@/site/data/people";
 import type { ChartData } from "@/types/chart";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 const DWELL_MS = 8000;
 const FADE_MS = 450;
@@ -307,9 +308,9 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
       {count > 1 && (
         <div role="group" aria-label="Facts" className="flex gap-1.5">
           {list.map((fact, i) => (
-            <button
+            <TextButton
+              bare
               key={fact.id}
-              type="button"
               aria-label={`Fact ${i + 1} of ${count}: ${fact.title}`}
               aria-current={i === at ? "true" : undefined}
               onClick={() => i !== at && go(i, true)}
@@ -324,7 +325,7 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
                   style={{ transform: "scaleX(0)" }}
                 />
               </span>
-            </button>
+            </TextButton>
           ))}
         </div>
       )}

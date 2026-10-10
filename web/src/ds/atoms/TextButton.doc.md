@@ -14,7 +14,7 @@ B6 (text-only buttons: Back to today), and the dashboard nav's B3 text actions.
 - The main action: use Button.
 
 ## Versions
-One: `indigo-lt` text, Inter 500 13.5 px, no box. `asChild` for a link.
+One: `indigo-lt` text, Inter 500 13.5 px, no box. `asChild` for a link. `bare` drops the look for a control that carries its own class (the site's tabs, a citation, a chart's stop), so the class is not overridden.
 
 ## States
 Rest, hover (`paper`), focus (2 px `focus` ring), pressed (scale is not used; colour only).

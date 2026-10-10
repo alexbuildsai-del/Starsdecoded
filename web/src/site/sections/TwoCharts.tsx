@@ -11,6 +11,7 @@ import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { TwoPlates } from "@/site/components/TwoPlates";
 import { SAMPLE_PAIRS, samplePerson } from "@/site/data/people";
 import type { Lens } from "@/types/chart";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 type LensLines = readonly [string, string, string, string, string];
 
@@ -102,13 +103,13 @@ export function PairLenses({ intro }: PairLensesProps) {
         {intro && <div className="min-w-0">{intro}</div>}
         <div role="tablist" aria-label="Who they are to you" className="sd-lenses mt-0" onKeyDown={onKeyDown}>
           {LENSES.map((l) => (
-            <button
+            <TextButton
+              bare
               key={l.lens}
               ref={(el) => {
                 if (el) tabs.current.set(l.lens, el);
                 else tabs.current.delete(l.lens);
               }}
-              type="button"
               role="tab"
               id={tabId(l.lens)}
               aria-selected={l.lens === lens}
@@ -118,7 +119,7 @@ export function PairLenses({ intro }: PairLensesProps) {
               onClick={() => choose(l.lens)}
             >
               {l.door}
-            </button>
+            </TextButton>
           ))}
         </div>
       </div>

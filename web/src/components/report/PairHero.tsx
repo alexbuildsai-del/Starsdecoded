@@ -65,7 +65,7 @@ function dateText(birthDate: string): string {
   return Number.isNaN(d.getTime()) ? birthDate : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-const NAME_CLASS = "font-display font-normal text-[clamp(28px,4.2vw,52px)] leading-[1.08] text-paper";
+const NAME_CLASS = "rp-pair-name text-paper";
 
 /** One person's column: the name once, then the three rows at today's sizes. */
 function Column({ person, detail }: { person: PairPerson; detail: "degree" | "full" }) {

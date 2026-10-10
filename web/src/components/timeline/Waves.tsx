@@ -23,6 +23,7 @@ import {
   type WaveLine,
   type WaveMarkKind,
 } from "@/lib/life-view";
+import { TextButton } from "@/ds/atoms/TextButton";
 
 const DOT_SIZE: Readonly<Record<WaveMarkKind, string>> = {
   return: "h-2.5 w-2.5",
@@ -79,8 +80,8 @@ function Dot({
     return <i aria-hidden className={`absolute block -translate-x-1/2 -translate-y-1/2 rounded-full ${look}`} style={place} />;
   }
   return (
-    <button
-      type="button"
+    <TextButton
+      bare
       aria-label={`${bodyName(line.body)} ${KIND_WORD[kind]}, age ${Math.floor(age)}`}
       aria-pressed={chosen}
       onPointerDown={(e) => e.stopPropagation()}
