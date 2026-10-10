@@ -4,7 +4,7 @@
 Organism.
 
 ## What it replaces
-`ui/alert-dialog` (Delete report, O15, and the admin's End and Remove) and the consent sheet frame (Stop sharing O16, Hand it back O17). `ui/alert-dialog` stays as a re-export.
+`ui/alert-dialog` (Delete report, O15, and the admin's End and Remove) and the consent sheet frame (Stop sharing O16, Hand it back O17).
 
 ## Use it for
 - A step that cannot be undone, with Cancel beside it.

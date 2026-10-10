@@ -4,7 +4,7 @@ Level: organism. The one natal chart: `buildScene(chart, state, size)` says what
 
 ## What it replaces
 
-`components/chart/NatalWheel.tsx` (now a re-export of `NatalWheel` here, its props mapped onto a state) and, as group 3 moves them, every other drawing in EveryChart.
+`components/chart/NatalWheel.tsx` (now `NatalWheel` here, its props mapped onto a state) and, as group 3 moves them, every other drawing in EveryChart.
 
 ## Use it for
 

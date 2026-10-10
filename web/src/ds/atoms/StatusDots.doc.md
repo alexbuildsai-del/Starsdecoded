@@ -4,7 +4,7 @@
 Atom.
 
 ## What it replaces
-W1 and W2: the three dots after a word wherever a button or row is busy (Writing, Starting, Paying, Stopping) and the checks on the gift claim and admin pages. W3 becomes a busy Button. The old path `components/StatusDots` re-exports this file until group 3 has switched every import.
+W1 and W2: the three dots after a word wherever a button or row is busy (Writing, Starting, Paying, Stopping) and the checks on the gift claim and admin pages. W3 becomes a busy Button.
 
 ## Use it for
 - Inside a busy button, a busy row, a short wait.

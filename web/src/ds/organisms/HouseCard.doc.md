@@ -4,7 +4,7 @@
 Organism.
 
 ## Replaces
-`components/report/HouseCard.tsx` (now a one-line re-export): RP27, the phone deck's card and the desktop's whole card; RP32, the Add birth time card; and RP51, the planet row R19-48 removed, restored.
+`components/report/HouseCard.tsx` (deleted at R20's sweep): RP27, the phone deck's card and the desktop's whole card; RP32, the Add birth time card; and RP51, the planet row R19-48 removed, restored.
 
 ## Use it for
 - One house in chapter 02, House by House: the house and its sign, the planet row, the full title (ADR-98), the chart ruler on the 1st or the quiet line on an empty house, the reading, its blocks (ReportBlocks), Does this sound like you?

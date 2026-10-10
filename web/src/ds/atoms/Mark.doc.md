@@ -9,4 +9,4 @@ The wheel, its horizon line and the Ascendant as a brass point on the left (logo
 - Redraw it, add a gradient or a glow, or recolour the point.
 
 ## Versions today and after
-20 px in a bar, 64 px for big moments. The paths are today's, unchanged. `components/Mark.tsx` re-exports this part.
+20 px in a bar, 64 px for big moments. The paths are today's, unchanged.

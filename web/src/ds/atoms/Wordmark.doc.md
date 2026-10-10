@@ -7,4 +7,4 @@ The Mark beside "Stars Decoded" in Newsreader. The one Wordmark for every bar an
 
 ## Versions today and after
 Replaces the site bar's own copy (`sd-word`) and the report's name in the print header when group 3 switches imports.
-`components/Wordmark.tsx` re-exports this part.
+Was `components/Wordmark.tsx`.

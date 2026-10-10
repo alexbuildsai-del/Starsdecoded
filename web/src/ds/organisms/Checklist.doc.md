@@ -4,7 +4,7 @@
 Organism.
 
 ## Replaces
-`components/report/Checklist.tsx` (now a one-line re-export): RP22 and CP13, every thing to try in both reports, /sample, the Differences cards and the dashboard's practising list.
+`components/report/Checklist.tsx` (deleted at R20's sweep): RP22 and CP13, every thing to try in both reports, /sample, the Differences cards and the dashboard's practising list.
 
 ## Use it for
 - A heading in the list's colour (the chapter accent, teal outside a report) over rows, each a surface card with a TickBox, the action, and the why as its own sentence.

@@ -15,4 +15,4 @@ The one bar, moved only by real work (ADR-394), with its percentage and what is 
 - `role="progressbar"` with `aria-valuenow` and `aria-valuetext` from `line`. Reduced motion shows the bar without the slide.
 
 ## Versions today and after
-W6 kept as is; was `ProgressBar`, whose old path re-exports this part.
+W6 kept as is; was `ProgressBar`.

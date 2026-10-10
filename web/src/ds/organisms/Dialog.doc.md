@@ -4,7 +4,7 @@
 Organism.
 
 ## What it replaces
-The Share window frame (O11) becomes the standard, and `ui/dialog` (Add birth time, O14), the pair picker (O12) and the waitlist box (O18) take it. `ui/dialog` stays as a re-export. The home chart screen (O19) and Ask (O13) are kept as they are.
+The Share window frame (O11) becomes the standard, and `ui/dialog` (Add birth time, O14), the pair picker (O12) and the waitlist box (O18) take it. The home chart screen (O19) and Ask (O13) are kept as they are.
 
 ## Use it for
 - A task that needs a few fields or a short list and then closes (Share, Add birth time, Two people together).

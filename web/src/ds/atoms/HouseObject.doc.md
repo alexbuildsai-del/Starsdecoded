@@ -4,7 +4,7 @@ Level: atom. The twelve house objects (ADR-321), one line drawing per house on a
 
 ## What it replaces
 
-`components/chart/HouseObject.tsx`, now a re-export of this file.
+`components/chart/HouseObject.tsx`, deleted at R20's sweep.
 
 ## Use it for
 

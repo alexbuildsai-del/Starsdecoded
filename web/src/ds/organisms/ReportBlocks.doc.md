@@ -4,7 +4,7 @@
 Organism.
 
 ## Replaces
-`components/report/HouseBlocks.tsx` (now a one-line re-export): RP28, the blocks under a house reading.
+`components/report/HouseBlocks.tsx` (deleted at R20's sweep): RP28, the blocks under a house reading.
 
 ## Use it for
 - Inside a HouseCard, between the reading and Does this sound like you?, in R19's order: Often noticed, the stellium block, one block per body going backwards (ADR-396 to 403).

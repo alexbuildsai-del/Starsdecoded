@@ -21,4 +21,4 @@ The birth date, the birth time and the birth place: the same fields and rules as
 - The suggestion list and the chosen-place card appear at once under reduced motion.
 
 ## Versions today and after
-F1 the date, F2 the time, F3 the part-of-day select (now four pills), F4 the place with Search: one part, `BirthFields`. The old component files re-export from here.
+F1 the date, F2 the time, F3 the part-of-day select (now four pills), F4 the place with Search: one part, `BirthFields`. The old component files are gone.
