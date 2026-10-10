@@ -47,6 +47,7 @@ failure, escalation, sentinel finding and QA sev-1 to its card (agent-roster sco
 - R20 · R20-01, R20-26, R20-28 · the class merger in `cn()` did not know the token text sizes and silently dropped them beside a colour class · - · -
 - R20 · R20-03 · token names used as Tailwind utilities (`duration-fast`) that Tailwind 4 makes no CSS for, so the motion silently vanished · - · -
 - R20 · R20-04, R20-24, R20-35 · builders had no admin or signed-in session for real shots, so admin and account screens went unseen until the close · - · -
+- R20 · R20-20, R20-29, R20-30 · the Chart port dropped behaviour only e2e checks (planet focus ring), and the local Inter install hid a font-swap layout shift; both were found only on the PR because group pushes' site checks went unread · - · -
 
 ## Promoted
 The planner reads this section before it plans, and its rules bind the plan (ADR-195). The orchestrator checks the plan against
