@@ -50,24 +50,6 @@ export function RowChip({ tone, children }: { tone: keyof typeof DOT; children: 
 export const MENU_ITEM = cn(buttonStyles({ variant: "secondary", size: "compact" }), "relative z-10");
 export const MENU_DANGER = cn(buttonStyles({ variant: "danger", size: "compact" }), "relative z-10");
 
-/**
- * A dialog a row opens from state has no trigger for Radix to give focus back
- * to, so it goes back to whatever opened it, while that is still on the page.
- */
-export function useOpenerFocus() {
-  const opener = useRef<HTMLElement | null>(null);
-  return {
-    onOpenAutoFocus: () => {
-      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    },
-    onCloseAutoFocus: (event: Event) => {
-      if (!opener.current?.isConnected) return;
-      event.preventDefault();
-      opener.current.focus();
-    },
-  };
-}
-
 export function MenuItem({ onSelect, children }: { onSelect: () => void; children: ReactNode }) {
   return (
     <Button size="compact" variant="secondary" onClick={onSelect} className="relative z-10">

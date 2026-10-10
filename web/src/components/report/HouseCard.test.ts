@@ -7,7 +7,7 @@ import { PLANET_LABELS, type ChartData } from "@/types/chart";
 import { HOUSE_NUMBERS, goesBackwards } from "@/lib/house-deck";
 import { houseOccupants, midheavenHouse } from "@/lib/house-occupants";
 import { houseOf } from "@/components/chart/wheel-geometry";
-import { chartRuler, planetRow } from "./HouseCard";
+import { chartRuler, planetRow } from "@/ds/organisms/HouseCard";
 
 const drawn = calculateNatalChart(
   audrey.birthDate, audrey.birthTime, audrey.latitude, audrey.longitude, audrey.timezone, 0,

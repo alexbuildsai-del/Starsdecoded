@@ -1,4 +1,4 @@
-import { NatalWheel } from "@/components/chart/NatalWheel";
+import { NatalWheel } from "@/ds/organisms/chart/NatalWheel";
 import { SignRing } from "@/ds/atoms/SignRing";
 import { exampleCharts } from "@/ds/atoms/TriadRing.example";
 

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Wordmark } from "@/components/Wordmark";
+import { Wordmark } from "@/ds/atoms/Wordmark";
 import { ClerkStalledPage } from "@/components/ClerkStalled";
 import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { BASE_URL } from "@/lib/api";
