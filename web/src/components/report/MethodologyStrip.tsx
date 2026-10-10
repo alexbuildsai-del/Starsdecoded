@@ -1,4 +1,5 @@
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/ds/organisms/Sheet";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { MethodologyBox } from "@/components/MethodologyBox";
 import { HOUSE_SYSTEM_PARAGRAPHS, HouseSystemSheet } from "@/components/report/HouseSystemSheet";
 import type { ChartData, HorizonPass, Interpretation } from "@/types/chart";
@@ -39,19 +40,21 @@ export function MethodologyStrip({ meta, chart, birthTime, pass }: {
 }) {
   const line = horizonLine(meta, chart, birthTime);
   return (
-    <footer className="mt-12 border-t border-border/50 pt-4">
+    <footer className="mt-12 border-t border-line pt-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 no-print">
-        <p className="font-numeric text-[11px] text-muted-foreground">
+        <p className="font-numeric text-data-sm text-muted">
           {meta.houseSystem} · {meta.zodiac} · {meta.ephemeris}{line ? ` · ${line}` : ""}
         </p>
-        {pass && <p className="font-numeric text-[11px] text-brass/80">{passLine(pass)}</p>}
+        {pass && <p className="font-numeric text-data-sm text-brass">{passLine(pass)}</p>}
         <Sheet>
-          <SheetTrigger className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-border">
-            Method
+          <SheetTrigger asChild>
+            <TextButton className="text-muted underline decoration-line underline-offset-4 hover:text-paper">
+              <span className="font-label text-data-sm uppercase">Method</span>
+            </TextButton>
           </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetContent side="right" className="w-full overflow-y-auto">
             <SheetHeader>
-              <SheetTitle className="font-display text-xl">How this was computed</SheetTitle>
+              <SheetTitle>How this was computed</SheetTitle>
               <SheetDescription className="sr-only">
                 House system, zodiac, ephemeris, orbs, sect and evidence.
               </SheetDescription>
@@ -63,14 +66,14 @@ export function MethodologyStrip({ meta, chart, birthTime, pass }: {
       </div>
       {/* The PDF has no slide-over, so the same words print inline. */}
       <div className="hidden print:block space-y-3">
-        <p className="font-numeric text-[11px]">{line}</p>
-        {pass && <p className="font-numeric text-[11px]">{passLine(pass)}</p>}
+        <p className="font-numeric text-data-sm">{line}</p>
+        {pass && <p className="font-numeric text-data-sm">{passLine(pass)}</p>}
         <MethodologyBox meta={meta} horizonLine={line} />
-        <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+        <p className="font-label text-label uppercase text-muted">
           Whole sign houses
         </p>
         {HOUSE_SYSTEM_PARAGRAPHS.map((p, i) => (
-          <p key={i} className="text-sm leading-relaxed text-foreground/80">{p}</p>
+          <p key={i} className="text-ui text-paper-dim">{p}</p>
         ))}
       </div>
     </footer>

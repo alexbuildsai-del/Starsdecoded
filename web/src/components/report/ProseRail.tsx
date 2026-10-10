@@ -3,7 +3,7 @@
  * carries. Beside prose, inside a card (ADR-24) — this is the beside half, so
  * it holds a checklist and a short list, and never prose of its own.
  */
-import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
+import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/ds/organisms/Checklist";
 import type { ListedItem } from "@/types/chart";
 
 /** The two registers, each with the label the lock gives it. */
@@ -20,13 +20,13 @@ export function ProseRail({
     <div>
       {checklist && <Checklist heading={checklist.heading} items={checklist.items} pinnable />}
       {listHeading && listItems?.length ? (
-        <div className="mt-[18px] max-w-[64ch] border-t border-[var(--line-soft)] pt-3">
+        <div className="mt-[18px] max-w-[64ch] border-t border-line-soft pt-3">
           <span className="rp-lab">{listHeading}</span>
           <ul className="mt-2 grid gap-2.5">
             {listItems.map((item) => (
-              <li key={item.item} className="text-sm leading-[1.55] text-[rgba(232,235,242,.84)]">
+              <li key={item.item} className="text-ui text-paper">
                 {item.item}
-                <span className="text-[var(--paper-dim)]">: {item.reason}</span>
+                <span className="text-paper-dim">: {item.reason}</span>
               </li>
             ))}
           </ul>

@@ -17,10 +17,12 @@ import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetReportQueryKey, getListReportsQueryKey, useStopSharingCompatibility } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
+import { tokens } from "@workspace/design";
+import { Button } from "@/ds/atoms/Button";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { AccountMenu } from "@/components/AccountMenu";
 import LoadingState from "@/components/LoadingState";
-import { NatalWheel } from "@/components/chart/NatalWheel";
+import { NatalWheel } from "@/ds/organisms/chart/NatalWheel";
 import { ShareWindow } from "@/components/share/ShareWindow";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
@@ -48,11 +50,11 @@ import { isCurrentPairInterpretation, lensChapterOf, sceneTitleOf, type ChartDat
 // Ask's chat brings Timeline's pieces and the sky engine with it, so a reader without Timeline never downloads them.
 const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
-const OPENING_ACCENT = "#5C6BC0";
+const OPENING_ACCENT = tokens.color["chapter-1"];
 
 function Centred({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-ground flex items-center justify-center">
       <div className="text-center max-w-md px-6">{children}</div>
     </div>
   );
@@ -93,8 +95,8 @@ export default function CompatibilityReportPage() {
   if (live.isError || !report || report.type !== "compatibility") {
     return (
       <Centred>
-        <p className="text-muted-foreground mb-4">Report not found.</p>
-        <Button onClick={() => navigate("/dashboard")} variant="outline">Dashboard</Button>
+        <p className="text-muted mb-4">Report not found.</p>
+        <Button onClick={() => navigate("/dashboard")} variant="secondary">Dashboard</Button>
       </Centred>
     );
   }
@@ -103,8 +105,8 @@ export default function CompatibilityReportPage() {
   if (!writing && interpretation && !isCurrentPairInterpretation(interpretation)) {
     return (
       <Centred>
-        <p className="text-muted-foreground mb-4">This report was written with an earlier version and is no longer available. Write a new one from the dashboard.</p>
-        <Button onClick={() => navigate("/dashboard")} variant="outline">Dashboard</Button>
+        <p className="text-muted mb-4">This report was written with an earlier version and is no longer available. Write a new one from the dashboard.</p>
+        <Button onClick={() => navigate("/dashboard")} variant="secondary">Dashboard</Button>
       </Centred>
     );
   }
@@ -173,16 +175,16 @@ export default function CompatibilityReportPage() {
 
       {!showOverlay && <nav
         className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
-          onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
+          onHero ? "border-transparent bg-transparent" : "border-line bg-ground/90 backdrop-blur-md"
         }`}
       >
         <div className="max-w-[880px] mx-auto px-6 h-14 flex items-center justify-between">
-          <button onClick={() => navigate("/dashboard")} className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-sm font-label">
+          <TextButton onClick={() => navigate("/dashboard")} className="text-muted">
             <ArrowLeft className="h-4 w-4" />
-            Dashboard
-          </button>
+            <span className="font-label text-ui">Dashboard</span>
+          </TextButton>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={writing} onClick={() => window.print()} className="font-label text-xs gap-1.5">
+            <Button variant="secondary" size="compact" disabled={writing} onClick={() => window.print()} className="gap-1.5">
               <Download className="h-3.5 w-3.5" />
               {writing ? "Writing…" : "Export PDF"}
             </Button>

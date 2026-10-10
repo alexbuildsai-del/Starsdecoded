@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { TextButton } from "@/ds/atoms/TextButton";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 export interface RailChapter {
@@ -90,23 +91,22 @@ export function ChapterRail({
     <>
       <nav className="rp-rail no-print" aria-label="Chapters">
         {chapters.map((c, i) => (
-          <button
+          <TextButton
             key={c.title}
-            type="button"
-            className={active === i ? "on" : ""}
+            className={`min-h-0 gap-[9px] px-0 py-0.5 ${active === i ? "on text-paper" : "text-muted hover:text-muted"}`}
             aria-current={active === i ? "true" : undefined}
             onClick={() => jump(i)}
             aria-busy={c.writing || c.revising ? "true" : undefined}
           >
             <i />
-            <span>
+            <span className="font-label text-label uppercase">
               {c.eyebrow}
               {c.revising ? <span className="opacity-60"> · revising</span> : c.writing && <span className="opacity-60"> · writing</span>}
             </span>
-          </button>
+          </TextButton>
         ))}
         {revision && (
-          <span className="mt-1 font-numeric text-[9px] tracking-[0.04em] text-[var(--muted)] whitespace-nowrap">
+          <span className="mt-1 font-numeric text-data-sm text-muted whitespace-nowrap">
             {revisionLine(revision)}
           </span>
         )}

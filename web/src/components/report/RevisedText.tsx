@@ -7,8 +7,9 @@
  * never from a diff made here, and every prose renderer reads them through
  * one context so no chapter has to know.
  */
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/ds/organisms/ClaimPopover";
+import { Sheet, SheetContent, SheetTitle } from "@/ds/organisms/Sheet";
 import type { HorizonPass, RevisionMark, SectionAddition } from "@/types/chart";
 import { withHouseWords } from "@/lib/evidence-glossary";
 
@@ -53,71 +54,83 @@ function isCoarsePointer(): boolean {
 /** The kinds a chip colours brass: measured geometry. */
 const BRASS_KINDS = new Set(["angle", "lot"]);
 
+// The same shell as ClaimPopover's evidence card (the .rp-card type and tokens), placed by Radix; the narrow-screen
+// fixed placement is switched off because Radix places the card and the Sheet is the phone version.
+const CARD = "rp-card !static !w-[min(344px,calc(100vw-32px))] !max-h-none !overflow-visible !rounded-card";
+const IN_SHEET = "rp-card !static !w-full !max-h-none !overflow-visible !rounded-none !border-0 !bg-transparent !p-0 !shadow-none";
+
+function RevisionCard({ mark }: { mark: RevisionMark }) {
+  return (
+    <>
+      <p className="before"><span className="sr-only">Before: </span>{mark.before}</p>
+      <p className="now"><span className="sr-only">Now: </span>{mark.now}</p>
+      <div className="chips" aria-label="Because">
+        {mark.evidence.map((e, i) => (
+          <span key={i} className={`chip ${BRASS_KINDS.has(e.ref.kind) ? e.ref.kind : ""}`}>{withHouseWords(e.label)}</span>
+        ))}
+      </div>
+      <div className="foot">Because · your birth time</div>
+    </>
+  );
+}
+
 export function RevisedSpan({ mark, children }: { mark: RevisionMark; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const [coarse, setCoarse] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number | null>(null);
-  const close = useCallback(() => setOpen(false), []);
+  const markRef = useRef<HTMLButtonElement>(null);
   const cancelClose = useCallback(() => { if (closeTimer.current !== null) { window.clearTimeout(closeTimer.current); closeTimer.current = null; } }, []);
   const closeSoon = useCallback(() => { cancelClose(); closeTimer.current = window.setTimeout(() => setOpen(false), 160); }, [cancelClose]);
   useEffect(() => cancelClose, [cancelClose]);
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    const c = isCoarsePointer();
-    setCoarse(c);
-    if (c) { setPos(null); return; }
-    const r = ref.current?.getBoundingClientRect();
-    const card = cardRef.current;
-    if (!r || !card) return;
-    const w = card.offsetWidth, h = card.offsetHeight;
-    const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
-    const top = r.top - h - 10 < 12 ? r.bottom + 10 : r.top - h - 10;
-    setPos({ left, top });
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (cardRef.current?.contains(t) || ref.current?.contains(t)) return;
-      close();
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onDown);
-    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("mousedown", onDown); };
-  }, [open, close]);
+  const change = useCallback((next: boolean) => {
+    if (next) setCoarse(isCoarsePointer());
+    setOpen(next);
+  }, []);
 
   return (
-    <span onMouseEnter={() => { if (!isCoarsePointer()) { cancelClose(); setOpen(true); } }} onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }}>
-      <button
-        ref={ref}
-        type="button"
-        className={`rp-rev${open ? " open" : ""}`}
-        aria-expanded={open}
-        aria-label="Revised with your birth time. Show what changed."
-        onClick={() => setOpen((o) => !o)}
-      >
-        {children}
-        <span className="tag no-print" aria-hidden>revised</span>
-      </button>
-      {open && createPortal(
-        <div ref={cardRef} role="dialog" aria-label="What changed" className="rp-card" onMouseEnter={cancelClose} onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }} style={coarse || !pos ? undefined : { left: pos.left, top: pos.top }}>
-          <p className="before"><span className="sr-only">Before: </span>{mark.before}</p>
-          <p className="now"><span className="sr-only">Now: </span>{mark.now}</p>
-          <div className="chips" aria-label="Because">
-            {mark.evidence.map((e, i) => (
-              <span key={i} className={`chip ${BRASS_KINDS.has(e.ref.kind) ? e.ref.kind : ""}`}>{withHouseWords(e.label)}</span>
-            ))}
+    <span
+      onMouseEnter={() => { if (!isCoarsePointer()) { cancelClose(); setCoarse(false); setOpen(true); } }}
+      onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }}
+    >
+      <Popover open={open && !coarse} onOpenChange={change}>
+        <PopoverTrigger
+          ref={markRef}
+          className={`rp-rev${open ? " open" : ""}`}
+          aria-expanded={open}
+          aria-label="Revised with your birth time. Show what changed."
+        >
+          {children}
+          <span className="tag no-print" aria-hidden>revised</span>
+        </PopoverTrigger>
+        <PopoverContent
+          role="dialog"
+          aria-label="What changed"
+          side="top"
+          avoidCollisions
+          className={CARD}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onMouseEnter={cancelClose}
+          onMouseLeave={() => closeSoon()}
+        >
+          <RevisionCard mark={mark} />
+        </PopoverContent>
+      </Popover>
+      <Sheet open={open && coarse} onOpenChange={change}>
+        <SheetContent
+          side="bottom"
+          aria-describedby={undefined}
+          // The mark is not a SheetTrigger, so Radix has nowhere to return focus to.
+          onCloseAutoFocus={(e) => { e.preventDefault(); markRef.current?.focus(); }}
+          className="max-h-[70vh] overflow-y-auto pb-[calc(18px+env(safe-area-inset-bottom,0px))]"
+        >
+          <SheetTitle className="sr-only">What changed</SheetTitle>
+          <div className={IN_SHEET}>
+            <RevisionCard mark={mark} />
           </div>
-          <div className="foot">Because · your birth time</div>
-        </div>,
-        document.body,
-      )}
+        </SheetContent>
+      </Sheet>
     </span>
   );
 }
