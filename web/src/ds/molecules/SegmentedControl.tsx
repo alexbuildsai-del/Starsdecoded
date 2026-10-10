@@ -47,7 +47,7 @@ export function SegmentedControl<const T extends string>({ options, value, onCha
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(id)}
             className={cn(
-              "relative min-h-9 rounded-inner px-3 font-label text-[13px] font-medium transition-colors duration-fast ease-[var(--ease)]",
+              "relative min-h-9 rounded-inner px-3 font-label text-[13px] font-medium transition-colors duration-(--dur-fast) ease-[var(--ease)]",
               "after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-lt",
               on ? "bg-raised text-paper" : "text-muted hover:text-paper",

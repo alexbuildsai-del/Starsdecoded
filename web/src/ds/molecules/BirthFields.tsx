@@ -41,7 +41,7 @@ const ENTRY_FIELD = "font-numeric";
 
 // The chosen choice in a row of pills or tiles: Chip's selected look.
 const CHOSEN = "border-indigo bg-indigo/20 text-paper";
-const PILL = "flex min-h-11 cursor-pointer select-none items-center rounded-pill border px-4 text-sm transition-colors duration-fast has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus";
+const PILL = "flex min-h-11 cursor-pointer select-none items-center rounded-pill border px-4 text-sm transition-colors duration-(--dur-fast) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus";
 
 export interface BirthDateFieldProps {
   id: string;
@@ -361,7 +361,7 @@ export function BirthTimeControl({
           <label
             key={m}
             className={cn(
-              "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus cursor-pointer rounded-card border px-4 py-3 transition-colors duration-fast",
+              "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus cursor-pointer rounded-card border px-4 py-3 transition-colors duration-(--dur-fast)",
               value.mode === m ? CHOSEN : "border-control-edge hover:border-indigo-lt",
             )}
           >

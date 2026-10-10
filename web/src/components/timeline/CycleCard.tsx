@@ -96,7 +96,7 @@ export function CycleCard({ cycle, compact = false, onOpen, science, meaning }: 
   return (
     <Card
       as="article"
-      className={`relative grid min-w-0 p-3.5 sm:p-3.5${onOpen ? " transition-colors duration-base ease-[var(--ease)] hover:bg-raised" : ""}`}
+      className={`relative grid min-w-0 p-3.5 sm:p-3.5${onOpen ? " transition-colors duration-(--dur-base) ease-[var(--ease)] hover:bg-raised" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <Chip>{cycle.word}</Chip>

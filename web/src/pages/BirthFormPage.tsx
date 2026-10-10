@@ -265,12 +265,12 @@ export default function BirthFormPage() {
             aria-pressed={isSelf}
             onClick={() => setIsSelf((v) => !v)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-card border px-4 py-3.5 text-left transition-colors duration-fast ease-[var(--ease)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+              "flex w-full items-center gap-3 rounded-card border px-4 py-3.5 text-left transition-colors duration-(--dur-fast) ease-[var(--ease)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
               isSelf ? "border-indigo-lt/40 bg-indigo/14" : "border-control-edge bg-surface hover:border-indigo-lt",
             )}
           >
             <div className={cn(
-              "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-inner border-2 transition-colors duration-fast",
+              "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-inner border-2 transition-colors duration-(--dur-fast)",
               isSelf ? "border-indigo bg-indigo" : "border-control-edge bg-transparent",
             )}>
               {isSelf && <Check className="h-3 w-3 text-on-indigo" />}

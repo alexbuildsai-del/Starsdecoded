@@ -490,7 +490,7 @@ export default function CheckoutPage() {
             <svg
               viewBox="0 0 24 24"
               aria-hidden
-              className="pointer-events-none absolute h-[13px] w-[13px] opacity-0 transition-opacity duration-fast peer-checked:opacity-100"
+              className="pointer-events-none absolute h-[13px] w-[13px] opacity-0 transition-opacity duration-(--dur-fast) peer-checked:opacity-100"
               fill="none"
               stroke={c["on-indigo"]}
               strokeWidth={3}

@@ -20,7 +20,7 @@ import { first } from "@/lib/share-card";
 const ROW =
   "m-0 grid list-none auto-cols-[86%] grid-flow-col gap-2.5 overflow-x-auto p-px pb-1 snap-x snap-mandatory [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin] min-[768px]:auto-cols-[minmax(260px,calc((100%-20px)/3))] max-[767px]:[scrollbar-width:none] max-[767px]:[&::-webkit-scrollbar]:hidden";
 const CARD =
-  "relative h-full content-start transition-colors duration-fast ease-[var(--ease)] hover:border-indigo-lt/45 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-focus motion-reduce:transition-none";
+  "relative h-full content-start transition-colors duration-(--dur-fast) ease-[var(--ease)] hover:border-indigo-lt/45 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-focus motion-reduce:transition-none";
 
 // MB-103 provisional: a pair closed by a stop shows nothing of itself. A failed one, or one without chapter 01 yet,
 // has nothing to show; each keeps its row under Compatibility.

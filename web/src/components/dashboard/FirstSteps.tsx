@@ -117,7 +117,7 @@ export function FirstSteps({ steps, onAddSomeone, onMakePair, onHide }: FirstSte
       </div>
       <div aria-hidden="true" className="h-1 overflow-hidden rounded-pill bg-line">
         <div
-          className="h-full rounded-pill bg-indigo transition-[width] duration-slow ease-[var(--ease)] motion-reduce:transition-none"
+          className="h-full rounded-pill bg-indigo transition-[width] duration-(--dur-slow) ease-[var(--ease)] motion-reduce:transition-none"
           style={{ width: `${view.done * 25}%` }}
         />
       </div>

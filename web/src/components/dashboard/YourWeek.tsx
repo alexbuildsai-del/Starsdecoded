@@ -85,7 +85,7 @@ export function YourWeek({ week, zone }: YourWeekProps) {
           <WeekBars week={week} zone={zone} />
           <Link
             href="/dashboard/timeline"
-            className="justify-self-start rounded-inner text-button-compact text-indigo-lt transition-colors duration-fast hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus"
+            className="justify-self-start rounded-inner text-button-compact text-indigo-lt transition-colors duration-(--dur-fast) hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus"
           >
             Open Timeline <span aria-hidden="true">→</span>
           </Link>

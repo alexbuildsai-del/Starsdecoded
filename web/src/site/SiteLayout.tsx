@@ -52,7 +52,7 @@ export function PageHead({ page, children }: { page: PageEntry; children?: React
 }
 
 const MENU_ROW =
-  "flex min-h-11 items-center rounded-inner px-3 py-2 text-ui text-paper-dim no-underline outline-none transition-colors duration-fast ease-[var(--ease)] hover:bg-surface hover:text-paper aria-[current=page]:text-paper motion-reduce:transition-none";
+  "flex min-h-11 items-center rounded-inner px-3 py-2 text-ui text-paper-dim no-underline outline-none transition-colors duration-(--dur-fast) ease-[var(--ease)] hover:bg-surface hover:text-paper aria-[current=page]:text-paper motion-reduce:transition-none";
 
 function PhoneMenu({ here }: { here: PagePath }) {
   const menu = useRef<HTMLDetailsElement>(null);
@@ -83,7 +83,7 @@ function PhoneMenu({ here }: { here: PagePath }) {
 
   return (
     <details className="group relative min-[901px]:hidden" ref={menu} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="relative grid size-9 cursor-pointer list-none place-items-center rounded-control border border-control-edge text-paper transition-colors duration-fast ease-[var(--ease)] after:absolute after:-inset-1 after:content-[''] hover:border-indigo-lt motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+      <summary className="relative grid size-9 cursor-pointer list-none place-items-center rounded-control border border-control-edge text-paper transition-colors duration-(--dur-fast) ease-[var(--ease)] after:absolute after:-inset-1 after:content-[''] hover:border-indigo-lt motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
         <span className="sr-only">Menu</span>
         <svg className="size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] group-open:hidden" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16" />

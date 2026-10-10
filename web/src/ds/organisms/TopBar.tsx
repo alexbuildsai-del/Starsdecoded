@@ -32,7 +32,7 @@ export function TopBar({ version = "app", left, centre, right, seeThrough = fals
     <header
       data-version={version}
       className={cn(
-        "no-print border-b transition-colors duration-slow ease-[var(--ease)] motion-reduce:transition-none",
+        "no-print border-b transition-colors duration-(--dur-slow) ease-[var(--ease)] motion-reduce:transition-none",
         SHELL[version],
         seeThrough ? "border-transparent bg-transparent" : "border-line/55 bg-ground/80 backdrop-blur-md",
         className,

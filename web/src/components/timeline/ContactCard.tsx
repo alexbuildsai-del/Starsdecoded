@@ -55,7 +55,7 @@ export function ContactCard({ contact, onOpen }: { contact: ContactView; onOpen?
       as="article"
       variant="tone"
       tone={edge.tone}
-      className={`relative grid gap-1.5 p-3.5 sm:p-3.5 ${edge.className ?? ""}${onOpen ? " transition-colors duration-base ease-[var(--ease)] hover:bg-raised" : ""}`}
+      className={`relative grid gap-1.5 p-3.5 sm:p-3.5 ${edge.className ?? ""}${onOpen ? " transition-colors duration-(--dur-base) ease-[var(--ease)] hover:bg-raised" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">

@@ -105,7 +105,7 @@ export function ListRow({ initials, violet = false, title, href, sub, moreLabel,
       className={cn(
         // A short row beside a taller one in two columns keeps its lines at the top.
         "relative grid h-full content-start gap-2.5 p-3 sm:p-3",
-        href && "transition-colors duration-fast ease-[var(--ease)] hover:border-indigo-lt/45 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-focus motion-reduce:transition-none",
+        href && "transition-colors duration-(--dur-fast) ease-[var(--ease)] hover:border-indigo-lt/45 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-focus motion-reduce:transition-none",
       )}
     >
       <div className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5">
