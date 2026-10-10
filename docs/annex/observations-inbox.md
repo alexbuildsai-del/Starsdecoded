@@ -65,7 +65,7 @@ core is already in the table says so.
 | No placement | Past lives, karma, the vertex and the Part of Fortune as fate | @the_innercosmos | Fate is the whole claim. |
 | No placement | Synastry, composite charts and claims made for one gender | @the_innercosmos | Out of scope (review-08-10). |
 | No placement | 2026 forecasts, transits and eclipses (25 videos) | @the_innercosmos | Forecasts, not a placement. |
-| No placement | The house your Sun is in is where you get your physical energy, and you run low fast when you neglect it | @solarflareastrology | No single placement. Its plain core rides in the Sun in the 7th and 10th rows. |
+| No placement | The house your Sun is in is where you get your physical energy, and you run low fast when you neglect it | @solarflareastrology | No single placement. Its plain core rides in the Sun in the 7th and 10th rows. Kept as a Did you know idea (explain-voice-study.md, row 46) and a post idea on the Content board. |
 
 ## Read
 
